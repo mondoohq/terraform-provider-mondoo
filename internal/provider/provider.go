@@ -102,6 +102,7 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 	return []func() resource.Resource{
 		NewSpaceResource,
 		NewServiceAccountResource,
+		NewIntegrationOciTenantResource,
 	}
 }
 
