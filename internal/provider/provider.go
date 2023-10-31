@@ -101,6 +101,7 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewSpaceResource,
+		NewServiceAccountResource,
 	}
 }
 
