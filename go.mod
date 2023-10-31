@@ -3,14 +3,13 @@ module go.mondoo.com/terraform-provider-mondoo
 go 1.21
 
 require (
-	github.com/hashicorp/copywrite v0.16.4
+	github.com/hashicorp/copywrite v0.16.6
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-framework v1.3.5
 	github.com/hashicorp/terraform-plugin-go v0.18.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.5.1
 	go.mondoo.com/mondoo-go v0.0.0-20231003201540-9988d4953ca2
-	golang.org/x/oauth2 v0.12.0
 )
 
 require (
@@ -106,6 +105,7 @@ require (
 	golang.org/x/exp v0.0.0-20230809150735-7b3493d9a819 // indirect
 	golang.org/x/mod v0.11.0 // indirect
 	golang.org/x/net v0.15.0 // indirect
+	golang.org/x/oauth2 v0.12.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/term v0.12.0 // indirect
