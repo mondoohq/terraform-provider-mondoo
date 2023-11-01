@@ -23,4 +23,6 @@ provider "mondoo" {
 
 ### Optional
 
-- `endpoint` (String) Example provider attribute
+- `credentials` (String) Either the path to or the contents of a service account key file in JSON format.
+- `region` (String) The default region to manage resources in.
+- `space` (String) The default space to manage resources in.

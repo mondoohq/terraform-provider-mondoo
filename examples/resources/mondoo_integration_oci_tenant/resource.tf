@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     mondoo = {
-      source  = "mondoo/mondoo"
+      source = "mondoo/mondoo"
     }
   }
 }
@@ -11,18 +11,18 @@ provider "mondoo" {
 }
 
 resource "mondoo_space" "my_space" {
-  name     = "My Space Name"
+  name = "My Space Name"
   # space_id = "your-space-id" # optional
-  org_id   = "your-org-1234567"
+  org_id = "your-org-1234567"
 }
 
 resource "mondoo_integration_oci_tenant" "tenant_abc" {
-  space_id    = mondoo_space.my_space.id
-  name        = "tenant ABC"
+  space_id = mondoo_space.my_space.id
+  name     = "tenant ABC"
 
-  tenancy   = "ocid1.tenancy.oc1..aaaaaaaavvvvvvvvwwwwwwwwxxxxxx..."
-  region = "us-ashburn-1"
-  user   = "ocid1.user.oc1..aaaaaaaabbbbbbbbccccccccddddeeeeee..."
+  tenancy = "ocid1.tenancy.oc1..aaaaaaaavvvvvvvvwwwwwwwwxxxxxx..."
+  region  = "us-ashburn-1"
+  user    = "ocid1.user.oc1..aaaaaaaabbbbbbbbccccccccddddeeeeee..."
 
   credentials = {
     fingerprint = "12:34:56:78:9a:bc:de:f1:23:45:67:89:ab:cd:ef:12"

@@ -13,13 +13,13 @@ provider "mondoo" {
 resource "mondoo_space" "my_space" {
   name = "My Space Name"
   # space_id = "your-space-id" # optional
-  org_id   = "your-org-id"
+  org_id = "your-org-1234567"
 }
 
 resource "mondoo_registration_token" "token" {
-  description = "Service Account for Terraform"
-  space_id = mondoo_space.my_space.id
-  no_exipration = true 
+  description   = "Service Account for Terraform"
+  space_id      = mondoo_space.my_space.id
+  no_exipration = true
   // expires_in = "1h"
   depends_on = [
     mondoo_space.my_space
@@ -27,6 +27,6 @@ resource "mondoo_registration_token" "token" {
 }
 
 output "generated_token" {
-  value = mondoo_registration_token.token.result
+  value     = mondoo_registration_token.token.result
   sensitive = true
 }

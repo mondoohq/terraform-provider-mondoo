@@ -13,7 +13,7 @@ provider "mondoo" {
 resource "mondoo_space" "my_space" {
   name = "My Space Name"
   # space_id = "your-space-id" # optional
-  org_id   = "your-org-1234567"
+  org_id = "your-org-1234567"
 }
 
 resource "mondoo_service_account" "service_account" {
