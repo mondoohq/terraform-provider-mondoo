@@ -123,15 +123,6 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 
 	// Do GraphQL request to API to create the resource
 	name := data.Name.ValueString()
-	var createMutation struct {
-		CreateServiceAccount struct {
-			Mrn         mondoov1.String
-			Certificate mondoov1.String
-			PrivateKey  mondoov1.String
-			ScopeMrn    mondoov1.String
-			ApiEndpoint mondoov1.String
-		} `graphql:"createServiceAccount(input: $input)"`
-	}
 
 	roles := []string{}
 	if len(data.Roles.Elements()) == 0 {
@@ -176,6 +167,16 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 	tflog.Trace(ctx, "CreateSpaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createInput),
 	})
+
+	var createMutation struct {
+		CreateServiceAccount struct {
+			Mrn         mondoov1.String
+			Certificate mondoov1.String
+			PrivateKey  mondoov1.String
+			ScopeMrn    mondoov1.String
+			ApiEndpoint mondoov1.String
+		} `graphql:"createServiceAccount(input: $input)"`
+	}
 
 	err := r.client.Mutate(context.Background(), &createMutation, createInput, nil)
 	if err != nil {

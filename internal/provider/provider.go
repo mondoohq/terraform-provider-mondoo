@@ -103,6 +103,7 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewSpaceResource,
 		NewServiceAccountResource,
 		NewIntegrationOciTenantResource,
+		NewRegistrationTokenResource,
 	}
 }
 
