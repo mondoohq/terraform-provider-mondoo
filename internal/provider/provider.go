@@ -6,11 +6,14 @@ package provider
 import (
 	"context"
 	"os"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 	"go.mondoo.com/mondoo-go/option"
@@ -32,6 +35,7 @@ type MondooProviderModel struct {
 	Credentials types.String `tfsdk:"credentials"`
 	Space       types.String `tfsdk:"space"`
 	Region      types.String `tfsdk:"region"`
+	Endpoint    types.String `tfsdk:"endpoint"`
 }
 
 func (p *MondooProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -52,6 +56,13 @@ func (p *MondooProvider) Schema(ctx context.Context, req provider.SchemaRequest,
 			},
 			"region": schema.StringAttribute{
 				MarkdownDescription: "The default region to manage resources in.",
+				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("us", "eu"),
+				},
+			},
+			"endpoint": schema.StringAttribute{
+				MarkdownDescription: "The endpoint url of the server to manage resources",
 				Optional:            true,
 			},
 		},
@@ -79,11 +90,19 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	opts := []option.ClientOption{option.WithAPIToken(token)}
 
-	switch data.Region.String() {
-	case "us":
-		opts = append(opts, option.UseUSRegion())
-	case "eu":
-		opts = append(opts, option.UseEURegion())
+	if data.Endpoint.String() != "" {
+		url := data.Endpoint.ValueString()
+		if !strings.HasSuffix(url, "/query") {
+			url = url + "/query"
+		}
+		opts = append(opts, option.WithEndpoint(url))
+	} else {
+		switch data.Region.ValueString() {
+		case "eu":
+			opts = append(opts, option.UseEURegion())
+		default:
+			opts = append(opts, option.UseUSRegion())
+		}
 	}
 
 	client, err := mondoov1.NewClient(opts...)

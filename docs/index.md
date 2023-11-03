@@ -24,5 +24,6 @@ provider "mondoo" {
 ### Optional
 
 - `credentials` (String) Either the path to or the contents of a service account key file in JSON format.
+- `endpoint` (String) The endpoint url of the server to manage resources
 - `region` (String) The default region to manage resources in.
 - `space` (String) The default space to manage resources in.
