@@ -127,9 +127,7 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 }
 
 func (p *MondooProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewExampleDataSource,
-	}
+	return []func() datasource.DataSource{}
 }
 
 func New(version string) func() provider.Provider {
