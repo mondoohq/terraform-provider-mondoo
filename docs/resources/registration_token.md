@@ -59,7 +59,7 @@ output "generated_token" {
 - `description` (String) Example configurable attribute with default value
 - `expires_at` (String) Example configurable attribute with default value
 - `expires_in` (String) Example configurable attribute with default value
-- `no_exipration` (Boolean) Example configurable attribute with default value
+- `no_expiration` (Boolean) Example configurable attribute with default value
 - `revoked` (Boolean) Example configurable attribute with default value
 
 ### Read-Only

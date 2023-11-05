@@ -124,7 +124,10 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	// Save space mrn into the Terraform state.
 	data.Name = types.StringValue(string(createMutation.CreateSpace.Name))
-	data.SpaceID = types.StringValue(createMutation.CreateSpace.Id.(string))
+	id, ok := createMutation.CreateSpace.Id.(string)
+	if ok {
+		data.SpaceID = types.StringValue(id)
+	}
 
 	// Write logs using the tflog package
 	tflog.Trace(ctx, "created a space resource")

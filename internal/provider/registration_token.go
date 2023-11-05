@@ -40,7 +40,7 @@ type RegistrationTokenResourceModel struct {
 
 	// registration token details
 	Description  types.String `tfsdk:"description"`
-	NoExpiration types.Bool   `tfsdk:"no_exipration"`
+	NoExpiration types.Bool   `tfsdk:"no_expiration"`
 	ExpiresIn    types.String `tfsdk:"expires_in"`
 
 	// output
@@ -77,7 +77,7 @@ func (r *RegistrationTokenResource) Schema(ctx context.Context, req resource.Sch
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"no_exipration": schema.BoolAttribute{ // TODO: add check that either no_exipration or expires_in needs to be set
+			"no_expiration": schema.BoolAttribute{ // TODO: add check that either no_expiration or expires_in needs to be set
 				MarkdownDescription: "Example configurable attribute with default value",
 				Optional:            true,
 			},
