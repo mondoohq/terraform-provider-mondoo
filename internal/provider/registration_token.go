@@ -195,7 +195,7 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 		} `graphql:"generateRegistrationToken(input: $input)"`
 	}
 
-	err := r.client.Mutate(context.Background(), &generateRegistrationToken, registrationTokenInput, nil)
+	err := r.client.Mutate(ctx, &generateRegistrationToken, registrationTokenInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create space, got error: %s", err))
 		return
@@ -279,7 +279,7 @@ func (r *RegistrationTokenResource) Delete(ctx context.Context, req resource.Del
 	tflog.Trace(ctx, "RevokeRegistrationTokenInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", revokeInput),
 	})
-	err := r.client.Mutate(context.Background(), &revokeMutation, revokeInput, nil)
+	err := r.client.Mutate(ctx, &revokeMutation, revokeInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account, got error: %s", err))
 		return
@@ -287,5 +287,5 @@ func (r *RegistrationTokenResource) Delete(ctx context.Context, req resource.Del
 }
 
 func (r *RegistrationTokenResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
 }

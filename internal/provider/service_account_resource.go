@@ -178,7 +178,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 		} `graphql:"createServiceAccount(input: $input)"`
 	}
 
-	err := r.client.Mutate(context.Background(), &createMutation, createInput, nil)
+	err := r.client.Mutate(ctx, &createMutation, createInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create space, got error: %s", err))
 		return
@@ -242,7 +242,7 @@ func (r *ServiceAccountResource) Update(ctx context.Context, req resource.Update
 	tflog.Trace(ctx, "UpdateServiceAccountInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
 	})
-	err := r.client.Mutate(context.Background(), &updateMutation, updateInput, nil)
+	err := r.client.Mutate(ctx, &updateMutation, updateInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account, got error: %s", err))
 		return
@@ -275,7 +275,7 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 	tflog.Trace(ctx, "UpdateServiceAccountInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", deleteInput),
 	})
-	err := r.client.Mutate(context.Background(), &deleteMutation, deleteInput, nil)
+	err := r.client.Mutate(ctx, &deleteMutation, deleteInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account, got error: %s", err))
 		return

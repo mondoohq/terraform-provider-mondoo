@@ -172,7 +172,7 @@ func (r *IntegrationOciTenantResource) Create(ctx context.Context, req resource.
 		"input": fmt.Sprintf("%+v", createInput),
 	})
 
-	err := r.client.Mutate(context.Background(), &createMutation, createInput, nil)
+	err := r.client.Mutate(ctx, &createMutation, createInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create OCI tenant integration, got error: %s", err))
 		return
@@ -263,7 +263,7 @@ func (r *IntegrationOciTenantResource) Delete(ctx context.Context, req resource.
 	tflog.Trace(ctx, "DeleteClientIntegration", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", deleteInput),
 	})
-	err := r.client.Mutate(context.Background(), &deleteMutation, deleteInput, nil)
+	err := r.client.Mutate(ctx, &deleteMutation, deleteInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete Oci tenant integration, got error: %s", err))
 		return
@@ -271,5 +271,5 @@ func (r *IntegrationOciTenantResource) Delete(ctx context.Context, req resource.
 }
 
 func (r *IntegrationOciTenantResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
 }

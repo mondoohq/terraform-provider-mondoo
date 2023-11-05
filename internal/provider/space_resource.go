@@ -116,7 +116,7 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 		"input": fmt.Sprintf("%+v", createInput),
 	})
 
-	err := r.client.Mutate(context.Background(), &createMutation, createInput, nil)
+	err := r.client.Mutate(ctx, &createMutation, createInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create space, got error: %s", err))
 		return
@@ -185,7 +185,7 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	tflog.Trace(ctx, "UpdateSpaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
 	})
-	err := r.client.Mutate(context.Background(), &updateMutation, updateInput, nil)
+	err := r.client.Mutate(ctx, &updateMutation, updateInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update space, got error: %s", err))
 		return
@@ -217,7 +217,7 @@ func (r *SpaceResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		"input": fmt.Sprintf("%+v", variables),
 	})
 
-	err := r.client.Mutate(context.Background(), &deleteMutation, nil, variables)
+	err := r.client.Mutate(ctx, &deleteMutation, nil, variables)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete space, got error: %s", err))
 		return
