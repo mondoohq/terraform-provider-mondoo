@@ -90,7 +90,14 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	opts := []option.ClientOption{option.WithAPIToken(token)}
 
-	if data.Endpoint.String() != "" {
+	apiEndpoint := os.Getenv("MONDOO_API_ENDPOINT")
+	if apiEndpoint != "" {
+		url := apiEndpoint
+		if !strings.HasSuffix(url, "/query") {
+			url = url + "/query"
+		}
+		opts = append(opts, option.WithEndpoint(url))
+	} else if data.Endpoint.ValueString() != "" {
 		url := data.Endpoint.ValueString()
 		if !strings.HasSuffix(url, "/query") {
 			url = url + "/query"
