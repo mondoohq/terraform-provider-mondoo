@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccRegistrastionTokenResource(t *testing.T) {
+func TestAccRegistrationTokenResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -19,27 +19,21 @@ func TestAccRegistrastionTokenResource(t *testing.T) {
 			{
 				Config: testAccRegistrationTokenResourceConfig("one"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_registration_token.test", "configurable_attribute", "one"),
-					resource.TestCheckResourceAttr("mondoo_registration_token.test", "defaulted", "example value when not configured"),
-					resource.TestCheckResourceAttr("mondoo_registration_token.test", "id", "example-id"),
+					resource.TestCheckResourceAttr("mondoo_registration_token.test", "description", "one"),
 				),
 			},
 			// ImportState testing
-			{
-				ResourceName:      "mondoo_registration_token.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				// This is not normally necessary, but is here because this
-				// example code does not have an actual upstream service.
-				// Once the Read method is able to refresh information from
-				// the upstream service, this can be removed.
-				ImportStateVerifyIgnore: []string{"configurable_attribute", "defaulted"},
-			},
+			// NOTE: not implemented by resource
+			//{
+			//	ResourceName:      "mondoo_registration_token.test",
+			//	ImportState:       false,
+			//	ImportStateVerify: false,
+			//},
 			// Update and Read testing
 			{
-				Config: testAccRegistrationTokenResourceConfig("two"),
+				Config: testAccRegistrationTokenResourceConfig("one"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_registration_token.test", "configurable_attribute", "two"),
+					resource.TestCheckResourceAttr("mondoo_registration_token.test", "description", "one"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -49,8 +43,15 @@ func TestAccRegistrastionTokenResource(t *testing.T) {
 
 func testAccRegistrationTokenResourceConfig(configurableAttribute string) string {
 	return fmt.Sprintf(`
-resource "mondoo_registration_token" "test" {
-  configurable_attribute = %[1]q
+
+resource "mondoo_space" "test" {
+  org_id = %[1]q
+  name = "registration-token-test"
 }
-`, configurableAttribute)
+
+resource "mondoo_registration_token" "test" {
+  space_id = mondoo_space.test.id
+  description = %[2]q
+}
+`, orgID, configurableAttribute)
 }

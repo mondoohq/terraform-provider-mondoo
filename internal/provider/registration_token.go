@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -20,7 +19,6 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &RegistrationTokenResource{}
-var _ resource.ResourceWithImportState = &RegistrationTokenResource{}
 
 func NewRegistrationTokenResource() resource.Resource {
 	return &RegistrationTokenResource{}
@@ -225,13 +223,7 @@ func (r *RegistrationTokenResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
-	//     return
-	// }
+	// nothing to do here, we already have the data in the state
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -286,6 +278,7 @@ func (r *RegistrationTokenResource) Delete(ctx context.Context, req resource.Del
 	}
 }
 
-func (r *RegistrationTokenResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
-}
+// We do not support the import of this resource yet.
+//func (r *RegistrationTokenResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+//	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+//}

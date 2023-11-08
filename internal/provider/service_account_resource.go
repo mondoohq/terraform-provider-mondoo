@@ -6,11 +6,11 @@ package provider
 import (
 	"context"
 	"fmt"
-
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -21,7 +21,8 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &ServiceAccountResource{}
-var _ resource.ResourceWithImportState = &ServiceAccountResource{}
+
+//var _ resource.ResourceWithImportState = &ServiceAccountResource{}
 
 var defaultRoles = []string{"//iam.api.mondoo.app/roles/viewer"}
 
@@ -37,8 +38,8 @@ type ServiceAccountResource struct {
 // ServiceAccountResourceModel describes the resource data model.
 type ServiceAccountResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
-	OrgId   types.String `tfsdk:"org_id"`
+	SpaceID types.String `tfsdk:"space_id"`
+	OrgID   types.String `tfsdk:"org_id"`
 
 	// service account details
 	Mrn         types.String `tfsdk:"mrn"`
@@ -54,12 +55,16 @@ func (r *ServiceAccountResource) Metadata(ctx context.Context, req resource.Meta
 func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Example resource",
+		MarkdownDescription: "Service account resource",
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Example configurable attribute",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Example configurable attribute with default value",
@@ -86,6 +91,10 @@ func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.Schema
 				MarkdownDescription: "tbd",
 				ElementType:         types.StringType,
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -146,10 +155,10 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 	}
 
 	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	} else if data.OrgId.ValueString() != "" {
-		scopeMrn = orgPrefix + data.OrgId.ValueString()
+	if data.SpaceID.ValueString() != "" {
+		scopeMrn = spacePrefix + data.SpaceID.ValueString()
+	} else if data.OrgID.ValueString() != "" {
+		scopeMrn = orgPrefix + data.OrgID.ValueString()
 	} else {
 		resp.Diagnostics.AddError(
 			"Either space_id or org_id needs to be set",
@@ -159,9 +168,10 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 	}
 
 	createInput := mondoov1.CreateServiceAccountInput{
-		Name:     mondoov1.NewStringPtr(mondoov1.String(name)),
-		ScopeMrn: mondoov1.String(scopeMrn),
-		Roles:    &rolesInput,
+		Name:        mondoov1.NewStringPtr(mondoov1.String(name)),
+		Description: mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
+		ScopeMrn:    mondoov1.String(scopeMrn),
+		Roles:       &rolesInput,
 	}
 
 	tflog.Trace(ctx, "CreateSpaceInput", map[string]interface{}{
@@ -196,6 +206,41 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
+func (r *ServiceAccountResource) readServiceAccount(ctx context.Context, mrn string) (ServiceAccountResourceModel, error) {
+	var q struct {
+		ServiceAccount struct {
+			Id          string
+			Mrn         string
+			Name        string
+			Description string
+			Roles       []struct {
+				Mrn string
+			}
+			Labels []struct {
+				Key   string
+				Value string
+			}
+		} `graphql:"serviceAccount(mrn: $mrn)"`
+	}
+	variables := map[string]interface{}{
+		"mrn": mondoov1.String(mrn),
+	}
+
+	err := r.client.Query(ctx, &q, variables)
+	if err != nil {
+		return ServiceAccountResourceModel{}, err
+	}
+
+	return ServiceAccountResourceModel{
+		Mrn:         types.StringValue(q.ServiceAccount.Mrn),
+		Name:        types.StringValue(q.ServiceAccount.Name),
+		Description: types.StringValue(q.ServiceAccount.Description),
+		// TODO: add roles
+		//SpaceID: types.StringValue(q.ServiceAccount.Id),
+		//OrgID:   types.StringValue(q.Space.Organization.Id),
+	}, nil
+}
+
 func (r *ServiceAccountResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data ServiceAccountResourceModel
 
@@ -206,13 +251,18 @@ func (r *ServiceAccountResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
-	//     return
-	// }
+	m, err := r.readServiceAccount(ctx, data.Mrn.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Client Error",
+			fmt.Sprintf("Unable to read service account, got error: %s", err),
+		)
+		return
+	}
+
+	data.Mrn = m.Mrn
+	data.Name = m.Name
+	data.Description = m.Description
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -231,8 +281,9 @@ func (r *ServiceAccountResource) Update(ctx context.Context, req resource.Update
 	// Do GraphQL request to API to update the resource.
 	var updateMutation struct {
 		UpdateServiceAccount struct {
-			Mrn  mondoov1.String
-			Name mondoov1.String
+			Mrn         mondoov1.String
+			Name        mondoov1.String
+			Description mondoov1.String
 		} `graphql:"updateServiceAccount(input: $input)"`
 	}
 	updateInput := mondoov1.UpdateServiceAccountInput{
@@ -249,7 +300,7 @@ func (r *ServiceAccountResource) Update(ctx context.Context, req resource.Update
 	}
 
 	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.State.SetAttribute(ctx, path.Root("name"), updateMutation.UpdateServiceAccount.Name)
 }
 
 func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -269,7 +320,7 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 		} `graphql:"deleteServiceAccounts(input: $input)"`
 	}
 	deleteInput := mondoov1.DeleteServiceAccountsInput{
-		ScopeMrn: mondoov1.String(spacePrefix + data.SpaceId.ValueString()),
+		ScopeMrn: mondoov1.String(spacePrefix + data.SpaceID.ValueString()),
 		Mrns:     []mondoov1.String{mondoov1.String(data.Mrn.ValueString())},
 	}
 	tflog.Trace(ctx, "UpdateServiceAccountInput", map[string]interface{}{
@@ -282,6 +333,5 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 	}
 }
 
-func (r *ServiceAccountResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
+// We do not allow users to import a service account resource.
+// func (r *ServiceAccountResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {}
