@@ -53,18 +53,18 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Space Name",
+				MarkdownDescription: "Name of the space.",
 				Optional:            true,
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Space identifier",
+				MarkdownDescription: "Id of the space. Must be globally within the organization.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"org_id": schema.StringAttribute{
-				MarkdownDescription: "Organization where the space is created",
+				MarkdownDescription: "Id of the organization.",
 				Required:            true,
 			},
 		},

@@ -57,44 +57,44 @@ func (r *RegistrationTokenResource) Schema(ctx context.Context, req resource.Sch
 		MarkdownDescription: "Example resource",
 
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{ // TODO: add check that either space or org needs to be set
-				MarkdownDescription: "Example configurable attribute with default value",
+			"space_id": schema.StringAttribute{
+				MarkdownDescription: "Mondoo Space Identifier to create the token in.",
 				Required:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Example identifier",
+				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created token.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "Description of the token.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"no_expiration": schema.BoolAttribute{ // TODO: add check that either no_expiration or expires_in needs to be set
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "If set to true, the token will not expire.",
 				Optional:            true,
 			},
 			"expires_in": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "The duration after which the token will expire. Format: 1h, 1d, 1w, 1m, 1y",
 				Optional:            true,
 			},
 			"revoked": schema.BoolAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "If set to true, the token is revoked.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"expires_at": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "The date and time when the token will expire.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"result": schema.StringAttribute{
-				Description: "The generated random string.",
+				Description: "The generated token.",
 				Computed:    true,
 				Sensitive:   true,
 			},

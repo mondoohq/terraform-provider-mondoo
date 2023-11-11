@@ -59,7 +59,7 @@ func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.Schema
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
+				MarkdownDescription: "Name of the service account.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -67,28 +67,31 @@ func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "Description of the service account.",
 				Optional:            true,
 				Computed:            true,
-				Default:             stringdefault.StaticString("example value when not configured"),
+				Default:             stringdefault.StaticString("Created by Terraform"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Example identifier",
+				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created service account.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"space_id": schema.StringAttribute{ // TODO: add check that either space or org needs to be set
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "Mondoo Space Identifier to create the service account in.",
 				Optional:            true,
 			},
 			"org_id": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "Mondoo Organization Identifier to create the service account in.",
 				Optional:            true,
 			},
 			"roles": schema.ListAttribute{
-				MarkdownDescription: "tbd",
+				MarkdownDescription: "Roles to assign to the service account.",
 				ElementType:         types.StringType,
 				Optional:            true,
 				Computed:            true,
@@ -118,6 +121,16 @@ func (r *ServiceAccountResource) Configure(ctx context.Context, req resource.Con
 	}
 
 	r.client = client
+}
+
+func getScope(data ServiceAccountResourceModel) string {
+	scopeMrn := ""
+	if data.SpaceID.ValueString() != "" {
+		scopeMrn = spacePrefix + data.SpaceID.ValueString()
+	} else if data.OrgID.ValueString() != "" {
+		scopeMrn = orgPrefix + data.OrgID.ValueString()
+	}
+	return scopeMrn
 }
 
 func (r *ServiceAccountResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -154,12 +167,8 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 		rolesInput = append(rolesInput, mondoov1.RoleInput{Mrn: mondoov1.String(role)})
 	}
 
-	scopeMrn := ""
-	if data.SpaceID.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceID.ValueString()
-	} else if data.OrgID.ValueString() != "" {
-		scopeMrn = orgPrefix + data.OrgID.ValueString()
-	} else {
+	scopeMrn := getScope(data)
+	if scopeMrn == "" {
 		resp.Diagnostics.AddError(
 			"Either space_id or org_id needs to be set",
 			"Either space_id or org_id needs to be set",
@@ -287,8 +296,9 @@ func (r *ServiceAccountResource) Update(ctx context.Context, req resource.Update
 		} `graphql:"updateServiceAccount(input: $input)"`
 	}
 	updateInput := mondoov1.UpdateServiceAccountInput{
-		Mrn:  mondoov1.String(data.Mrn.ValueString()),
-		Name: mondoov1.NewStringPtr(mondoov1.String(data.Name.ValueString())),
+		Mrn:   mondoov1.String(data.Mrn.ValueString()),
+		Name:  mondoov1.NewStringPtr(mondoov1.String(data.Name.ValueString())),
+		Notes: mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
 	}
 	tflog.Trace(ctx, "UpdateServiceAccountInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
@@ -313,6 +323,15 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
+	scopeMrn := getScope(data)
+	if scopeMrn == "" {
+		resp.Diagnostics.AddError(
+			"Either space_id or org_id needs to be set",
+			"Either space_id or org_id needs to be set",
+		)
+		return
+	}
+
 	// Do GraphQL request to API to delete the resource.
 	var deleteMutation struct {
 		DeleteServiceAccounts struct {
@@ -320,7 +339,7 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 		} `graphql:"deleteServiceAccounts(input: $input)"`
 	}
 	deleteInput := mondoov1.DeleteServiceAccountsInput{
-		ScopeMrn: mondoov1.String(spacePrefix + data.SpaceID.ValueString()),
+		ScopeMrn: mondoov1.String(scopeMrn),
 		Mrns:     []mondoov1.String{mondoov1.String(data.Mrn.ValueString())},
 	}
 	tflog.Trace(ctx, "UpdateServiceAccountInput", map[string]interface{}{
