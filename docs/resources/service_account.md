@@ -3,12 +3,12 @@
 page_title: "mondoo_service_account Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Example resource
+  Service account resource
 ---
 
 # mondoo_service_account (Resource)
 
-Example resource
+Service account resource
 
 ## Example Usage
 
@@ -50,12 +50,12 @@ resource "mondoo_service_account" "service_account" {
 
 ### Optional
 
-- `description` (String) Example configurable attribute with default value
-- `name` (String) Example configurable attribute
-- `org_id` (String) Example configurable attribute with default value
-- `roles` (List of String) tbd
-- `space_id` (String) Example configurable attribute with default value
+- `description` (String) Description of the service account.
+- `name` (String) Name of the service account.
+- `org_id` (String) Mondoo Organization Identifier to create the service account in.
+- `roles` (List of String) Roles to assign to the service account.
+- `space_id` (String) Mondoo Space Identifier to create the service account in.
 
 ### Read-Only
 
-- `mrn` (String) Example identifier
+- `mrn` (String) The Mondoo Resource Name (MRN) of the created service account.

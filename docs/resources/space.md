@@ -37,12 +37,12 @@ resource "mondoo_space" "my_space" {
 
 ### Required
 
-- `org_id` (String) Organization where the space is created
+- `org_id` (String) Id of the organization.
 
 ### Optional
 
-- `name` (String) Space Name
+- `name` (String) Name of the space.
 
 ### Read-Only
 
-- `id` (String) Space identifier
+- `id` (String) Id of the space. Must be globally within the organization.
