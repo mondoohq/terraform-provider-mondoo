@@ -11,35 +11,45 @@ import (
 )
 
 func TestAccServiceAccountResource(t *testing.T) {
+	orgID, err := getOrgId()
+	if err != nil {
+		t.Fatal(err)
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccServiceAccountResourceConfig("one"),
+				Config: testAccServiceAccountOrgResourceConfig(orgID, "one"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_service_account.test", "configurable_attribute", "one"),
-					resource.TestCheckResourceAttr("mondoo_service_account.test", "defaulted", "example value when not configured"),
-					resource.TestCheckResourceAttr("mondoo_service_account.test", "id", "example-id"),
+					resource.TestCheckResourceAttr("mondoo_service_account.org", "name", "one"),
+				),
+			},
+			{
+				Config: testAccServiceAccountSpaceResourceConfig(orgID, "one"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_service_account.space", "name", "one"),
 				),
 			},
 			// ImportState testing
-			{
-				ResourceName:      "mondoo_service_account.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				// This is not normally necessary, but is here because this
-				// example code does not have an actual upstream service.
-				// Once the Read method is able to refresh information from
-				// the upstream service, this can be removed.
-				ImportStateVerifyIgnore: []string{"configurable_attribute", "defaulted"},
-			},
+			// service accounts cannot be imported
+			//{
+			//	ResourceName:      "mondoo_service_account.test",
+			//	ImportState:       true,
+			//	ImportStateVerify: true,
+			//},
 			// Update and Read testing
 			{
-				Config: testAccServiceAccountResourceConfig("two"),
+				Config: testAccServiceAccountOrgResourceConfig(orgID, "two"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_service_account.test", "configurable_attribute", "two"),
+					resource.TestCheckResourceAttr("mondoo_service_account.org", "name", "two"),
+				),
+			},
+			{
+				Config: testAccServiceAccountSpaceResourceConfig(orgID, "two"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_service_account.space", "name", "two"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -47,10 +57,25 @@ func TestAccServiceAccountResource(t *testing.T) {
 	})
 }
 
-func testAccServiceAccountResourceConfig(configurableAttribute string) string {
+func testAccServiceAccountOrgResourceConfig(resourceOrgID, configurableAttribute string) string {
 	return fmt.Sprintf(`
-resource "mondoo_service_account" "test" {
-  configurable_attribute = %[1]q
+resource "mondoo_service_account" "org" {
+  org_id = %[1]q
+  name = %[2]q
 }
-`, configurableAttribute)
+`, resourceOrgID, configurableAttribute)
+}
+
+func testAccServiceAccountSpaceResourceConfig(resourceOrgID, configurableAttribute string) string {
+	return fmt.Sprintf(`
+resource "mondoo_space" "test" {
+  org_id = %[1]q
+  name = "registration-token-test"
+}
+
+resource "mondoo_service_account" "space" {
+  space_id = mondoo_space.test.id
+  name = %[2]q
+}
+`, resourceOrgID, configurableAttribute)
 }

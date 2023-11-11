@@ -37,8 +37,8 @@ type SpaceResource struct {
 
 // ProjectResourceModel describes the resource data model.
 type ProjectResourceModel struct {
-	Name    types.String `tfsdk:"name"`
 	SpaceID types.String `tfsdk:"id"`
+	Name    types.String `tfsdk:"name"`
 	OrgID   types.String `tfsdk:"org_id"`
 }
 
@@ -53,18 +53,18 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Space Name",
+				MarkdownDescription: "Name of the space.",
 				Optional:            true,
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Space identifier",
+				MarkdownDescription: "Id of the space. Must be globally within the organization.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"org_id": schema.StringAttribute{
-				MarkdownDescription: "Organization where the space is created",
+				MarkdownDescription: "Id of the organization.",
 				Required:            true,
 			},
 		},
@@ -116,7 +116,7 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 		"input": fmt.Sprintf("%+v", createInput),
 	})
 
-	err := r.client.Mutate(context.Background(), &createMutation, createInput, nil)
+	err := r.client.Mutate(ctx, &createMutation, createInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create space, got error: %s", err))
 		return
@@ -124,7 +124,10 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	// Save space mrn into the Terraform state.
 	data.Name = types.StringValue(string(createMutation.CreateSpace.Name))
-	data.SpaceID = types.StringValue(createMutation.CreateSpace.Id.(string))
+	id, ok := createMutation.CreateSpace.Id.(string)
+	if ok {
+		data.SpaceID = types.StringValue(id)
+	}
 
 	// Write logs using the tflog package
 	tflog.Trace(ctx, "created a space resource")
@@ -138,19 +141,10 @@ func (r *SpaceResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
-	//     return
-	// }
-	// TODO: implement
+	// nothing to do here, we already have the data in the state
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -182,7 +176,7 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	tflog.Trace(ctx, "UpdateSpaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
 	})
-	err := r.client.Mutate(context.Background(), &updateMutation, updateInput, nil)
+	err := r.client.Mutate(ctx, &updateMutation, updateInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update space, got error: %s", err))
 		return
@@ -214,13 +208,48 @@ func (r *SpaceResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		"input": fmt.Sprintf("%+v", variables),
 	})
 
-	err := r.client.Mutate(context.Background(), &deleteMutation, nil, variables)
+	err := r.client.Mutate(ctx, &deleteMutation, nil, variables)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete space, got error: %s", err))
 		return
 	}
 }
 
+func (r *SpaceResource) readSpace(ctx context.Context, mrn string) (ProjectResourceModel, error) {
+	var q struct {
+		Space struct {
+			Id           string
+			Mrn          string
+			Name         string
+			Organization struct {
+				Id string
+			}
+		} `graphql:"space(mrn: $mrn)"`
+	}
+	variables := map[string]interface{}{
+		"mrn": mondoov1.String(mrn),
+	}
+
+	err := r.client.Query(ctx, &q, variables)
+	if err != nil {
+		return ProjectResourceModel{}, err
+	}
+
+	return ProjectResourceModel{
+		SpaceID: types.StringValue(q.Space.Id),
+		Name:    types.StringValue(q.Space.Name),
+		OrgID:   types.StringValue(q.Space.Organization.Id),
+	}, nil
+}
+
 func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	mrn := spacePrefix + req.ID
+	model, err := r.readSpace(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to retrieve space, got error: %s", err))
+		return
+	}
+	resp.State.SetAttribute(ctx, path.Root("id"), model.SpaceID)
+	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
+	resp.State.SetAttribute(ctx, path.Root("org_id"), model.OrgID)
 }

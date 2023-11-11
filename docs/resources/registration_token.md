@@ -52,17 +52,17 @@ output "generated_token" {
 
 ### Required
 
-- `space_id` (String) Example configurable attribute with default value
+- `space_id` (String) Mondoo Space Identifier to create the token in.
 
 ### Optional
 
-- `description` (String) Example configurable attribute with default value
-- `expires_at` (String) Example configurable attribute with default value
-- `expires_in` (String) Example configurable attribute with default value
-- `no_exipration` (Boolean) Example configurable attribute with default value
-- `revoked` (Boolean) Example configurable attribute with default value
+- `description` (String) Description of the token.
+- `expires_at` (String) The date and time when the token will expire.
+- `expires_in` (String) The duration after which the token will expire. Format: 1h, 1d, 1w, 1m, 1y
+- `no_expiration` (Boolean) If set to true, the token will not expire.
+- `revoked` (Boolean) If set to true, the token is revoked.
 
 ### Read-Only
 
-- `mrn` (String) Example identifier
-- `result` (String, Sensitive) The generated random string.
+- `mrn` (String) The Mondoo Resource Name (MRN) of the created token.
+- `result` (String, Sensitive) The generated token.

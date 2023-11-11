@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -20,7 +19,6 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &RegistrationTokenResource{}
-var _ resource.ResourceWithImportState = &RegistrationTokenResource{}
 
 func NewRegistrationTokenResource() resource.Resource {
 	return &RegistrationTokenResource{}
@@ -40,7 +38,7 @@ type RegistrationTokenResourceModel struct {
 
 	// registration token details
 	Description  types.String `tfsdk:"description"`
-	NoExpiration types.Bool   `tfsdk:"no_exipration"`
+	NoExpiration types.Bool   `tfsdk:"no_expiration"`
 	ExpiresIn    types.String `tfsdk:"expires_in"`
 
 	// output
@@ -59,44 +57,44 @@ func (r *RegistrationTokenResource) Schema(ctx context.Context, req resource.Sch
 		MarkdownDescription: "Example resource",
 
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{ // TODO: add check that either space or org needs to be set
-				MarkdownDescription: "Example configurable attribute with default value",
+			"space_id": schema.StringAttribute{
+				MarkdownDescription: "Mondoo Space Identifier to create the token in.",
 				Required:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Example identifier",
+				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created token.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "Description of the token.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"no_exipration": schema.BoolAttribute{ // TODO: add check that either no_exipration or expires_in needs to be set
-				MarkdownDescription: "Example configurable attribute with default value",
+			"no_expiration": schema.BoolAttribute{ // TODO: add check that either no_expiration or expires_in needs to be set
+				MarkdownDescription: "If set to true, the token will not expire.",
 				Optional:            true,
 			},
 			"expires_in": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "The duration after which the token will expire. Format: 1h, 1d, 1w, 1m, 1y",
 				Optional:            true,
 			},
 			"revoked": schema.BoolAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "If set to true, the token is revoked.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"expires_at": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
+				MarkdownDescription: "The date and time when the token will expire.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"result": schema.StringAttribute{
-				Description: "The generated random string.",
+				Description: "The generated token.",
 				Computed:    true,
 				Sensitive:   true,
 			},
@@ -195,7 +193,7 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 		} `graphql:"generateRegistrationToken(input: $input)"`
 	}
 
-	err := r.client.Mutate(context.Background(), &generateRegistrationToken, registrationTokenInput, nil)
+	err := r.client.Mutate(ctx, &generateRegistrationToken, registrationTokenInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create space, got error: %s", err))
 		return
@@ -225,13 +223,7 @@ func (r *RegistrationTokenResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
-	//     return
-	// }
+	// nothing to do here, we already have the data in the state
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -279,13 +271,14 @@ func (r *RegistrationTokenResource) Delete(ctx context.Context, req resource.Del
 	tflog.Trace(ctx, "RevokeRegistrationTokenInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", revokeInput),
 	})
-	err := r.client.Mutate(context.Background(), &revokeMutation, revokeInput, nil)
+	err := r.client.Mutate(ctx, &revokeMutation, revokeInput, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account, got error: %s", err))
 		return
 	}
 }
 
-func (r *RegistrationTokenResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
+// We do not support the import of this resource yet.
+//func (r *RegistrationTokenResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+//	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+//}
