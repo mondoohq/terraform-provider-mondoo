@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
 	"os"
 	"strings"
 
@@ -78,18 +79,45 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	}
 
 	// Client configuration for data sources and resources
-	// TODO: add support for credentials and service accounts
+	opts := []option.ClientOption{}
+
+	// set the credentials to communicate with Mondoo Platform
+	// 1. via MONDOO_CONFIG_BASE64
+	// 2. via MONDOO_CONFIG_PATH
+	// 3. via MONDOO_API_TOKEN
+	configBase64 := os.Getenv("MONDOO_CONFIG_BASE64")
+	configPath := os.Getenv("MONDOO_CONFIG_PATH")
 	token := os.Getenv("MONDOO_API_TOKEN")
-	if token == "" {
+
+	if configBase64 != "" {
+		// extract base 64 encoded string
+		data, err := base64.StdEncoding.DecodeString(configBase64)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"MONDOO_CONFIG_BASE64 must be a valid service account",
+				err.Error(),
+			)
+			return
+		}
+		opts = append(opts, option.WithServiceAccount(data))
+	} else if configPath != "" {
+		opts = append(opts, option.WithServiceAccountFile(configPath))
+	} else if token != "" {
+		opts = append(opts, option.WithAPIToken(token))
+	}
+
+	if len(opts) == 0 {
 		resp.Diagnostics.AddError(
-			"MONDOO_API_TOKEN is not set",
-			"MONDOO_API_TOKEN is not set",
+			"MONDOO_API_TOKEN, MONDOO_CONFIG_PATH or MONDOO_CONFIG_BASE64 need to be set",
+			"MONDOO_API_TOKEN, MONDOO_CONFIG_PATH or MONDOO_CONFIG_BASE64 need to be set",
 		)
 		return
 	}
 
-	opts := []option.ClientOption{option.WithAPIToken(token)}
-
+	// allow the override of the endpoint
+	// 1. via MONDOO_API_ENDPOINT
+	// 2. via endpoint config
+	// 3. via region config
 	apiEndpoint := os.Getenv("MONDOO_API_ENDPOINT")
 	if apiEndpoint != "" {
 		url := apiEndpoint
@@ -103,11 +131,11 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			url = url + "/query"
 		}
 		opts = append(opts, option.WithEndpoint(url))
-	} else {
+	} else if data.Region.ValueString() != "" {
 		switch data.Region.ValueString() {
 		case "eu":
 			opts = append(opts, option.UseEURegion())
-		default:
+		case "us":
 			opts = append(opts, option.UseUSRegion())
 		}
 	}

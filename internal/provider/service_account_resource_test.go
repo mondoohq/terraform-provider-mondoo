@@ -11,19 +11,23 @@ import (
 )
 
 func TestAccServiceAccountResource(t *testing.T) {
+	orgID, err := getOrgId()
+	if err != nil {
+		t.Fatal(err)
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccServiceAccountOrgResourceConfig("one"),
+				Config: testAccServiceAccountOrgResourceConfig(orgID, "one"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_service_account.org", "name", "one"),
 				),
 			},
 			{
-				Config: testAccServiceAccountSpaceResourceConfig("one"),
+				Config: testAccServiceAccountSpaceResourceConfig(orgID, "one"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_service_account.space", "name", "one"),
 				),
@@ -37,13 +41,13 @@ func TestAccServiceAccountResource(t *testing.T) {
 			//},
 			// Update and Read testing
 			{
-				Config: testAccServiceAccountOrgResourceConfig("two"),
+				Config: testAccServiceAccountOrgResourceConfig(orgID, "two"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_service_account.org", "name", "two"),
 				),
 			},
 			{
-				Config: testAccServiceAccountSpaceResourceConfig("two"),
+				Config: testAccServiceAccountSpaceResourceConfig(orgID, "two"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_service_account.space", "name", "two"),
 				),
@@ -53,16 +57,16 @@ func TestAccServiceAccountResource(t *testing.T) {
 	})
 }
 
-func testAccServiceAccountOrgResourceConfig(configurableAttribute string) string {
+func testAccServiceAccountOrgResourceConfig(resourceOrgID, configurableAttribute string) string {
 	return fmt.Sprintf(`
 resource "mondoo_service_account" "org" {
   org_id = %[1]q
-  name = %[1]q
+  name = %[2]q
 }
-`, orgID, configurableAttribute)
+`, resourceOrgID, configurableAttribute)
 }
 
-func testAccServiceAccountSpaceResourceConfig(configurableAttribute string) string {
+func testAccServiceAccountSpaceResourceConfig(resourceOrgID, configurableAttribute string) string {
 	return fmt.Sprintf(`
 resource "mondoo_space" "test" {
   org_id = %[1]q
@@ -71,7 +75,7 @@ resource "mondoo_space" "test" {
 
 resource "mondoo_service_account" "space" {
   space_id = mondoo_space.test.id
-  name = %[1]q
+  name = %[2]q
 }
-`, orgID, configurableAttribute)
+`, resourceOrgID, configurableAttribute)
 }

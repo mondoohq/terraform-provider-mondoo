@@ -10,7 +10,8 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.19.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.5.1
-	go.mondoo.com/mondoo-go v0.0.0-20231101113453-e876aab537f7
+	// switch to go.mondoo.com/mondoo-go main releases once we have a release with the service account updates
+	go.mondoo.com/mondoo-go v0.0.0-20231111161745-5e888bc85e15
 )
 
 require (

@@ -11,13 +11,17 @@ import (
 )
 
 func TestAccRegistrationTokenResource(t *testing.T) {
+	orgID, err := getOrgId()
+	if err != nil {
+		t.Fatal(err)
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccRegistrationTokenResourceConfig("one"),
+				Config: testAccRegistrationTokenResourceConfig(orgID, "one"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_registration_token.test", "description", "one"),
 				),
@@ -31,7 +35,7 @@ func TestAccRegistrationTokenResource(t *testing.T) {
 			//},
 			// Update and Read testing
 			{
-				Config: testAccRegistrationTokenResourceConfig("one"),
+				Config: testAccRegistrationTokenResourceConfig(orgID, "one"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_registration_token.test", "description", "one"),
 				),
@@ -41,7 +45,7 @@ func TestAccRegistrationTokenResource(t *testing.T) {
 	})
 }
 
-func testAccRegistrationTokenResourceConfig(configurableAttribute string) string {
+func testAccRegistrationTokenResourceConfig(resourceOrgID, configurableAttribute string) string {
 	return fmt.Sprintf(`
 
 resource "mondoo_space" "test" {
@@ -53,5 +57,5 @@ resource "mondoo_registration_token" "test" {
   space_id = mondoo_space.test.id
   description = %[2]q
 }
-`, orgID, configurableAttribute)
+`, resourceOrgID, configurableAttribute)
 }
