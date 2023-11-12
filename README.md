@@ -45,7 +45,16 @@ Then commit the changes to `go.mod` and `go.sum`.
 
 ## Using the provider
 
-Fill this in for each provider
+After building the provider please install the terraform provider:
+
+```
+# ARCH = 'linux_amd64'
+export ARCH='darwin_arm64'
+export VERSION='1.0.0'
+
+mkdir -p ~/.terraform.d/plugins/registry.terraform.io/mondoo/mondoo/$VERSION/$ARCH
+cp $GOPATH/bin/terraform-provider-mondoo ~/.terraform.d/plugins/registry.terraform.io/mondoo/mondoo/$VERSION/$ARCH/
+```
 
 ## Developing the Provider
 
