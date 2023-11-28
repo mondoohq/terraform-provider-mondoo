@@ -3,7 +3,7 @@ module go.mondoo.com/terraform-provider-mondoo
 go 1.21
 
 require (
-	github.com/hashicorp/copywrite v0.17.0
+	github.com/hashicorp/copywrite v0.18.0
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-framework v1.4.2
 	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0
