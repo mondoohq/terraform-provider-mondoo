@@ -1,0 +1,21 @@
+---
+page_title: "Provider: Mondoo"
+description: |-
+  The Mondoo provider is used to configure your Mondoo Platform infrastructure.
+---
+
+# Mondoo Provider
+
+The Mondoo provider is used to configure your Mondoo Platform infrastructure.
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{tffile .ExampleFile }}
+{{- end }}
+
+## Authentication
+
+By default, the provider will use the Mondoo CLI configuration file to authenticate to the Mondoo Platform. The CLI configuration file is located at `~/.config/mondoo/mondoo.yml` on Linux and macOS, and `%HomePath%\mondoo\mondoo.yml` on Windows.
+
+{{ .SchemaMarkdown | trimspace }}
