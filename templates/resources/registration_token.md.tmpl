@@ -1,9 +1,25 @@
-# Example to Create Spaces and Get Registration Tokens
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}}
+
+{{ .Description | trimspace }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{tffile .ExampleFile }}
+{{- end }}
+
+## Example to Create Spaces and Get Registration Tokens
 
 This example demonstrates how to create three different Mondoo Spaces in a Mondoo Organisation and obtain a non-expiring
 Mondoo Registration Token for each Space.
 
-## Prerequisites
+**Prerequisites**
 
 Before proceeding, make sure you have the following:
 
@@ -11,7 +27,7 @@ Before proceeding, make sure you have the following:
 - [Mondoo Organisation](https://mondoo.com/docs/platform/start/organize/overview/)
 - [Mondoo API Token](https://mondoo.com/docs/platform/maintain/access/api-tokens/)
 
-## Usage
+**Usage**
 
 1. Adjust the variables `space_names` and `org_id`  in the  `terraform.tfvars` file:
 
@@ -182,3 +198,5 @@ terraform output -json complete_space_setup | jq
 
 You succesfully created Mondoo spaces and generated registration tokens for each space, which will be displayed in the
 output. 
+
+{{ .SchemaMarkdown | trimspace }}

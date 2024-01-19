@@ -16,7 +16,7 @@ Space resource
 terraform {
   required_providers {
     mondoo = {
-      source = "mondoo/mondoo"
+      source = "mondoohq/mondoo"
     }
   }
 }
