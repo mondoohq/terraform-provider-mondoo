@@ -53,8 +53,7 @@ func (r *RegistrationTokenResource) Metadata(ctx context.Context, req resource.M
 
 func (r *RegistrationTokenResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Example resource",
+		MarkdownDescription: "Registration Token resource",
 
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{

@@ -1,0 +1,22 @@
+# Copyright (c) Mondoo, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+policies:
+  - uid: example1
+    name: Example policy 2
+    version: "1.0.0"
+    authors:
+      - name: Mondoo
+        email: hello@mondoo.com
+    groups:
+      - title: Common SSH checks
+        filters: asset.family.contains("unix")
+        checks:
+          - uid: sshd-01
+            title: Set the port to 22
+            query: sshd.config.params["Port"] == 22
+            severity: 30
+
+          - uid: sshd-02
+            title: Configure the address family
+            query: sshd.config.params["AddressFamily"] == /inet|inet6|any/
+            severity: 40
