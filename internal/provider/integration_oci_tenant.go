@@ -18,77 +18,74 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &IntegrationOciTenantResource{}
-var _ resource.ResourceWithImportState = &IntegrationOciTenantResource{}
+var _ resource.Resource = &integrationOciTenantResource{}
+var _ resource.ResourceWithImportState = &integrationOciTenantResource{}
 
 func NewIntegrationOciTenantResource() resource.Resource {
-	return &IntegrationOciTenantResource{}
+	return &integrationOciTenantResource{}
 }
 
-// IntegrationOciTenantResource defines the resource implementation.
-type IntegrationOciTenantResource struct {
-	client *mondoov1.Client
+// integrationOciTenantResource defines the resource implementation.
+type integrationOciTenantResource struct {
+	client *ExtendedGqlClient
 }
 
-// IntegrationOciTenantResourceModel describes the resource data model.
-type IntegrationOciTenantResourceModel struct {
+// integrationOciTenantResourceModel describes the resource data model.
+type integrationOciTenantResourceModel struct {
 	// scope
 	SpaceId types.String `tfsdk:"space_id"`
-	OrgId   types.String `tfsdk:"org_id"`
 
 	// integration details
-	Mrn        types.String    `tfsdk:"mrn"`
-	Name       types.String    `tfsdk:"name"`
-	Tenancy    types.String    `tfsdk:"tenancy"`
-	Region     types.String    `tfsdk:"region"`
-	User       types.String    `tfsdk:"user"`
-	Credential CredentialModel `tfsdk:"credentials"`
+	Mrn     types.String `tfsdk:"mrn"`
+	Name    types.String `tfsdk:"name"`
+	Tenancy types.String `tfsdk:"tenancy"`
+	Region  types.String `tfsdk:"region"`
+	User    types.String `tfsdk:"user"`
+
+	// credentials
+	Credential integrationOciCredentialModel `tfsdk:"credentials"`
 }
 
-type CredentialModel struct {
+type integrationOciCredentialModel struct {
 	Fingerprint types.String `tfsdk:"fingerprint"`
 	PrivateKey  types.String `tfsdk:"private_key"`
 }
 
-func (r *IntegrationOciTenantResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *integrationOciTenantResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_integration_oci_tenant"
 }
 
-func (r *IntegrationOciTenantResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *integrationOciTenantResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Example resource",
 
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{ // TODO: add check that either space or org needs to be set
-				MarkdownDescription: "Example configurable attribute with default value",
-				Optional:            true,
-			},
-			"org_id": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute with default value",
-				Optional:            true,
+			"space_id": schema.StringAttribute{
+				MarkdownDescription: "Mondoo Space Identifier.",
+				Required:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Example identifier",
+				MarkdownDescription: "Integration identifier",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
+				MarkdownDescription: "Name of the integration.",
 				Optional:            true,
 			},
 			"tenancy": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
+				MarkdownDescription: "OCI tenancy",
 				Required:            true,
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
+				MarkdownDescription: "OCI region",
 				Required:            true,
 			},
 			"user": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
+				MarkdownDescription: "OCI user",
 				Required:            true,
 			},
 			"credentials": schema.SingleNestedAttribute{
@@ -107,7 +104,7 @@ func (r *IntegrationOciTenantResource) Schema(ctx context.Context, req resource.
 	}
 }
 
-func (r *IntegrationOciTenantResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *integrationOciTenantResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -124,11 +121,11 @@ func (r *IntegrationOciTenantResource) Configure(ctx context.Context, req resour
 		return
 	}
 
-	r.client = client
+	r.client = &ExtendedGqlClient{client}
 }
 
-func (r *IntegrationOciTenantResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data IntegrationOciTenantResourceModel
+func (r *integrationOciTenantResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data integrationOciTenantResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -138,26 +135,16 @@ func (r *IntegrationOciTenantResource) Create(ctx context.Context, req resource.
 	}
 
 	// Do GraphQL request to API to create the resource.
-	var createMutation struct {
-		CreateClientIntegration struct {
-			Integration struct {
-				Mrn  mondoov1.String
-				Name mondoov1.String
-			}
-		} `graphql:"createClientIntegration(input: $input)"`
-	}
-
 	spaceMrn := ""
 	if data.SpaceId.ValueString() != "" {
 		spaceMrn = spacePrefix + data.SpaceId.ValueString()
 	}
 
-	createInput := mondoov1.CreateClientIntegrationInput{
-		SpaceMrn:       mondoov1.String(spaceMrn),
-		Name:           mondoov1.String(data.Name.ValueString()),
-		Type:           mondoov1.ClientIntegrationTypeOci,
-		LongLivedToken: false,
-		ConfigurationOptions: mondoov1.ClientIntegrationConfigurationInput{
+	integration, err := r.client.CreateIntegration(ctx,
+		spaceMrn,
+		data.Name.ValueString(),
+		mondoov1.ClientIntegrationTypeOci,
+		mondoov1.ClientIntegrationConfigurationInput{
 			OciConfigurationOptions: &mondoov1.OciConfigurationOptionsInput{
 				TenancyOcid: mondoov1.String(data.Tenancy.ValueString()),
 				UserOcid:    mondoov1.String(data.User.ValueString()),
@@ -165,34 +152,23 @@ func (r *IntegrationOciTenantResource) Create(ctx context.Context, req resource.
 				Fingerprint: mondoov1.String(data.Credential.Fingerprint.ValueString()),
 				PrivateKey:  mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
 			},
-		},
-	}
-
-	tflog.Trace(ctx, "CreateSpaceInput", map[string]interface{}{
-		"input": fmt.Sprintf("%+v", createInput),
-	})
-
-	err := r.client.Mutate(ctx, &createMutation, createInput, nil)
+		})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create OCI tenant integration, got error: %s", err))
 		return
 	}
 
 	// Save space mrn into the Terraform state.
-	data.Mrn = types.StringValue(string(createMutation.CreateClientIntegration.Integration.Mrn))
-	data.Name = types.StringValue(string(createMutation.CreateClientIntegration.Integration.Name))
+	data.Mrn = types.StringValue(string(integration.Mrn))
+	data.Name = types.StringValue(string(integration.Name))
 	data.SpaceId = types.StringValue(data.SpaceId.ValueString())
-
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "created a resource")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *IntegrationOciTenantResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data IntegrationOciTenantResourceModel
+func (r *integrationOciTenantResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data integrationOciTenantResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -208,8 +184,8 @@ func (r *IntegrationOciTenantResource) Read(ctx context.Context, req resource.Re
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *IntegrationOciTenantResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data IntegrationOciTenantResourceModel
+func (r *integrationOciTenantResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data integrationOciTenantResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -219,19 +195,7 @@ func (r *IntegrationOciTenantResource) Update(ctx context.Context, req resource.
 	}
 
 	// Do GraphQL request to API to update the resource.
-	var updateMutation struct {
-		UpdateClientIntegrationName struct {
-			Name mondoov1.String
-		} `graphql:"updateClientIntegrationName(input: $input)"`
-	}
-	updateInput := mondoov1.UpdateClientIntegrationNameInput{
-		Mrn:  mondoov1.String(data.Mrn.ValueString()),
-		Name: mondoov1.String(data.Name.ValueString()),
-	}
-	tflog.Trace(ctx, "UpdateClientIntegrationNameInput", map[string]interface{}{
-		"input": fmt.Sprintf("%+v", updateInput),
-	})
-	err := r.client.Mutate(context.Background(), &updateMutation, updateInput, nil)
+	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update OCI tenant integration, got error: %s", err))
 		return
@@ -241,8 +205,8 @@ func (r *IntegrationOciTenantResource) Update(ctx context.Context, req resource.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *IntegrationOciTenantResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data IntegrationOciTenantResourceModel
+func (r *integrationOciTenantResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data integrationOciTenantResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -252,24 +216,13 @@ func (r *IntegrationOciTenantResource) Delete(ctx context.Context, req resource.
 	}
 
 	// Do GraphQL request to API to update the resource.
-	var deleteMutation struct {
-		DeleteClientIntegration struct {
-			Mrn mondoov1.String
-		} `graphql:"deleteClientIntegration(input: $input)"`
-	}
-	deleteInput := mondoov1.DeleteClientIntegrationInput{
-		Mrn: mondoov1.String(data.Mrn.ValueString()),
-	}
-	tflog.Trace(ctx, "DeleteClientIntegration", map[string]interface{}{
-		"input": fmt.Sprintf("%+v", deleteInput),
-	})
-	err := r.client.Mutate(ctx, &deleteMutation, deleteInput, nil)
+	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete Oci tenant integration, got error: %s", err))
 		return
 	}
 }
 
-func (r *IntegrationOciTenantResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *integrationOciTenantResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
 }
