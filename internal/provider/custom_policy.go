@@ -289,17 +289,7 @@ func (r *customPolicyResource) Delete(ctx context.Context, req resource.DeleteRe
 	data.Mrns.ElementsAs(ctx, &policyMrns, false)
 
 	for _, policyMrn := range policyMrns {
-		deleteCustomPolicyInput := mondoov1.DeleteCustomPolicyInput{
-			PolicyMrn: mondoov1.String(policyMrn),
-		}
-
-		var deleteCustomPolicy struct {
-			DeleteCustomPolicyPayload struct {
-				PolicyMrn mondoov1.String
-			} `graphql:"deleteCustomPolicy(input: $input)"`
-		}
-
-		err := r.client.Mutate(ctx, &deleteCustomPolicy, deleteCustomPolicyInput, nil)
+		err := r.client.DeletePolicy(ctx, policyMrn)
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete policy, got error: %s", err))
 			return

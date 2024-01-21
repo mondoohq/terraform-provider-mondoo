@@ -126,7 +126,7 @@ func (r *customQueryPackResource) Configure(ctx context.Context, req resource.Co
 	r.client = &ExtendedGqlClient{client}
 }
 
-func (r *customQueryPackResource) getContent(data customPolicyResourceModel) ([]byte, string, error) {
+func (r *customQueryPackResource) getContent(data customQueryPackResourceModel) ([]byte, string, error) {
 	var policyBundleData []byte
 	if !data.Content.IsNull() && !data.Source.IsNull() {
 		// load content from file
@@ -144,7 +144,7 @@ func (r *customQueryPackResource) getContent(data customPolicyResourceModel) ([]
 }
 
 func (r *customQueryPackResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data customPolicyResourceModel
+	var data customQueryPackResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -199,7 +199,7 @@ func (r *customQueryPackResource) Create(ctx context.Context, req resource.Creat
 }
 
 func (r *customQueryPackResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data customPolicyResourceModel
+	var data customQueryPackResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -228,7 +228,7 @@ func (r *customQueryPackResource) Read(ctx context.Context, req resource.ReadReq
 }
 
 func (r *customQueryPackResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data customPolicyResourceModel
+	var data customQueryPackResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -267,7 +267,7 @@ func (r *customQueryPackResource) Update(ctx context.Context, req resource.Updat
 }
 
 func (r *customQueryPackResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data customPolicyResourceModel
+	var data customQueryPackResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -277,23 +277,13 @@ func (r *customQueryPackResource) Delete(ctx context.Context, req resource.Delet
 	}
 
 	// Do GraphQL request to API to create the resource
-	policyMrns := []string{}
-	data.Mrns.ElementsAs(ctx, &policyMrns, false)
+	queryPackMrns := []string{}
+	data.Mrns.ElementsAs(ctx, &queryPackMrns, false)
 
-	for _, policyMrn := range policyMrns {
-		deleteCustomPolicyInput := mondoov1.DeleteCustomPolicyInput{
-			PolicyMrn: mondoov1.String(policyMrn),
-		}
-
-		var deleteCustomPolicy struct {
-			DeleteCustomPolicyPayload struct {
-				PolicyMrn mondoov1.String
-			} `graphql:"deleteCustomPolicy(input: $input)"`
-		}
-
-		err := r.client.Mutate(ctx, &deleteCustomPolicy, deleteCustomPolicyInput, nil)
+	for _, policyMrn := range queryPackMrns {
+		err := r.client.DeletePolicy(ctx, policyMrn)
 		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete policy, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete query pack, got error: %s", err))
 			return
 		}
 	}

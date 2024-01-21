@@ -115,3 +115,17 @@ func (c *ExtendedGqlClient) SetCustomQueryPack(ctx context.Context, scopeMrn str
 	err := c.Mutate(ctx, &setCustomQueryPackPayload, []mondoov1.SetCustomQueryPackInput{setCustomPolicyInput}, nil)
 	return setCustomQueryPackPayload.SetCustomPolicyPayload, err
 }
+
+func (c *ExtendedGqlClient) DeletePolicy(ctx context.Context, policyMrn string) error {
+	deleteCustomPolicyInput := mondoov1.DeleteCustomPolicyInput{
+		PolicyMrn: mondoov1.String(policyMrn),
+	}
+
+	var deleteCustomPolicy struct {
+		DeleteCustomPolicyPayload struct {
+			PolicyMrn mondoov1.String
+		} `graphql:"deleteCustomPolicy(input: $input)"`
+	}
+
+	return c.Mutate(ctx, &deleteCustomPolicy, deleteCustomPolicyInput, nil)
+}
