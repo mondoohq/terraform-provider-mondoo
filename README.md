@@ -22,9 +22,11 @@ provider "mondoo" {
 
 ## Developing the provider
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
+If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (
+see [Requirements](#requirements) above).
 
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
+To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin`
+directory.
 
 To generate or update documentation, run `go generate`.
 
@@ -36,7 +38,10 @@ _Note:_ Acceptance tests create real resources, and often cost money to run.
 make testacc
 ```
 
-This provider is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). The directory structure contains the following directories:
+This provider is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The
+template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found
+at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). The directory
+structure contains the following directories:
 
 - A resource and a data source (`internal/provider/`),
 - Examples (`examples/`) and generated documentation (`docs/`),
@@ -57,6 +62,24 @@ This provider is built on the [Terraform Plugin Framework](https://github.com/ha
 go install
 ```
 
+To use the local provider, add the following to your Terraform configuration `~/.terraformrc`:
+
+```hcl
+provider_installation {
+  dev_overrides {
+    "mondoohq/mondoo" = "~/go/bin/"
+  }
+
+  # For all other providers, install them directly from their origin provider
+  # registries as normal. If you omit this, Terraform will _only_ use
+  # the dev_overrides block, and so no other providers will be available.
+  direct {}
+}
+```
+
+See [Terraform documentation](https://developer.hashicorp.com/terraform/cli/config/config-file#explicit-installation-method-configuration)
+for more details about provider install configuration.
+
 ### Adding Dependencies
 
 This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
@@ -71,15 +94,17 @@ go mod tidy
 
 Then commit the changes to `go.mod` and `go.sum`.
 
-### Using the provider
+### Adding Resources
 
-After building the provider please install the terraform provider:
+The easiest way to create a new resource is to use
+the [Terraform Plugin Framework Code Generator](https://github.com/hashicorp/terraform-plugin-codegen-framework)
 
+```shell
+go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework@latest
 ```
-# ARCH = 'linux_amd64'
-export ARCH='darwin_arm64'
-export VERSION='1.0.0'
 
-mkdir -p ~/.terraform.d/plugins/registry.terraform.io/mondoo/mondoo/$VERSION/$ARCH
-cp $GOPATH/bin/terraform-provider-mondoo ~/.terraform.d/plugins/registry.terraform.io/mondoo/mondoo/$VERSION/$ARCH/
+Now you can scaffold a new resource:
+
+```shell
+tfplugingen-framework scaffold resource --name policy_upload --output-dir internal/provider
 ```
