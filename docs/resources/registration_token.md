@@ -1,12 +1,12 @@
 page_title: "mondoo_registration_token Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Example resource
+  Registration Token resource
 ---
 
 # mondoo_registration_token
 
-Example resource
+Registration Token resource
 
 ## Example Usage
 
