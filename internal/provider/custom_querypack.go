@@ -6,7 +6,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"hash/crc32"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -22,19 +21,19 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = (*customPolicyResource)(nil)
+var _ resource.Resource = (*customQueryPackResource)(nil)
 
-func NewCustomPolicyResource() resource.Resource {
-	return &customPolicyResource{}
+func NewCustomQueryPackResource() resource.Resource {
+	return &customQueryPackResource{}
 }
 
-// customPolicyResource defines the resource implementation.
-type customPolicyResource struct {
+// customQueryPackResource defines the resource implementation.
+type customQueryPackResource struct {
 	client *ExtendedGqlClient
 }
 
-// customPolicyResourceModel describes the resource data model.
-type customPolicyResourceModel struct {
+// customQueryPackResourceModel describes the resource data model.
+type customQueryPackResourceModel struct {
 	// scope
 	SpaceId types.String `tfsdk:"space_id"`
 
@@ -50,20 +49,20 @@ type customPolicyResourceModel struct {
 	Crc32Checksum types.String `tfsdk:"crc32c"`
 }
 
-func (r *customPolicyResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_custom_policy"
+func (r *customQueryPackResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_custom_querypack"
 }
 
-func (r *customPolicyResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *customQueryPackResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Custom Policy resource",
+		MarkdownDescription: "Custom Query Pack resource",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier.",
 				Required:            true,
 			},
 			"mrns": schema.ListAttribute{
-				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created policies",
+				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created query packs",
 				ElementType:         types.StringType,
 				Computed:            true,
 				PlanModifiers: []planmodifier.List{
@@ -107,7 +106,7 @@ func (r *customPolicyResource) Schema(ctx context.Context, req resource.SchemaRe
 	}
 }
 
-func (r *customPolicyResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *customQueryPackResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -127,14 +126,7 @@ func (r *customPolicyResource) Configure(ctx context.Context, req resource.Confi
 	r.client = &ExtendedGqlClient{client}
 }
 
-// newCrc32Checksum generates a crc32 checksum for a given content.
-func newCrc32Checksum(data []byte) string {
-	checksum := crc32.Checksum(data, crc32.MakeTable(crc32.Castagnoli))
-	// encode as hex string
-	return fmt.Sprintf("%x", checksum)
-}
-
-func (r *customPolicyResource) getContent(data customPolicyResourceModel) ([]byte, string, error) {
+func (r *customQueryPackResource) getContent(data customQueryPackResourceModel) ([]byte, string, error) {
 	var policyBundleData []byte
 	if !data.Content.IsNull() && !data.Source.IsNull() {
 		// load content from file
@@ -151,8 +143,8 @@ func (r *customPolicyResource) getContent(data customPolicyResourceModel) ([]byt
 	return policyBundleData, newCrc32Checksum(policyBundleData), nil
 }
 
-func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data customPolicyResourceModel
+func (r *customQueryPackResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data customQueryPackResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -192,7 +184,7 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	// call graphql api
-	setCustomPolicy, err := r.client.SetCustomPolicy(ctx, scopeMrn, data.Overwrite.ValueBoolPointer(), policyBundleData)
+	setCustomPolicyPayload, err := r.client.SetCustomQueryPack(ctx, scopeMrn, data.Overwrite.ValueBoolPointer(), policyBundleData)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to store policy, got error: %s", err))
 		return
@@ -201,13 +193,13 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	// Save data into Terraform state
 	data.Content = types.StringValue(string(policyBundleData))
 	data.Crc32Checksum = types.StringValue(checksum)
-	data.Mrns, _ = types.ListValueFrom(ctx, types.StringType, setCustomPolicy.SetCustomPolicyPayload.PolicyMrns)
+	data.Mrns, _ = types.ListValueFrom(ctx, types.StringType, setCustomPolicyPayload.QueryPackMrns)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 }
 
-func (r *customPolicyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data customPolicyResourceModel
+func (r *customQueryPackResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data customQueryPackResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -235,8 +227,8 @@ func (r *customPolicyResource) Read(ctx context.Context, req resource.ReadReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *customPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data customPolicyResourceModel
+func (r *customQueryPackResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data customQueryPackResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -259,7 +251,7 @@ func (r *customPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		// update the policy
 
 		// call graphql api
-		setCustomPolicy, err := r.client.SetCustomPolicy(ctx, spacePrefix+data.SpaceId.ValueString(), data.Overwrite.ValueBoolPointer(), policyBundleData)
+		setCustomPolicyPayload, err := r.client.SetCustomQueryPack(ctx, spacePrefix+data.SpaceId.ValueString(), data.Overwrite.ValueBoolPointer(), policyBundleData)
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to store policy, got error: %s", err))
 			return
@@ -267,15 +259,15 @@ func (r *customPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 
 		data.Content = types.StringValue(string(policyBundleData))
 		data.Crc32Checksum = types.StringValue(checksum)
-		data.Mrns, _ = types.ListValueFrom(ctx, types.StringType, setCustomPolicy.SetCustomPolicyPayload.PolicyMrns)
+		data.Mrns, _ = types.ListValueFrom(ctx, types.StringType, setCustomPolicyPayload.QueryPackMrns)
 	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *customPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data customPolicyResourceModel
+func (r *customQueryPackResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data customQueryPackResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -285,13 +277,13 @@ func (r *customPolicyResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	// Do GraphQL request to API to create the resource
-	policyMrns := []string{}
-	data.Mrns.ElementsAs(ctx, &policyMrns, false)
+	queryPackMrns := []string{}
+	data.Mrns.ElementsAs(ctx, &queryPackMrns, false)
 
-	for _, policyMrn := range policyMrns {
+	for _, policyMrn := range queryPackMrns {
 		err := r.client.DeletePolicy(ctx, policyMrn)
 		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete policy, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete query pack, got error: %s", err))
 			return
 		}
 	}

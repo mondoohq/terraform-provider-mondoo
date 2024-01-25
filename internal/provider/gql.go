@@ -91,3 +91,41 @@ func (c *ExtendedGqlClient) UnassignPolicy(ctx context.Context, spaceMrn string,
 
 	return c.Mutate(ctx, &policyAssignment, policyAssignmentInput, nil)
 }
+
+type SetCustomPolicyPayload struct {
+	QueryPackMrns []mondoov1.String
+}
+
+func (c *ExtendedGqlClient) SetCustomQueryPack(ctx context.Context, scopeMrn string, overwriteVal *bool, policyBundleData []byte) (SetCustomPolicyPayload, error) {
+	var overwrite *mondoov1.Boolean
+	if overwriteVal != nil {
+		overwrite = mondoov1.NewBooleanPtr(mondoov1.Boolean(*overwriteVal))
+	}
+
+	setCustomPolicyInput := mondoov1.SetCustomQueryPackInput{
+		SpaceMrn:  mondoov1.String(scopeMrn),
+		Overwrite: overwrite,
+		Dataurl:   mondoov1.String(newDataUrl(policyBundleData)),
+	}
+
+	var setCustomQueryPackPayload struct {
+		SetCustomPolicyPayload SetCustomPolicyPayload `graphql:"setCustomQueryPack(input: $input)"`
+	}
+
+	err := c.Mutate(ctx, &setCustomQueryPackPayload, []mondoov1.SetCustomQueryPackInput{setCustomPolicyInput}, nil)
+	return setCustomQueryPackPayload.SetCustomPolicyPayload, err
+}
+
+func (c *ExtendedGqlClient) DeletePolicy(ctx context.Context, policyMrn string) error {
+	deleteCustomPolicyInput := mondoov1.DeleteCustomPolicyInput{
+		PolicyMrn: mondoov1.String(policyMrn),
+	}
+
+	var deleteCustomPolicy struct {
+		DeleteCustomPolicyPayload struct {
+			PolicyMrn mondoov1.String
+		} `graphql:"deleteCustomPolicy(input: $input)"`
+	}
+
+	return c.Mutate(ctx, &deleteCustomPolicy, deleteCustomPolicyInput, nil)
+}

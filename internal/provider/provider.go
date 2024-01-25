@@ -160,6 +160,7 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewRegistrationTokenResource,
 		NewCustomPolicyResource,
 		NewPolicyAssigmentResource,
+		NewCustomQueryPackResource,
 	}
 }
 
