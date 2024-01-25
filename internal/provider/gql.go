@@ -6,6 +6,8 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -128,4 +130,78 @@ func (c *ExtendedGqlClient) DeletePolicy(ctx context.Context, policyMrn string) 
 	}
 
 	return c.Mutate(ctx, &deleteCustomPolicy, deleteCustomPolicyInput, nil)
+}
+
+type CreateClientIntegrationPayload struct {
+	Mrn  mondoov1.String
+	Name mondoov1.String
+}
+
+func (c *ExtendedGqlClient) CreateIntegration(ctx context.Context, spaceMrn, name string, typ mondoov1.ClientIntegrationType, opts mondoov1.ClientIntegrationConfigurationInput) (*CreateClientIntegrationPayload, error) {
+	var createMutation struct {
+		CreateClientIntegration struct {
+			Integration CreateClientIntegrationPayload
+		} `graphql:"createClientIntegration(input: $input)"`
+	}
+
+	createInput := mondoov1.CreateClientIntegrationInput{
+		SpaceMrn:             mondoov1.String(spaceMrn),
+		Name:                 mondoov1.String(name),
+		Type:                 typ,
+		LongLivedToken:       false,
+		ConfigurationOptions: opts,
+	}
+
+	tflog.Trace(ctx, "CreateSpaceInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", createInput),
+	})
+
+	err := c.Mutate(ctx, &createMutation, createInput, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &createMutation.CreateClientIntegration.Integration, nil
+}
+
+type UpdateIntegrationPayload struct {
+	Name mondoov1.String
+}
+
+func (c *ExtendedGqlClient) UpdateIntegration(ctx context.Context, mrn, name string) (*UpdateIntegrationPayload, error) {
+	var updateMutation struct {
+		UpdateClientIntegrationName UpdateIntegrationPayload `graphql:"updateClientIntegrationName(input: $input)"`
+	}
+	updateInput := mondoov1.UpdateClientIntegrationNameInput{
+		Mrn:  mondoov1.String(mrn),
+		Name: mondoov1.String(name),
+	}
+	tflog.Trace(ctx, "UpdateClientIntegrationNameInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", updateInput),
+	})
+	err := c.Mutate(ctx, &updateMutation, updateInput, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &updateMutation.UpdateClientIntegrationName, nil
+}
+
+type DeleteIntegrationPayload struct {
+	Mrn mondoov1.String
+}
+
+func (c *ExtendedGqlClient) DeleteIntegration(ctx context.Context, mrn string) (*DeleteIntegrationPayload, error) {
+	var deleteMutation struct {
+		DeleteClientIntegration DeleteIntegrationPayload `graphql:"deleteClientIntegration(input: $input)"`
+	}
+	deleteInput := mondoov1.DeleteClientIntegrationInput{
+		Mrn: mondoov1.String(mrn),
+	}
+	tflog.Trace(ctx, "DeleteClientIntegration", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", deleteInput),
+	})
+	err := c.Mutate(ctx, &deleteMutation, deleteInput, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &deleteMutation.DeleteClientIntegration, nil
 }

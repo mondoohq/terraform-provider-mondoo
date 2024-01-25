@@ -60,19 +60,18 @@ EOT
 ### Required
 
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
-- `region` (String) Example configurable attribute
-- `tenancy` (String) Example configurable attribute
-- `user` (String) Example configurable attribute
+- `region` (String) OCI region
+- `space_id` (String) Mondoo Space Identifier.
+- `tenancy` (String) OCI tenancy
+- `user` (String) OCI user
 
 ### Optional
 
-- `name` (String) Example configurable attribute
-- `org_id` (String) Example configurable attribute with default value
-- `space_id` (String) Example configurable attribute with default value
+- `name` (String) Name of the integration.
 
 ### Read-Only
 
-- `mrn` (String) Example identifier
+- `mrn` (String) Integration identifier
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`
