@@ -111,7 +111,14 @@ func (r *policyAssignmentResource) Create(ctx context.Context, req resource.Crea
 
 	policyMrns := []string{}
 	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
-	r.client.AssignPolicy(ctx, scopeMrn, policyMrns)
+	err := r.client.AssignPolicy(ctx, scopeMrn, policyMrns)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating policy assignment",
+			fmt.Sprintf("Error creating policy assignment: %s", err),
+		)
+		return
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -157,7 +164,14 @@ func (r *policyAssignmentResource) Update(ctx context.Context, req resource.Upda
 
 	policyMrns := []string{}
 	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
-	r.client.AssignPolicy(ctx, scopeMrn, policyMrns)
+	err := r.client.AssignPolicy(ctx, scopeMrn, policyMrns)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating policy assignment",
+			fmt.Sprintf("Error creating policy assignment: %s", err),
+		)
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -187,5 +201,12 @@ func (r *policyAssignmentResource) Delete(ctx context.Context, req resource.Dele
 
 	policyMrns := []string{}
 	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
-	r.client.UnassignPolicy(ctx, scopeMrn, policyMrns)
+	err := r.client.UnassignPolicy(ctx, scopeMrn, policyMrns)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating policy assignment",
+			fmt.Sprintf("Error creating policy assignment: %s", err),
+		)
+		return
+	}
 }
