@@ -156,12 +156,13 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 	return []func() resource.Resource{
 		NewSpaceResource,
 		NewServiceAccountResource,
-		NewIntegrationOciTenantResource,
 		NewRegistrationTokenResource,
 		NewCustomPolicyResource,
 		NewPolicyAssigmentResource,
 		NewCustomQueryPackResource,
+		NewQueryPackAssigmentResource,
 		NewIntegrationGcpResource,
+		NewIntegrationOciTenantResource,
 	}
 }
 
