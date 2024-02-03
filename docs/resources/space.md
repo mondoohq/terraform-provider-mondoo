@@ -41,8 +41,9 @@ resource "mondoo_space" "my_space" {
 
 ### Optional
 
+- `id` (String) Id of the space. Must be globally unique.
 - `name` (String) Name of the space.
 
 ### Read-Only
 
-- `id` (String) Id of the space. Must be globally within the organization.
+- `mrn` (String) Mrn of the space.
