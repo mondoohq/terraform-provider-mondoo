@@ -510,8 +510,8 @@ github.com/zclconf/go-cty v1.14.1/go.mod h1:VvMs5i0vgZdhYawQNq5kePSpLAoz8u1xvZgr
 go.etcd.io/etcd/api/v3 v3.5.4/go.mod h1:5GB2vv4A4AOn3yk7MftYGHkUfGtDHnEraIjym4dYz5A=
 go.etcd.io/etcd/client/pkg/v3 v3.5.4/go.mod h1:IJHfcCEKxYu1Os13ZdwCwIUTUVGYTSAM3YSwc9/Ac1g=
 go.etcd.io/etcd/client/v3 v3.5.4/go.mod h1:ZaRkVgBZC+L+dLCjTcF1hRXpgZXQPOvnA/Ak/gq3kiY=
-go.mondoo.com/mondoo-go v0.0.0-20240124101327-8c3a4faf5a4b h1:3jEFvT3S7iWyDPPFrgEtW4e2a36SyxfYLh+hpWYOuks=
-go.mondoo.com/mondoo-go v0.0.0-20240124101327-8c3a4faf5a4b/go.mod h1:JLQufVnmNUllB3yLPgpQ0oE/8lvqFd/3yrXBIfdndgw=
+go.mondoo.com/mondoo-go v0.0.0-20240203120016-30f2eae8932a h1:1byX2J8JGzX2LCKzJZjgI3DE3EAWNMlH6W/ZR5f3tKo=
+go.mondoo.com/mondoo-go v0.0.0-20240203120016-30f2eae8932a/go.mod h1:JLQufVnmNUllB3yLPgpQ0oE/8lvqFd/3yrXBIfdndgw=
 go.mongodb.org/mongo-driver v1.10.0 h1:UtV6N5k14upNp4LTduX0QCufG124fSu25Wz9tu94GLg=
 go.mongodb.org/mongo-driver v1.10.0/go.mod h1:wsihk0Kdgv8Kqu1Anit4sfK+22vSFbUrAVEYRhCXrA8=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
