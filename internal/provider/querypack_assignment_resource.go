@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	mondoov1 "go.mondoo.com/mondoo-go"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -131,7 +132,7 @@ func (r *queryPackAssignmentResource) Create(ctx context.Context, req resource.C
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating query pack assignment",
-			fmt.Sprintf("Error creating query pack assignment: %s", err),
+			fmt.Sprintf("Error creating query pack assignment: %s\nSpace: %s\nQueryPacks: %s", err, scopeMrn, strings.Join(queryPackMrns, "\n")),
 		)
 		return
 	}
@@ -200,7 +201,7 @@ func (r *queryPackAssignmentResource) Update(ctx context.Context, req resource.U
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating query pack assignment",
-			fmt.Sprintf("Error creating query pack assignment: %s", err),
+			fmt.Sprintf("Error creating query pack assignment: %s\nSpace: %s\nQueryPacks: %s", err, scopeMrn, strings.Join(queryPackMrns, "\n")),
 		)
 		return
 	}

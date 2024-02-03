@@ -10,14 +10,19 @@ provider "mondoo" {
   region = "us"
 }
 
+variable "mondoo_org" {
+  description = "Mondoo Organization"
+  type        = string
+}
+
 resource "mondoo_space" "my_space" {
   name   = "My Space Name"
-  org_id = "your-org-1234567"
+  org_id = var.mondoo_org
 }
 
 variable "my_custom_querypack" {
   type    = string
-  default = "/path/to/my-custom-policy.mql.yml"
+  default = "querypack.mql.yaml"
 }
 
 resource "mondoo_custom_querypack" "my_query_pack" {
@@ -25,12 +30,13 @@ resource "mondoo_custom_querypack" "my_query_pack" {
   source   = var.my_custom_querypack
 }
 
-resource "mondoo_querypack_assignments" "space" {
+resource "mondoo_querypack_assignment" "space" {
   space_id = mondoo_space.my_space.id
 
-  policies = [
-    mondoo_custom_querypack.my_query_pack.mrn # use a uploaded policy mrn
-  ]
+  querypacks = concat(
+    mondoo_custom_querypack.my_query_pack.mrns,
+    [],
+  )
 
   state = "enabled"
 
