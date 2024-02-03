@@ -44,7 +44,7 @@ func (c *ExtendedGqlClient) SetCustomPolicy(ctx context.Context, scopeMrn string
 	return setCustomPolicy, err
 }
 
-func (c *ExtendedGqlClient) AssignPolicy(ctx context.Context, spaceMrn string, policyMrns []string) error {
+func (c *ExtendedGqlClient) AssignPolicy(ctx context.Context, spaceMrn string, action mondoov1.PolicyAction, policyMrns []string) error {
 	var list *[]mondoov1.String
 
 	entries := []mondoov1.String{}
@@ -55,7 +55,6 @@ func (c *ExtendedGqlClient) AssignPolicy(ctx context.Context, spaceMrn string, p
 	if len(entries) > 0 {
 		list = &entries
 	}
-	action := mondoov1.PolicyActionActive
 
 	policyAssignmentInput := mondoov1.PolicyAssignmentInput{
 		AssetMrn:   mondoov1.String(spaceMrn),

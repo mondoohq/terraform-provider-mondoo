@@ -111,7 +111,26 @@ func (r *policyAssignmentResource) Create(ctx context.Context, req resource.Crea
 
 	policyMrns := []string{}
 	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
-	err := r.client.AssignPolicy(ctx, scopeMrn, policyMrns)
+
+	state := data.State.ValueString()
+	var err error
+	// default action is active
+	if state == "" || state == "enabled" {
+		action := mondoov1.PolicyActionActive
+		err = r.client.AssignPolicy(ctx, scopeMrn, action, policyMrns)
+	} else if state == "preview" {
+		action := mondoov1.PolicyActionIgnore
+		err = r.client.AssignPolicy(ctx, scopeMrn, action, policyMrns)
+	} else if state == "disabled" {
+		err = r.client.UnassignPolicy(ctx, scopeMrn, policyMrns)
+	} else {
+		resp.Diagnostics.AddError(
+			"Invalid state: "+state,
+			"Invalid state "+state+", use one of: enabled, preview, disabled",
+		)
+		return
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating policy assignment",
@@ -164,7 +183,26 @@ func (r *policyAssignmentResource) Update(ctx context.Context, req resource.Upda
 
 	policyMrns := []string{}
 	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
-	err := r.client.AssignPolicy(ctx, scopeMrn, policyMrns)
+
+	state := data.State.ValueString()
+	var err error
+	// default action is active
+	if state == "" || state == "enabled" {
+		action := mondoov1.PolicyActionActive
+		err = r.client.AssignPolicy(ctx, scopeMrn, action, policyMrns)
+	} else if state == "preview" {
+		action := mondoov1.PolicyActionIgnore
+		err = r.client.AssignPolicy(ctx, scopeMrn, action, policyMrns)
+	} else if state == "disabled" {
+		err = r.client.UnassignPolicy(ctx, scopeMrn, policyMrns)
+	} else {
+		resp.Diagnostics.AddError(
+			"Invalid state: "+state,
+			"Invalid state "+state+", use one of: enabled, preview, disabled",
+		)
+		return
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating policy assignment",
@@ -201,6 +239,8 @@ func (r *policyAssignmentResource) Delete(ctx context.Context, req resource.Dele
 
 	policyMrns := []string{}
 	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
+
+	// no matter the state, we unassign the policies
 	err := r.client.UnassignPolicy(ctx, scopeMrn, policyMrns)
 	if err != nil {
 		resp.Diagnostics.AddError(
