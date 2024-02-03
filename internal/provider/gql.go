@@ -20,13 +20,100 @@ func newDataUrl(content []byte) string {
 	return "data:application/x-yaml;base64," + base64.StdEncoding.EncodeToString(content)
 }
 
-type setCustomPolicyRequest struct {
-	SetCustomPolicyPayload struct {
-		PolicyMrns []mondoov1.String
-	} `graphql:"setCustomPolicy(input: $input)"`
+type createSpacePayload struct {
+	Id   mondoov1.ID
+	Mrn  mondoov1.String
+	Name mondoov1.String
 }
 
-func (c *ExtendedGqlClient) SetCustomPolicy(ctx context.Context, scopeMrn string, overwriteVal *bool, policyBundleData []byte) (setCustomPolicyRequest, error) {
+func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, orgID string, id string, name string) (createSpacePayload, error) {
+	var createMutation struct {
+		CreateSpace createSpacePayload `graphql:"createSpace(input: $input)"`
+	}
+
+	var spaceID *mondoov1.String
+	if id != "" {
+		spaceID = mondoov1.NewStringPtr(mondoov1.String(id))
+	}
+
+	createInput := mondoov1.CreateSpaceInput{
+		Name:   mondoov1.String(name),
+		ID:     spaceID,
+		OrgMrn: mondoov1.String(orgPrefix + orgID),
+	}
+
+	tflog.Trace(ctx, "CreateSpaceInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", createInput),
+	})
+
+	err := c.Mutate(ctx, &createMutation, createInput, nil)
+	return createMutation.CreateSpace, err
+}
+
+func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID string, name string) error {
+	var updateMutation struct {
+		UpdateSpace struct {
+			Space struct {
+				Mrn  mondoov1.String
+				Name mondoov1.String
+			}
+		} `graphql:"updateSpace(input: $input)"`
+	}
+	updateInput := mondoov1.UpdateSpaceInput{
+		Mrn:  mondoov1.String(spacePrefix + spaceID),
+		Name: mondoov1.String(name),
+	}
+	tflog.Trace(ctx, "UpdateSpaceInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", updateInput),
+	})
+	return c.Mutate(ctx, &updateMutation, updateInput, nil)
+}
+
+func (c *ExtendedGqlClient) DeleteSpace(ctx context.Context, spaceID string) error {
+	var deleteMutation struct {
+		DeleteSpace mondoov1.String `graphql:"deleteSpace(spaceMrn: $spaceMrn)"`
+	}
+	variables := map[string]interface{}{
+		"spaceMrn": mondoov1.ID(spacePrefix + spaceID),
+	}
+
+	tflog.Trace(ctx, "DeleteSpaceInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", variables),
+	})
+
+	return c.Mutate(ctx, &deleteMutation, nil, variables)
+}
+
+type spacePayload struct {
+	Id           string
+	Mrn          string
+	Name         string
+	Organization struct {
+		Id string
+	}
+}
+
+func (r *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayload, error) {
+	var q struct {
+		Space spacePayload `graphql:"space(mrn: $mrn)"`
+	}
+	variables := map[string]interface{}{
+		"mrn": mondoov1.String(mrn),
+	}
+
+	err := r.Query(ctx, &q, variables)
+	if err != nil {
+		return spacePayload{}, err
+	}
+
+	return q.Space, nil
+}
+
+type setCustomPolicyPayload struct {
+	PolicyMrns []mondoov1.String
+}
+
+func (c *ExtendedGqlClient) SetCustomPolicy(ctx context.Context, scopeMrn string, overwriteVal *bool, policyBundleData []byte) (setCustomPolicyPayload, error) {
 	var overwrite *mondoov1.Boolean
 	if overwriteVal != nil {
 		overwrite = mondoov1.NewBooleanPtr(mondoov1.Boolean(*overwriteVal))
@@ -38,10 +125,12 @@ func (c *ExtendedGqlClient) SetCustomPolicy(ctx context.Context, scopeMrn string
 		Dataurl:   mondoov1.String(newDataUrl(policyBundleData)),
 	}
 
-	var setCustomPolicy setCustomPolicyRequest
+	var setCustomPolicy struct {
+		SetCustomPolicyPayload setCustomPolicyPayload `graphql:"setCustomPolicy(input: $input)"`
+	}
 
 	err := c.Mutate(ctx, &setCustomPolicy, []mondoov1.SetCustomPolicyInput{setCustomPolicyInput}, nil)
-	return setCustomPolicy, err
+	return setCustomPolicy.SetCustomPolicyPayload, err
 }
 
 func (c *ExtendedGqlClient) AssignPolicy(ctx context.Context, spaceMrn string, action mondoov1.PolicyAction, policyMrns []string) error {

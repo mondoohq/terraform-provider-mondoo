@@ -32,14 +32,15 @@ func NewSpaceResource() resource.Resource {
 
 // SpaceResource defines the resource implementation.
 type SpaceResource struct {
-	client *mondoov1.Client
+	client *ExtendedGqlClient
 }
 
 // ProjectResourceModel describes the resource data model.
 type ProjectResourceModel struct {
-	SpaceID types.String `tfsdk:"id"`
-	Name    types.String `tfsdk:"name"`
-	OrgID   types.String `tfsdk:"org_id"`
+	SpaceID  types.String `tfsdk:"id"`
+	Name     types.String `tfsdk:"name"`
+	OrgID    types.String `tfsdk:"org_id"`
+	SpaceMrn types.String `tfsdk:"mrn"`
 }
 
 func (r *SpaceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -57,7 +58,15 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Optional:            true,
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Id of the space. Must be globally within the organization.",
+				MarkdownDescription: "Id of the space. Must be globally unique.",
+				Computed:            true,
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"mrn": schema.StringAttribute{
+				MarkdownDescription: "Mrn of the space.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -86,7 +95,7 @@ func (r *SpaceResource) Configure(ctx context.Context, req resource.ConfigureReq
 		return
 	}
 
-	r.client = client
+	r.client = &ExtendedGqlClient{client}
 }
 
 func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -100,34 +109,21 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 
 	// Do GraphQL request to API to create the resource.
-	var createMutation struct {
-		CreateSpace struct {
-			Id   mondoov1.ID
-			Mrn  mondoov1.String
-			Name mondoov1.String
-		} `graphql:"createSpace(input: $input)"`
-	}
-	createInput := mondoov1.CreateSpaceInput{
-		Name:   mondoov1.String(data.Name.ValueString()),
-		OrgMrn: mondoov1.String(orgPrefix + data.OrgID.ValueString()),
-	}
-
-	tflog.Trace(ctx, "CreateSpaceInput", map[string]interface{}{
-		"input": fmt.Sprintf("%+v", createInput),
-	})
-
-	err := r.client.Mutate(ctx, &createMutation, createInput, nil)
+	payload, err := r.client.CreateSpace(ctx, data.OrgID.ValueString(), data.SpaceID.ValueString(), data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create space, got error: %s", err))
 		return
 	}
 
 	// Save space mrn into the Terraform state.
-	data.Name = types.StringValue(string(createMutation.CreateSpace.Name))
-	id, ok := createMutation.CreateSpace.Id.(string)
+	data.Name = types.StringValue(string(payload.Name))
+
+	id, ok := payload.Id.(string)
 	if ok {
 		data.SpaceID = types.StringValue(id)
 	}
+
+	data.SpaceMrn = types.StringValue(string(payload.Mrn))
 
 	// Write logs using the tflog package
 	tflog.Trace(ctx, "created a space resource")
@@ -160,23 +156,23 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
+	// ensure space id is not changed
+	var stateSpaceID string
+	req.State.GetAttribute(ctx, path.Root("id"), &stateSpaceID)
+
+	var planSpaceID string
+	req.Plan.GetAttribute(ctx, path.Root("id"), &planSpaceID)
+
+	if stateSpaceID != planSpaceID {
+		resp.Diagnostics.AddError(
+			"Space ID cannot be changed",
+			"Space ID cannot be changed",
+		)
+		return
+	}
+
 	// Do GraphQL request to API to update the resource.
-	var updateMutation struct {
-		UpdateSpace struct {
-			Space struct {
-				Mrn  mondoov1.String
-				Name mondoov1.String
-			}
-		} `graphql:"updateSpace(input: $input)"`
-	}
-	updateInput := mondoov1.UpdateSpaceInput{
-		Mrn:  mondoov1.String(spacePrefix + data.SpaceID.ValueString()),
-		Name: mondoov1.String(data.Name.ValueString()),
-	}
-	tflog.Trace(ctx, "UpdateSpaceInput", map[string]interface{}{
-		"input": fmt.Sprintf("%+v", updateInput),
-	})
-	err := r.client.Mutate(ctx, &updateMutation, updateInput, nil)
+	err := r.client.UpdateSpace(ctx, data.SpaceID.ValueString(), data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update space, got error: %s", err))
 		return
@@ -197,59 +193,30 @@ func (r *SpaceResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	// Do GraphQL request to API to delete the resource.
-	var deleteMutation struct {
-		DeleteSpace mondoov1.String `graphql:"deleteSpace(spaceMrn: $spaceMrn)"`
-	}
-	variables := map[string]interface{}{
-		"spaceMrn": mondoov1.ID(spacePrefix + data.SpaceID.ValueString()),
-	}
-
-	tflog.Trace(ctx, "DeleteSpaceInput", map[string]interface{}{
-		"input": fmt.Sprintf("%+v", variables),
-	})
-
-	err := r.client.Mutate(ctx, &deleteMutation, nil, variables)
+	err := r.client.DeleteSpace(ctx, data.SpaceID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete space, got error: %s", err))
 		return
 	}
 }
 
-func (r *SpaceResource) readSpace(ctx context.Context, mrn string) (ProjectResourceModel, error) {
-	var q struct {
-		Space struct {
-			Id           string
-			Mrn          string
-			Name         string
-			Organization struct {
-				Id string
-			}
-		} `graphql:"space(mrn: $mrn)"`
-	}
-	variables := map[string]interface{}{
-		"mrn": mondoov1.String(mrn),
-	}
-
-	err := r.client.Query(ctx, &q, variables)
-	if err != nil {
-		return ProjectResourceModel{}, err
-	}
-
-	return ProjectResourceModel{
-		SpaceID: types.StringValue(q.Space.Id),
-		Name:    types.StringValue(q.Space.Name),
-		OrgID:   types.StringValue(q.Space.Organization.Id),
-	}, nil
-}
-
 func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	mrn := spacePrefix + req.ID
-	model, err := r.readSpace(ctx, mrn)
+	spacePayload, err := r.client.GetSpace(ctx, mrn)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to retrieve space, got error: %s", err))
 		return
 	}
+
+	model := ProjectResourceModel{
+		SpaceID:  types.StringValue(spacePayload.Id),
+		SpaceMrn: types.StringValue(spacePayload.Mrn),
+		Name:     types.StringValue(spacePayload.Name),
+		OrgID:    types.StringValue(spacePayload.Organization.Id),
+	}
+
 	resp.State.SetAttribute(ctx, path.Root("id"), model.SpaceID)
 	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
 	resp.State.SetAttribute(ctx, path.Root("org_id"), model.OrgID)
+	resp.State.SetAttribute(ctx, path.Root("mrn"), model.SpaceMrn)
 }

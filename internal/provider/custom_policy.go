@@ -201,7 +201,7 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	// Save data into Terraform state
 	data.Content = types.StringValue(string(policyBundleData))
 	data.Crc32Checksum = types.StringValue(checksum)
-	data.Mrns, _ = types.ListValueFrom(ctx, types.StringType, setCustomPolicy.SetCustomPolicyPayload.PolicyMrns)
+	data.Mrns, _ = types.ListValueFrom(ctx, types.StringType, setCustomPolicy.PolicyMrns)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 }
@@ -267,7 +267,7 @@ func (r *customPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 
 		data.Content = types.StringValue(string(policyBundleData))
 		data.Crc32Checksum = types.StringValue(checksum)
-		data.Mrns, _ = types.ListValueFrom(ctx, types.StringType, setCustomPolicy.SetCustomPolicyPayload.PolicyMrns)
+		data.Mrns, _ = types.ListValueFrom(ctx, types.StringType, setCustomPolicy.PolicyMrns)
 	}
 
 	// Save data into Terraform state
