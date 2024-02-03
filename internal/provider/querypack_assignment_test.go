@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccPolicyAssignmentResource(t *testing.T) {
+func TestAccQueryPackAssignmentResource(t *testing.T) {
 	orgID, err := getOrgId()
 	if err != nil {
 		t.Fatal(err)
@@ -21,9 +21,9 @@ func TestAccPolicyAssignmentResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccPolicyAssignmentResourceConfig(orgID, "enabled"),
+				Config: testAccQueryPackAssignmentResourceConfig(orgID, "enabled"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_policy_assignment.space", "state", "enabled"),
+					resource.TestCheckResourceAttr("mondoo_querypack_assignment.space", "state", "enabled"),
 				),
 			},
 			// ImportState testing
@@ -35,9 +35,9 @@ func TestAccPolicyAssignmentResource(t *testing.T) {
 			//},
 			// Update and Read testing
 			{
-				Config: testAccPolicyAssignmentResourceConfig(orgID, "disabled"),
+				Config: testAccQueryPackAssignmentResourceConfig(orgID, "disabled"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_policy_assignment.space", "state", "disabled"),
+					resource.TestCheckResourceAttr("mondoo_querypack_assignment.space", "state", "disabled"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -45,7 +45,7 @@ func TestAccPolicyAssignmentResource(t *testing.T) {
 	})
 }
 
-func testAccPolicyAssignmentResourceConfig(resourceOrgID string, state string) string {
+func testAccQueryPackAssignmentResourceConfig(resourceOrgID string, state string) string {
 	return fmt.Sprintf(`
 
 resource "mondoo_space" "test" {
@@ -53,13 +53,13 @@ resource "mondoo_space" "test" {
   name = "registration-token-test"
 }
 
-resource "mondoo_policy_assignment" "space" {
+resource "mondoo_querypack_assignment" "space" {
   space_id = mondoo_space.test.id
 
-  policies = [
-    "//policy.api.mondoo.app/policies/mondoo-aws-security",
+  querypacks = [
+    "//policy.api.mondoo.app/policies/mondoo-incident-response-aws",
   ]
-  
+
   state = %[2]q
 
   depends_on = [
