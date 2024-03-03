@@ -110,6 +110,28 @@ func (r *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayl
 	return q.Space, nil
 }
 
+type orgPayload struct {
+	Id   string
+	Mrn  string
+	Name string
+}
+
+func (r *ExtendedGqlClient) GetOrganization(ctx context.Context, mrn string) (orgPayload, error) {
+	var q struct {
+		Organization orgPayload `graphql:"organization(mrn: $mrn)"`
+	}
+	variables := map[string]interface{}{
+		"mrn": mondoov1.String(mrn),
+	}
+
+	err := r.Query(ctx, &q, variables)
+	if err != nil {
+		return orgPayload{}, err
+	}
+
+	return q.Organization, nil
+}
+
 type setCustomPolicyPayload struct {
 	PolicyMrns []mondoov1.String
 }
