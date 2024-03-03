@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -292,4 +293,20 @@ func (c *ExtendedGqlClient) DeleteIntegration(ctx context.Context, mrn string) (
 		return nil, err
 	}
 	return &deleteMutation.DeleteClientIntegration, nil
+}
+
+func (c *ExtendedGqlClient) SetScimGroupMapping(ctx context.Context, orgMrn string, group string, mappings []mondoov1.ScimGroupMapping) error {
+	var setScimGroupMappingMutation struct {
+		SetScimGroupMapping struct {
+			Group mondoov1.String
+		} `graphql:"setScimGroupMapping(input: $input)"`
+	}
+
+	setScimGroupMappingInput := mondoov1.SetScimGroupMappingInput{
+		OrgMrn:   mondoov1.String(orgMrn),
+		Group:    mondoov1.String(group),
+		Mappings: mappings,
+	}
+
+	return c.Mutate(ctx, &setScimGroupMappingMutation, setScimGroupMappingInput, nil)
 }
