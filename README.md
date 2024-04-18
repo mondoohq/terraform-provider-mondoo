@@ -62,12 +62,12 @@ structure contains the following directories:
 go install
 ```
 
-To use the local provider, add the following to your Terraform configuration `~/.terraformrc`:
+To use the local provider, add the following to your Terraform configuration `~/.terraformrc` and provide it with the absolute path to your `/go/bin` directory:
 
 ```hcl
 provider_installation {
   dev_overrides {
-    "mondoohq/mondoo" = "~/go/bin/"
+    "mondoohq/mondoo" = "/Users/USERNAME/go/bin"
   }
 
   # For all other providers, install them directly from their origin provider
