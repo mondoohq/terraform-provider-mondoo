@@ -32,6 +32,7 @@ type integrationAzureResourceModel struct {
 	Name     types.String `tfsdk:"name"`
 	ClientId types.String `tfsdk:"client_id"`
 	TenantId types.String `tfsdk:"tenant_id"`
+	ScanVms  types.Bool   `tfsdk:"scan_vms"`
 
 	// credentials
 	Credential integrationAzureCredentialModel `tfsdk:"credentials"`
@@ -70,6 +71,10 @@ func (r *integrationAzureResource) Schema(ctx context.Context, req resource.Sche
 			"tenant_id": schema.StringAttribute{
 				MarkdownDescription: "Azure Tenant ID.",
 				Required:            true,
+			},
+			"scan_vms": schema.BoolAttribute{
+				MarkdownDescription: "Scan VMs.",
+				Optional:            true,
 			},
 			"credentials": schema.SingleNestedAttribute{ // do i need to give PEM file or certificate and private key separately?
 				Required: true,
@@ -118,7 +123,7 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 	// Do GraphQL request to API to create the resource.
 	spaceMrn := ""
 	if data.SpaceId.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceId.ValueString() // what is the difference between space mrn and mrn defined at integrationAzureResourceModel?
+		spaceMrn = spacePrefix + data.SpaceId.ValueString()
 	}
 
 	integration, err := r.client.CreateIntegration(ctx,
@@ -127,14 +132,14 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 		mondoov1.ClientIntegrationTypeAzure,
 		mondoov1.ClientIntegrationConfigurationInput{
 			AzureConfigurationOptions: &mondoov1.AzureConfigurationOptionsInput{
-				ScanVms:                mondoov1.NewBooleanPtr(true),
-				Certificate:            mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
-				SubscriptionsWhitelist: &[]mondoov1.String{},
-				SubscriptionsBlacklist: &[]mondoov1.String{},
-			}, // difference between certificate and client secret?
+				TenantID:    mondoov1.String(data.TenantId.ValueString()),
+				ClientID:    mondoov1.String(data.ClientId.ValueString()),
+				ScanVms:     mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
+				Certificate: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
+			},
 		})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create GCP integration, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Azure integration, got error: %s", err))
 		return
 	}
 
