@@ -28,11 +28,13 @@ type integrationAzureResourceModel struct {
 	SpaceId types.String `tfsdk:"space_id"`
 
 	// integration details
-	Mrn      types.String `tfsdk:"mrn"`
-	Name     types.String `tfsdk:"name"`
-	ClientId types.String `tfsdk:"client_id"`
-	TenantId types.String `tfsdk:"tenant_id"`
-	ScanVms  types.Bool   `tfsdk:"scan_vms"`
+	Mrn                    types.String `tfsdk:"mrn"`
+	Name                   types.String `tfsdk:"name"`
+	ClientId               types.String `tfsdk:"client_id"`
+	TenantId               types.String `tfsdk:"tenant_id"`
+	SubscriptionsWhitelist types.List   `tfsdk:"subscription_whitelist"`
+	SubscriptionsBlacklist types.List   `tfsdk:"subscription_blacklist"`
+	ScanVms                types.Bool   `tfsdk:"scan_vms"`
 
 	// credentials
 	Credential integrationAzureCredentialModel `tfsdk:"credentials"`
@@ -76,12 +78,23 @@ func (r *integrationAzureResource) Schema(ctx context.Context, req resource.Sche
 				MarkdownDescription: "Scan VMs.",
 				Optional:            true,
 			},
-			"credentials": schema.SingleNestedAttribute{ // do i need to give PEM file or certificate and private key separately?
+			"subscription_whitelist": schema.ListAttribute{
+				MarkdownDescription: "List of Azure subscriptions to scan.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
+			"subscription_blacklist": schema.ListAttribute{
+				MarkdownDescription: "List of Azure subscriptions to exclude from scanning.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
+			"credentials": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
 					"pem_file": schema.StringAttribute{
-						Required:  true,
-						Sensitive: true,
+						MarkdownDescription: "PEM file for Azure integration.",
+						Required:            true,
+						Sensitive:           true,
 					},
 				},
 			},
@@ -126,16 +139,32 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 		spaceMrn = spacePrefix + data.SpaceId.ValueString()
 	}
 
+	var listWhite []mondoov1.String
+	whitelist, _ := data.SubscriptionsWhitelist.ToListValue(ctx)
+	whitelist.ElementsAs(ctx, &listWhite, true)
+
+	var listBlack []mondoov1.String
+	blacklist, _ := data.SubscriptionsBlacklist.ToListValue(ctx)
+	blacklist.ElementsAs(ctx, &listBlack, true)
+
+	// Check if both whitelist and blacklist are provided
+	if len(listBlack) > 0 && len(listWhite) > 0 {
+		resp.Diagnostics.AddError("ConflictingAttributesError", "Both subscription_whitelist and subscription_blacklist cannot be provided simultaneously.")
+		return
+	}
+
 	integration, err := r.client.CreateIntegration(ctx,
 		spaceMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeAzure,
 		mondoov1.ClientIntegrationConfigurationInput{
 			AzureConfigurationOptions: &mondoov1.AzureConfigurationOptionsInput{
-				TenantID:    mondoov1.String(data.TenantId.ValueString()),
-				ClientID:    mondoov1.String(data.ClientId.ValueString()),
-				ScanVms:     mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
-				Certificate: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
+				TenantID:               mondoov1.String(data.TenantId.ValueString()),
+				ClientID:               mondoov1.String(data.ClientId.ValueString()),
+				SubscriptionsWhitelist: &listWhite,
+				SubscriptionsBlacklist: &listBlack,
+				ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
+				Certificate:            mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
 			},
 		})
 	if err != nil {
@@ -179,7 +208,26 @@ func (r *integrationAzureResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Do GraphQL request to API to update the resource.
-	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString())
+	var listWhite []mondoov1.String
+	whitelist, _ := data.SubscriptionsWhitelist.ToListValue(ctx)
+	whitelist.ElementsAs(ctx, &listWhite, true)
+
+	var listBlack []mondoov1.String
+	blacklist, _ := data.SubscriptionsBlacklist.ToListValue(ctx)
+	blacklist.ElementsAs(ctx, &listBlack, true)
+
+	opts := mondoov1.ClientIntegrationConfigurationInput{
+		AzureConfigurationOptions: &mondoov1.AzureConfigurationOptionsInput{
+			TenantID:               mondoov1.String(data.TenantId.ValueString()),
+			ClientID:               mondoov1.String(data.ClientId.ValueString()),
+			SubscriptionsWhitelist: &listWhite,
+			SubscriptionsBlacklist: &listBlack,
+			ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
+			Certificate:            mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
+		},
+	}
+
+	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString(), mondoov1.ClientIntegrationTypeAzure, opts)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Azure integration, got error: %s", err))
 		return

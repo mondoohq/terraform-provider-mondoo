@@ -18,11 +18,14 @@ resource "mondoo_space" "azure_space" {
 
 // Setup the Azure integration
 resource "mondoo_integration_azure" "azure_integration" {
-  space_id         = mondoo_space.azure_space.id
-  name             = "Azure Integration w Terraform"
-  tenant_id        = "ffffffff-ffff-ffff-ffff-ffffffffffff"
-  client_id        = "ffffffff-ffff-ffff-ffff-ffffffffffff"
-  credentials      = {
+  space_id  = mondoo_space.azure_space.id
+  name      = "Azure Integration w Terraform"
+  tenant_id = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+  client_id = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+  scan_vms  = true
+  # subscription_whitelist = ["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]
+  # subscription_blacklist = ["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]
+  credentials = {
     pem_file = <<EOT
 -----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCf2kWtE6JkkP6E
