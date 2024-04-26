@@ -278,13 +278,16 @@ type UpdateIntegrationPayload struct {
 	Name mondoov1.String
 }
 
-func (c *ExtendedGqlClient) UpdateIntegration(ctx context.Context, mrn, name string) (*UpdateIntegrationPayload, error) {
+func (c *ExtendedGqlClient) UpdateIntegration(ctx context.Context, mrn, name string, typ mondoov1.ClientIntegrationType, opts mondoov1.ClientIntegrationConfigurationInput) (*UpdateIntegrationPayload, error) {
 	var updateMutation struct {
-		UpdateClientIntegrationName UpdateIntegrationPayload `graphql:"updateClientIntegrationName(input: $input)"`
+		UpdateIntegrationPayload `graphql:"updateClientIntegrationConfiguration(input: $input)"`
 	}
-	updateInput := mondoov1.UpdateClientIntegrationNameInput{
-		Mrn:  mondoov1.String(mrn),
-		Name: mondoov1.String(name),
+
+	updateInput := mondoov1.UpdateClientIntegrationConfigurationInput{
+		Mrn:                  mondoov1.String(mrn),
+		Name:                 mondoov1.NewStringPtr(mondoov1.String(name)),
+		Type:                 typ,
+		ConfigurationOptions: opts,
 	}
 	tflog.Trace(ctx, "UpdateClientIntegrationNameInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
@@ -293,7 +296,7 @@ func (c *ExtendedGqlClient) UpdateIntegration(ctx context.Context, mrn, name str
 	if err != nil {
 		return nil, err
 	}
-	return &updateMutation.UpdateClientIntegrationName, nil
+	return &updateMutation.UpdateIntegrationPayload, nil
 }
 
 type DeleteIntegrationPayload struct {

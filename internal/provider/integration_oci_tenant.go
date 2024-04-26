@@ -194,8 +194,18 @@ func (r *integrationOciTenantResource) Update(ctx context.Context, req resource.
 		return
 	}
 
+	opts := mondoov1.ClientIntegrationConfigurationInput{
+		OciConfigurationOptions: &mondoov1.OciConfigurationOptionsInput{
+			TenancyOcid: mondoov1.String(data.Tenancy.ValueString()),
+			UserOcid:    mondoov1.String(data.User.ValueString()),
+			Region:      mondoov1.String(data.Region.ValueString()),
+			Fingerprint: mondoov1.String(data.Credential.Fingerprint.ValueString()),
+			PrivateKey:  mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
+		},
+	}
+
 	// Do GraphQL request to API to update the resource.
-	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString())
+	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString(), mondoov1.ClientIntegrationTypeOci, opts)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update OCI tenant integration, got error: %s", err))
 		return

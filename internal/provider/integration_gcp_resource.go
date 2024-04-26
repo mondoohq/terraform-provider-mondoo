@@ -170,7 +170,15 @@ func (r *integrationGcpResource) Update(ctx context.Context, req resource.Update
 	}
 
 	// Do GraphQL request to API to update the resource.
-	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString())
+	opts := mondoov1.ClientIntegrationConfigurationInput{
+		GcpConfigurationOptions: &mondoov1.GcpConfigurationOptionsInput{
+			ProjectID:      mondoov1.NewStringPtr(mondoov1.String(data.ProjectId.ValueString())),
+			ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
+			DiscoverAll:    mondoov1.NewBooleanPtr(mondoov1.Boolean(true)),
+		},
+	}
+
+	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString(), mondoov1.ClientIntegrationTypeGcp, opts)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Gcp integration, got error: %s", err))
 		return
