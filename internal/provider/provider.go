@@ -166,6 +166,7 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewIntegrationOciTenantResource,
 		NewScimGroupMappingResource,
 		NewIntegrationDomainResource,
+		NewIntegrationSlackResource,
 	}
 }
 
