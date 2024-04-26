@@ -1,30 +1,47 @@
 terraform {
   required_providers {
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "2.48.0"
+    }
     mondoo = {
       source = "mondoohq/mondoo"
     }
   }
 }
 
+provider "azuread" {}
+
+data "azuread_client_config" "current" {}
+
+data "azuread_application" "mondoo-security" {
+  display_name = "mondoo-security"
+}
+
 provider "mondoo" {
   region = "us"
 }
 
+variable "mondoo_org" {
+  description = "Mondoo Organization"
+  type        = string
+}
+
 // Create a new space
 resource "mondoo_space" "azure_space" {
-  name   = "Azure Integration w Terraform"
-  org_id = "your-org-1234567"
+  name   = "Azure ${data.azuread_application.mondoo-security.display_name}"
+  org_id = var.mondoo_org
 }
 
 // Setup the Azure integration
 resource "mondoo_integration_azure" "azure_integration" {
   space_id  = mondoo_space.azure_space.id
-  name      = "Azure Integration w Terraform"
-  tenant_id = "ffffffff-ffff-ffff-ffff-ffffffffffff"
-  client_id = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+  name      = "Azure ${data.azuread_application.mondoo-security.display_name}"
+  tenant_id = data.azuread_client_config.current.tenant_id
+  client_id = data.azuread_application.mondoo-security.client_id
   scan_vms  = true
-  # subscription_whitelist = ["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]
-  # subscription_blacklist = ["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]
+  # subscription_allow_list= ["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]
+  # subscription_deny_list = ["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]
   credentials = {
     pem_file = <<EOT
 -----BEGIN PRIVATE KEY-----

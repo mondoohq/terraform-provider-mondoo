@@ -28,13 +28,13 @@ type integrationAzureResourceModel struct {
 	SpaceId types.String `tfsdk:"space_id"`
 
 	// integration details
-	Mrn                    types.String `tfsdk:"mrn"`
-	Name                   types.String `tfsdk:"name"`
-	ClientId               types.String `tfsdk:"client_id"`
-	TenantId               types.String `tfsdk:"tenant_id"`
-	SubscriptionsWhitelist types.List   `tfsdk:"subscription_whitelist"`
-	SubscriptionsBlacklist types.List   `tfsdk:"subscription_blacklist"`
-	ScanVms                types.Bool   `tfsdk:"scan_vms"`
+	Mrn                   types.String `tfsdk:"mrn"`
+	Name                  types.String `tfsdk:"name"`
+	ClientId              types.String `tfsdk:"client_id"`
+	TenantId              types.String `tfsdk:"tenant_id"`
+	SubscriptionAllowList types.List   `tfsdk:"subscription_allow_list"`
+	SubscriptionDenyList  types.List   `tfsdk:"subscription_deny_list"`
+	ScanVms               types.Bool   `tfsdk:"scan_vms"`
 
 	// credentials
 	Credential integrationAzureCredentialModel `tfsdk:"credentials"`
@@ -50,6 +50,7 @@ func (r *integrationAzureResource) Metadata(ctx context.Context, req resource.Me
 
 func (r *integrationAzureResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "Azure integration",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier.",
@@ -64,7 +65,7 @@ func (r *integrationAzureResource) Schema(ctx context.Context, req resource.Sche
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the integration.",
-				Optional:            true,
+				Required:            true,
 			},
 			"client_id": schema.StringAttribute{
 				MarkdownDescription: "Azure Client ID.",
@@ -78,12 +79,12 @@ func (r *integrationAzureResource) Schema(ctx context.Context, req resource.Sche
 				MarkdownDescription: "Scan VMs.",
 				Optional:            true,
 			},
-			"subscription_whitelist": schema.ListAttribute{
+			"subscription_allow_list": schema.ListAttribute{
 				MarkdownDescription: "List of Azure subscriptions to scan.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
-			"subscription_blacklist": schema.ListAttribute{
+			"subscription_deny_list": schema.ListAttribute{
 				MarkdownDescription: "List of Azure subscriptions to exclude from scanning.",
 				Optional:            true,
 				ElementType:         types.StringType,
@@ -139,17 +140,17 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 		spaceMrn = spacePrefix + data.SpaceId.ValueString()
 	}
 
-	var listWhite []mondoov1.String
-	whitelist, _ := data.SubscriptionsWhitelist.ToListValue(ctx)
-	whitelist.ElementsAs(ctx, &listWhite, true)
+	var listAllow []mondoov1.String
+	allowlist, _ := data.SubscriptionAllowList.ToListValue(ctx)
+	allowlist.ElementsAs(ctx, &listAllow, true)
 
-	var listBlack []mondoov1.String
-	blacklist, _ := data.SubscriptionsBlacklist.ToListValue(ctx)
-	blacklist.ElementsAs(ctx, &listBlack, true)
+	var listDeny []mondoov1.String
+	denylist, _ := data.SubscriptionDenyList.ToListValue(ctx)
+	denylist.ElementsAs(ctx, &listDeny, true)
 
 	// Check if both whitelist and blacklist are provided
-	if len(listBlack) > 0 && len(listWhite) > 0 {
-		resp.Diagnostics.AddError("ConflictingAttributesError", "Both subscription_whitelist and subscription_blacklist cannot be provided simultaneously.")
+	if len(listDeny) > 0 && len(listAllow) > 0 {
+		resp.Diagnostics.AddError("ConflictingAttributesError", "Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.")
 		return
 	}
 
@@ -161,8 +162,8 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 			AzureConfigurationOptions: &mondoov1.AzureConfigurationOptionsInput{
 				TenantID:               mondoov1.String(data.TenantId.ValueString()),
 				ClientID:               mondoov1.String(data.ClientId.ValueString()),
-				SubscriptionsWhitelist: &listWhite,
-				SubscriptionsBlacklist: &listBlack,
+				SubscriptionsWhitelist: &listAllow,
+				SubscriptionsBlacklist: &listDeny,
 				ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
 				Certificate:            mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
 			},
@@ -208,20 +209,26 @@ func (r *integrationAzureResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Do GraphQL request to API to update the resource.
-	var listWhite []mondoov1.String
-	whitelist, _ := data.SubscriptionsWhitelist.ToListValue(ctx)
-	whitelist.ElementsAs(ctx, &listWhite, true)
+	var listAllow []mondoov1.String
+	allowlist, _ := data.SubscriptionAllowList.ToListValue(ctx)
+	allowlist.ElementsAs(ctx, &listAllow, true)
 
-	var listBlack []mondoov1.String
-	blacklist, _ := data.SubscriptionsBlacklist.ToListValue(ctx)
-	blacklist.ElementsAs(ctx, &listBlack, true)
+	var listDeny []mondoov1.String
+	denylist, _ := data.SubscriptionDenyList.ToListValue(ctx)
+	denylist.ElementsAs(ctx, &listDeny, true)
+
+	// Check if both whitelist and blacklist are provided
+	if len(listDeny) > 0 && len(listAllow) > 0 {
+		resp.Diagnostics.AddError("ConflictingAttributesError", "Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.")
+		return
+	}
 
 	opts := mondoov1.ClientIntegrationConfigurationInput{
 		AzureConfigurationOptions: &mondoov1.AzureConfigurationOptionsInput{
 			TenantID:               mondoov1.String(data.TenantId.ValueString()),
 			ClientID:               mondoov1.String(data.ClientId.ValueString()),
-			SubscriptionsWhitelist: &listWhite,
-			SubscriptionsBlacklist: &listBlack,
+			SubscriptionsWhitelist: &listAllow,
+			SubscriptionsBlacklist: &listDeny,
 			ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
 			Certificate:            mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
 		},
