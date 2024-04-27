@@ -1,0 +1,28 @@
+name: Lint
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  tflint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout source code
+
+      - uses: terraform-linters/setup-tflint@v4
+        name: Setup TFLint
+
+      - name: Show version
+        run: tflint --version
+
+      - name: Init TFLint
+        run: tflint --init
+        env:
+          # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run TFLint
+        run: tflint --recursive --config $GITHUB_WORKSPACE/.tflint.hcl -f compact
