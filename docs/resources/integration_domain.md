@@ -13,28 +13,25 @@ Continuously scan endpoints to evaluate domain TLS, SSL, HTTP, and HTTPS securit
 ## Example Usage
 
 ```terraform
-terraform {
-  required_providers {
-    mondoo = {
-      source = "mondoohq/mondoo"
-    }
-  }
+variable "mondoo_org" {
+  description = "The Mondoo Organization ID"
+  type        = string
 }
 
 provider "mondoo" {
   region = "us"
 }
 
-// Create a new space
+# Create a new space
 resource "mondoo_space" "domain_space" {
   name   = "My Space Name"
-  org_id = "your-org-1234567"
+  org_id = var.mondoo_org
 }
 
-// Setup the Domain integration
+# Setup the Domain integration
 resource "mondoo_integration_domain" "domain_integration" {
   space_id = mondoo_space.domain_space.id
-  host     = "example.com"
+  host     = "mondoo.com"
   https    = true
   http     = false
 }

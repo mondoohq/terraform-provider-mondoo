@@ -23,6 +23,12 @@ fmt:
 test:
 	go test -v -cover -timeout=120s -parallel=4 ./...
 
+hcl/fmt:
+	terraform fmt -recursive
+
+hcl/lint:
+	tflint --recursive --config $(PWD)/.tflint.hcl
+
 # Run acceptance tests
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m

@@ -1,20 +1,8 @@
-terraform {
-  required_providers {
-    azuread = {
-      source  = "hashicorp/azuread"
-      version = "2.48.0"
-    }
-    mondoo = {
-      source = "mondoohq/mondoo"
-    }
-  }
-}
-
 provider "azuread" {}
 
 data "azuread_client_config" "current" {}
 
-data "azuread_application" "mondoo-security" {
+data "azuread_application" "mondoo_security" {
   display_name = "mondoo-security"
 }
 
@@ -27,18 +15,18 @@ variable "mondoo_org" {
   type        = string
 }
 
-// Create a new space
+# Create a new space
 resource "mondoo_space" "azure_space" {
-  name   = "Azure ${data.azuread_application.mondoo-security.display_name}"
+  name   = "Azure ${data.azuread_application.mondoo_security.display_name}"
   org_id = var.mondoo_org
 }
 
-// Setup the Azure integration
+# Setup the Azure integration
 resource "mondoo_integration_azure" "azure_integration" {
   space_id  = mondoo_space.azure_space.id
-  name      = "Azure ${data.azuread_application.mondoo-security.display_name}"
+  name      = "Azure ${data.azuread_application.mondoo_security.display_name}"
   tenant_id = data.azuread_client_config.current.tenant_id
-  client_id = data.azuread_application.mondoo-security.client_id
+  client_id = data.azuread_application.mondoo_security.client_id
   scan_vms  = true
   # subscription_allow_list= ["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]
   # subscription_deny_list = ["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]

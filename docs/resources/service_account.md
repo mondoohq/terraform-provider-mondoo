@@ -13,29 +13,31 @@ Allows management of a Mondoo service account.
 ## Example Usage
 
 ```terraform
-terraform {
-  required_providers {
-    mondoo = {
-      source = "mondoohq/mondoo"
-    }
-  }
+# Variables
+# ----------------------------------------------
+
+variable "mondoo_org" {
+  description = "The Mondoo Organization ID"
+  type        = string
 }
+
+# Configure the Mondoo
+# ----------------------------------------------
 
 provider "mondoo" {
   region = "us"
 }
 
 resource "mondoo_space" "my_space" {
-  name = "My Space Name"
-  # space_id = "your-space-id" # optional
-  org_id = "your-org-1234567"
+  name   = "My Space Name"
+  org_id = var.mondoo_org
 }
 
 resource "mondoo_service_account" "service_account" {
   name        = "Service Account Terraform New"
   description = "Service Account for Terraform"
   roles = [
-    "//iam.api.mondoo.app/roles/viewer", // TODO use "roles/viewer"
+    "//iam.api.mondoo.app/roles/viewer",
   ]
   space_id = mondoo_space.my_space.id
 

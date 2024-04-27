@@ -1,20 +1,12 @@
-terraform {
-  required_providers {
-    mondoo = {
-      source = "mondoohq/mondoo"
-    }
-  }
+variable "mondoo_org" {
+  description = "Mondoo Organization"
+  type        = string
 }
 
-provider "mondoo" {
-}
-
-data "mondoo_organization" "org" {
-  id = "reverent-ride-275852"
-}
+provider "mondoo" {}
 
 resource "mondoo_space" "test" {
-  org_id = mondoo_organization.org.id
+  org_id = var.mondoo_org.value
   name   = "test-space"
 }
 
@@ -27,5 +19,11 @@ data "mondoo_space" "space" {
 }
 
 output "space_name" {
-  value = data.mondoo_space.name
+  description = "The name of the space"
+  value       = data.mondoo_space.space.name
+}
+
+output "space_mrn" {
+  description = "The MRN of the space"
+  value       = data.mondoo_space.space.mrn
 }
