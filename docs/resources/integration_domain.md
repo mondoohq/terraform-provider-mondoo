@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_domain Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  
+  Continuously scan endpoints to evaluate domain TLS, SSL, HTTP, and HTTPS security
 ---
 
 # mondoo_integration_domain (Resource)
 
-
+Continuously scan endpoints to evaluate domain TLS, SSL, HTTP, and HTTPS security
 
 ## Example Usage
 

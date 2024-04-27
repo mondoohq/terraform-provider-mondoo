@@ -50,7 +50,7 @@ func (r *integrationAzureResource) Metadata(ctx context.Context, req resource.Me
 
 func (r *integrationAzureResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Azure integration",
+		MarkdownDescription: `Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier.",

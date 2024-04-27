@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_azure Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Azure integration
+  Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities.
 ---
 
 # mondoo_integration_azure (Resource)
 
-Azure integration
+Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities.
 
 ## Example Usage
 
