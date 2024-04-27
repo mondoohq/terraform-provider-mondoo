@@ -1,11 +1,3 @@
-terraform {
-  required_providers {
-    mondoo = {
-      source = "mondoohq/mondoo"
-    }
-  }
-}
-
 provider "mondoo" {
   region = "us"
 }
@@ -21,8 +13,9 @@ resource "mondoo_space" "my_space" {
 }
 
 variable "my_custom_querypack" {
-  type    = string
-  default = "querypack.mql.yaml"
+  description = "Path to custom querypack file. File must be in MQL format."
+  type        = string
+  default     = "querypack.mql.yaml"
 }
 
 resource "mondoo_custom_querypack" "my_query_pack" {

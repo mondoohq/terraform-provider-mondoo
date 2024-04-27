@@ -4,9 +4,9 @@ terraform {
       source  = "mondoohq/mondoo"
       version = ">= 0.4.0"
     }
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 5.26.0"
+    }
   }
-}
-
-provider "mondoo" {
-  region = "us" # use "eu" for the European region
 }
