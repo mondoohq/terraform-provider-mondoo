@@ -40,6 +40,7 @@ func (r *integrationDomainResource) Metadata(ctx context.Context, req resource.M
 
 func (r *integrationDomainResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: `Continuously scan endpoints to evaluate domain TLS, SSL, HTTP, and HTTPS security`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier.",

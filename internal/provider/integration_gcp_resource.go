@@ -49,6 +49,7 @@ func (r *integrationGcpResource) Metadata(ctx context.Context, req resource.Meta
 
 func (r *integrationGcpResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: `Continuously scan Google GCP organizations and projects for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier.",

@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_gcp Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  
+  Continuously scan Google GCP organizations and projects for misconfigurations and vulnerabilities.
 ---
 
 # mondoo_integration_gcp (Resource)
 
-
+Continuously scan Google GCP organizations and projects for misconfigurations and vulnerabilities.
 
 ## Example Usage
 

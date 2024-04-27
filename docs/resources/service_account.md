@@ -3,12 +3,12 @@
 page_title: "mondoo_service_account Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Service account resource
+  Allows management of a Mondoo service account.
 ---
 
 # mondoo_service_account (Resource)
 
-Service account resource
+Allows management of a Mondoo service account.
 
 ## Example Usage
 

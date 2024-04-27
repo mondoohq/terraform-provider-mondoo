@@ -55,7 +55,7 @@ func (r *ServiceAccountResource) Metadata(ctx context.Context, req resource.Meta
 func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Service account resource",
+		MarkdownDescription: `Allows management of a Mondoo service account.`,
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
