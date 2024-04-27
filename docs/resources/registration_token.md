@@ -11,15 +11,8 @@ Registration Token resource
 ## Example Usage
 
 ```terraform
-terraform {
-  required_providers {
-    mondoo = {
-      source = "mondoohq/mondoo"
-    }
-  }
-}
-
-provider "mondoo" {}
+# Variables
+# ----------------------------------------------
 
 variable "space_names" {
   description = "Create Spaces with these names"
@@ -33,6 +26,13 @@ variable "org_id" {
   default     = ""
 }
 
+# Configure the Mondoo
+# ----------------------------------------------
+
+provider "mondoo" {
+  region = "us"
+}
+
 resource "mondoo_space" "my_space" {
   count  = length(var.space_names)
   name   = var.space_names[count.index]
@@ -44,13 +44,15 @@ resource "mondoo_registration_token" "token" {
   count         = length(var.space_names)
   space_id      = mondoo_space.my_space[count.index].id
   no_exipration = true
-  // expires_in = "1h"
+  # define optional expiration
+  # expires_in = "1h"
   depends_on = [
     mondoo_space.my_space
   ]
 }
 
-output "complete_space_setup" {
+output "space_registration_token" {
+  description = "The list of space registration tokens for the specified spaces"
   value = [
     for count, space in mondoo_space.my_space :
     {

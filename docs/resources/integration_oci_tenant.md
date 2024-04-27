@@ -13,24 +13,28 @@ Example resource
 ## Example Usage
 
 ```terraform
-terraform {
-  required_providers {
-    mondoo = {
-      source = "mondoohq/mondoo"
-    }
-  }
+# Variables
+# ----------------------------------------------
+
+variable "mondoo_org" {
+  description = "The Mondoo Organization ID"
+  type        = string
+  default     = "your-org-1234567"
 }
+
+# Configure the Mondoo
+# ----------------------------------------------
 
 provider "mondoo" {
   region = "us"
 }
 
 resource "mondoo_space" "my_space" {
-  name = "My Space Name"
-  # space_id = "your-space-id" # optional
-  org_id = "your-org-1234567"
+  name   = "My Space Name"
+  org_id = var.mondoo_org
 }
 
+# Setup the OCI integration
 resource "mondoo_integration_oci_tenant" "tenant_abc" {
   space_id = mondoo_space.my_space.id
   name     = "tenant ABC"

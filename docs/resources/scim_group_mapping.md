@@ -13,16 +13,7 @@ This resource provides SCIM 2.0 Group Mapping. It allows the mapping of SCIM 2.0
 ## Example Usage
 
 ```terraform
-terraform {
-  required_providers {
-    mondoo = {
-      source = "mondoohq/mondoo"
-    }
-  }
-}
-
-provider "mondoo" {
-}
+provider "mondoo" {}
 
 data "mondoo_organization" "org" {
   id = "reverent-ride-275852"
@@ -33,7 +24,7 @@ resource "mondoo_space" "my_space_1" {
   org_id = data.mondoo_organization.org.id
 }
 
-resource "mondoo_scim_group_mapping" "MondooAdmin" {
+resource "mondoo_scim_group_mapping" "mondoo_admin" {
   org_id = data.mondoo_organization.org.id
   group  = "MondooAdmin"
   mappings = [
@@ -55,7 +46,8 @@ resource "mondoo_scim_group_mapping" "MondooAdmin" {
 }
 
 output "org_mrn" {
-  value = data.mondoo_organization.org.mrn
+  description = "The MRN of the organization"
+  value       = data.mondoo_organization.org.mrn
 }
 ```
 

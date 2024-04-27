@@ -13,17 +13,7 @@ Custom Policy resource
 ## Example Usage
 
 ```terraform
-terraform {
-  required_providers {
-    mondoo = {
-      source = "mondoohq/mondoo"
-    }
-  }
-}
-
-provider "mondoo" {
-
-}
+provider "mondoo" {}
 
 resource "mondoo_space" "my_space" {
   name   = "My Custom Space"
@@ -31,8 +21,9 @@ resource "mondoo_space" "my_space" {
 }
 
 variable "my_custom_policy" {
-  type    = string
-  default = "policy.mql.yaml"
+  description = "Path to the custom policy file. The file must be in MQL format."
+  type        = string
+  default     = "policy.mql.yaml"
 }
 
 resource "mondoo_custom_policy" "my_policy" {
