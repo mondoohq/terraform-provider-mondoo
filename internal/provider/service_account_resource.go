@@ -5,6 +5,8 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -26,6 +28,17 @@ var _ resource.Resource = &ServiceAccountResource{}
 
 var defaultRoles = []string{"//iam.api.mondoo.app/roles/viewer"}
 
+// serviceAccountCredential is a temporary object until the API returns the credential as a string.
+type serviceAccountCredential struct {
+	Mrn         string `json:"mrn,omitempty"`
+	PrivateKey  string `json:"private_key,omitempty"`
+	Certificate string `json:"certificate,omitempty"`
+	ApiEndpoint string `json:"api_endpoint,omitempty"`
+	ScopeMrn    string `json:"scope_mrn,omitempty"`
+	// ParentMrn is deprecated and should not be used, use ScopeMrn instead
+	ParentMrn string `json:"parent_mrn,omitempty"`
+}
+
 func NewServiceAccountResource() resource.Resource {
 	return &ServiceAccountResource{}
 }
@@ -46,6 +59,9 @@ type ServiceAccountResourceModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Roles       types.List   `tfsdk:"roles"`
+
+	// base 64 encoded service account credential
+	Credential types.String `tfsdk:"credential"`
 }
 
 func (r *ServiceAccountResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -98,6 +114,14 @@ func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.Schema
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"credential": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "The service account credential in JSON format, base64 encoded. This is the same content when creating service account credentials through the web console.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Sensitive: true,
 			},
 		},
 	}
@@ -206,7 +230,25 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 	// Save space mrn into the Terraform state.
 	data.Name = types.StringValue(name)
 	data.Mrn = types.StringValue(string(createMutation.CreateServiceAccount.Mrn))
-	// TODO: add certificate and private key
+
+	// NOTE: this is temporary, we want to change the API to return the credential as a string
+	serviceAccount := serviceAccountCredential{
+		Mrn:         string(createMutation.CreateServiceAccount.Mrn),
+		PrivateKey:  string(createMutation.CreateServiceAccount.PrivateKey),
+		Certificate: string(createMutation.CreateServiceAccount.Certificate),
+		ApiEndpoint: string(createMutation.CreateServiceAccount.ApiEndpoint),
+		ScopeMrn:    string(createMutation.CreateServiceAccount.ScopeMrn),
+		ParentMrn:   string(createMutation.CreateServiceAccount.ScopeMrn),
+	}
+
+	jsonData, err := json.Marshal(serviceAccount)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create service account, got error: %s", err))
+		return
+	}
+
+	// set base 64 encoded credential
+	data.Credential = types.StringValue(base64.StdEncoding.EncodeToString(jsonData))
 
 	// Write logs using the tflog package
 	tflog.Trace(ctx, "created a service account resource")
