@@ -94,7 +94,7 @@ type spacePayload struct {
 	}
 }
 
-func (r *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayload, error) {
+func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayload, error) {
 	var q struct {
 		Space spacePayload `graphql:"space(mrn: $mrn)"`
 	}
@@ -102,7 +102,7 @@ func (r *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayl
 		"mrn": mondoov1.String(mrn),
 	}
 
-	err := r.Query(ctx, &q, variables)
+	err := c.Query(ctx, &q, variables)
 	if err != nil {
 		return spacePayload{}, err
 	}
@@ -116,7 +116,7 @@ type orgPayload struct {
 	Name string
 }
 
-func (r *ExtendedGqlClient) GetOrganization(ctx context.Context, mrn string) (orgPayload, error) {
+func (c *ExtendedGqlClient) GetOrganization(ctx context.Context, mrn string) (orgPayload, error) {
 	var q struct {
 		Organization orgPayload `graphql:"organization(mrn: $mrn)"`
 	}
@@ -124,7 +124,7 @@ func (r *ExtendedGqlClient) GetOrganization(ctx context.Context, mrn string) (or
 		"mrn": mondoov1.String(mrn),
 	}
 
-	err := r.Query(ctx, &q, variables)
+	err := c.Query(ctx, &q, variables)
 	if err != nil {
 		return orgPayload{}, err
 	}
@@ -318,6 +318,28 @@ func (c *ExtendedGqlClient) DeleteIntegration(ctx context.Context, mrn string) (
 		return nil, err
 	}
 	return &deleteMutation.DeleteClientIntegration, nil
+}
+
+type triggerActionPayload struct {
+	Mrn string
+}
+
+func (c *ExtendedGqlClient) TriggerAction(ctx context.Context, integrationMrn string, action mondoov1.ActionType) (triggerActionPayload, error) {
+
+	var q struct {
+		TriggerAction triggerActionPayload `graphql:"triggerAction(input: { mrn: $mrn, type: $type })"`
+	}
+	variables := map[string]interface{}{
+		"mrn":  mondoov1.String(integrationMrn),
+		"type": action,
+	}
+
+	err := c.Query(ctx, &q, variables)
+	if err != nil {
+		return triggerActionPayload{}, err
+	}
+
+	return q.TriggerAction, nil
 }
 
 func (c *ExtendedGqlClient) SetScimGroupMapping(ctx context.Context, orgMrn string, group string, mappings []mondoov1.ScimGroupMapping) error {

@@ -223,6 +223,9 @@ resource "azurerm_role_assignment" "mondoo_security" {
   scope              = data.azurerm_subscriptions.available.subscriptions[count.index].id
   role_definition_id = azurerm_role_definition.mondoo_security_role.role_definition_resource_id
   principal_id       = azuread_service_principal.mondoo_security.object_id
+  depends_on = [
+    azurerm_role_definition.mondoo_security_role,
+  ]
 }
 
 # add reader role to all subscriptions
@@ -258,9 +261,11 @@ resource "mondoo_integration_azure" "azure_integration" {
   credentials = {
     pem_file = join("\n", [tls_self_signed_cert.credential.cert_pem, tls_private_key.credential.private_key_pem])
   }
+  # wait for the permissions to provisioned
   depends_on = [
     mondoo_space.azure_space,
     azuread_application.mondoo_security,
+    azuread_service_principal.mondoo_security,
     azurerm_role_assignment.mondoo_security,
     azurerm_role_assignment.reader,
   ]
