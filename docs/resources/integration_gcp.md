@@ -86,11 +86,11 @@ resource "mondoo_integration_gcp" "name" {
 ### Required
 
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
+- `name` (String) Name of the integration.
 - `space_id` (String) Mondoo Space Identifier.
 
 ### Optional
 
-- `name` (String) Name of the integration.
 - `project_id` (String) GCP project id
 
 ### Read-Only
