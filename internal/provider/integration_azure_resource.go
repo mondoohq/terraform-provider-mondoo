@@ -173,6 +173,14 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
+	// trigger integration to gather results quickly after the first setup
+	// NOTE: we ignore the error since the integration state does not depend on it
+	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunScan)
+	if err != nil {
+		resp.Diagnostics.AddWarning("Client Error", fmt.Sprintf("Unable to trigger integration, got error: %s", err))
+		return
+	}
+
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
