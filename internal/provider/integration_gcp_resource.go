@@ -64,7 +64,7 @@ func (r *integrationGcpResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the integration.",
-				Optional:            true,
+				Required:            true,
 			},
 			"project_id": schema.StringAttribute{
 				MarkdownDescription: "GCP project id",
