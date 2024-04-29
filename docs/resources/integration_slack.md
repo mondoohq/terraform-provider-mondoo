@@ -3,18 +3,23 @@
 page_title: "mondoo_integration_slack Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  
+  Continuously scan your Slack Teams for security misconfigurations.
 ---
 
 # mondoo_integration_slack (Resource)
 
-
+Continuously scan your Slack Teams for security misconfigurations.
 
 ## Example Usage
 
 ```terraform
 variable "mondoo_org" {
   description = "The Mondoo Organization ID"
+  type        = string
+}
+
+variable "slack_token" {
+  description = "The Slack Token"
   type        = string
 }
 
@@ -33,7 +38,7 @@ resource "mondoo_integration_slack" "slack_integration" {
   space_id = mondoo_space.my_space.id
   name     = "My Slack Integration"
 
-  slack_token = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  slack_token = var.slack_token
 }
 ```
 

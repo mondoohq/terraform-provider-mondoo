@@ -3,6 +3,11 @@ variable "mondoo_org" {
   type        = string
 }
 
+variable "slack_token" {
+  description = "The Slack Token"
+  type        = string
+}
+
 provider "mondoo" {
   region = "us"
 }
@@ -18,5 +23,5 @@ resource "mondoo_integration_slack" "slack_integration" {
   space_id = mondoo_space.my_space.id
   name     = "My Slack Integration"
 
-  slack_token = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  slack_token = var.slack_token
 }
