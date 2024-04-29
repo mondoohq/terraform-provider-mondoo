@@ -41,6 +41,7 @@ func (r *integrationSlackResource) Metadata(ctx context.Context, req resource.Me
 
 func (r *integrationSlackResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "Continuously scan your Slack Teams for security misconfigurations.",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier.",
@@ -113,6 +114,14 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 		})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Slack integration, got error: %s", err))
+		return
+	}
+
+	// trigger integration to gather results quickly after the first setup
+	// NOTE: we ignore the error since the integration state does not depend on it
+	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunScan)
+	if err != nil {
+		resp.Diagnostics.AddWarning("Client Error", fmt.Sprintf("Unable to trigger integration, got error: %s", err))
 		return
 	}
 
