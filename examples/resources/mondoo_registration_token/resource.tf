@@ -30,7 +30,7 @@ resource "mondoo_registration_token" "token" {
   description   = "Get a mondoo registration token"
   count         = length(var.space_names)
   space_id      = mondoo_space.my_space[count.index].id
-  no_exipration = true
+  no_expiration = true
   # define optional expiration
   # expires_in = "1h"
   depends_on = [
