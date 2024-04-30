@@ -2,7 +2,7 @@
 
 > Status: It is currently in beta. Please report any issues you encounter.
 
-The Mondoo Provider allows [Terraform](https://terraform.io/) to manage [Mondoo](https://mondoo.com) resources.
+The Mondoo Provider allows [Terraform](https://www.terraform.io/) to manage [Mondoo](https://mondoo.com) resources.
 
 ## Provider Usage
 
@@ -22,7 +22,7 @@ provider "mondoo" {
 
 ## Developing the provider
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (
+If you wish to work on the provider, you'll first need [Go](http://www.go.dev) installed on your machine (
 see [Requirements](#requirements) above).
 
 To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin`
@@ -49,8 +49,8 @@ structure contains the following directories:
 
 ### Requirements
 
-- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.19
+- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.0
+- [Go](https://golang.org/doc/install) >= 1.21
 
 ### Building The Provider
 
@@ -82,7 +82,7 @@ for more details about provider install configuration.
 
 ### Adding Dependencies
 
-This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
+This provider uses [Go modules](https://go.dev/wiki/Modules).
 Please see the Go documentation for the most up to date information about using Go modules.
 
 To add a new dependency `github.com/author/dependency` to your Terraform provider:
