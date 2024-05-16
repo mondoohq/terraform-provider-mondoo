@@ -35,9 +35,6 @@ type integrationAwsResourceModel struct {
 	Mrn  types.String `tfsdk:"mrn"`
 	Name types.String `tfsdk:"name"`
 
-	// AWS Region
-	Region types.String `tfsdk:"region"`
-
 	// AWS credentials
 	Credential integrationAwsCredentialModel `tfsdk:"credentials"`
 }
@@ -58,9 +55,7 @@ type accessKeyCredentialModel struct {
 }
 
 func (m integrationAwsResourceModel) GetConfigurationOptions() *mondoov1.HostedAwsConfigurationOptionsInput {
-	opts := &mondoov1.HostedAwsConfigurationOptionsInput{
-		Region: mondoov1.String(m.Region.ValueString()),
-	}
+	opts := &mondoov1.HostedAwsConfigurationOptionsInput{}
 
 	if m.Credential.Key != nil {
 		opts.KeyCredential = &mondoov1.AWSSecretKeyCredential{
@@ -106,10 +101,6 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the integration.",
-				Required:            true,
-			},
-			"region": schema.StringAttribute{
-				MarkdownDescription: "AWS Region.",
 				Required:            true,
 			},
 			"credentials": schema.SingleNestedAttribute{
