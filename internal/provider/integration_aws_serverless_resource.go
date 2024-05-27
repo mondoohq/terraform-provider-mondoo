@@ -28,73 +28,72 @@ type integrationAwsServerlessResourceModel struct {
 	SpaceId types.String `tfsdk:"space_id"`
 
 	// integration details
-	Mrn  types.String `tfsdk:"mrn"`
-	Name types.String `tfsdk:"name"`
+	Mrn   types.String `tfsdk:"mrn"`
+	Name  types.String `tfsdk:"name"`
+	Token types.String `tfsdk:"token"`
 
-	Region            types.String           `json:"region"`
-	ScanConfiguration ScanConfigurationInput `json:"scanConfiguration"`
-
-	// (Optional.)
-	AccountIDs []types.String `json:"accountIds,omitempty"`
-	// (Optional.)
-	IsOrganization types.Bool `json:"isOrganization,omitempty"`
+	Region            types.String           `tfsdk:"region"`
+	ScanConfiguration ScanConfigurationInput `tfsdk:"scan_configuration"`
 
 	// (Optional.)
-	ConsoleSignInTrigger types.Bool `json:"consoleSignInTrigger,omitempty"`
+	AccountIDs types.List `tfsdk:"account_ids"`
 	// (Optional.)
-	InstanceStateChangeTrigger types.Bool `json:"instanceStateChangeTrigger,omitempty"`
+	IsOrganization types.Bool `tfsdk:"is_organization"`
+
+	// (Optional.)
+	ConsoleSignInTrigger types.Bool `tfsdk:"console_sign_in_trigger"`
+	// (Optional.)
+	InstanceStateChangeTrigger types.Bool `tfsdk:"instance_state_change_trigger"`
 }
 
 type ScanConfigurationInput struct {
 	// (Optional.)
-	AccountScan types.Bool `json:"accountScan,omitempty"`
+	Ec2Scan types.Bool `tfsdk:"ec2_scan"`
 	// (Optional.)
-	Ec2Scan types.Bool `json:"ec2Scan,omitempty"`
+	EcrScan types.Bool `tfsdk:"ecr_scan"`
 	// (Optional.)
-	EcrScan types.Bool `json:"ecrScan,omitempty"`
+	EcsScan types.Bool `tfsdk:"ecs_scan"`
 	// (Optional.)
-	EcsScan types.Bool `json:"ecsScan,omitempty"`
+	CronScaninHours types.Int64 `tfsdk:"cron_scanin_hours"`
 	// (Optional.)
-	CronScaninHours types.Int64 `json:"cronScaninHours,omitempty"`
+	EventScanTriggers *[]*AWSEventPatternInput `tfsdk:"event_scan_triggers"`
 	// (Optional.)
-	EventScanTriggers *[]*AWSEventPatternInput `json:"eventScanTriggers,omitempty"`
-	// (Optional.)
-	Ec2ScanOptions *Ec2ScanOptionsInput `json:"ec2ScanOptions,omitempty"`
+	Ec2ScanOptions *Ec2ScanOptionsInput `tfsdk:"ec2_scan_options"`
 }
 
 type AWSEventPatternInput struct {
 	// (Required.)
-	ScanType types.String `json:"scanType"`
+	ScanType types.String `tfsdk:"scan_type"`
 	// (Required.)
-	EventSource types.String `json:"eventSource"`
+	EventSource types.String `tfsdk:"event_source"`
 	// (Required.)
-	EventDetailType types.String `json:"eventDetailType"`
+	EventDetailType types.String `tfsdk:"event_detail_type"`
 }
 
 // Ec2ScanOptionsInput
 type Ec2ScanOptionsInput struct {
 	// (Optional.)
-	Ssm types.Bool `json:"ssm,omitempty"`
+	Ssm types.Bool `tfsdk:"ssm"`
 	// (Optional.)
-	InstanceIDsFilter types.List `json:"instanceIdsFilter,omitempty"`
+	InstanceIDsFilter types.List `tfsdk:"instance_ids_filter"`
 	// (Optional.)
-	RegionsFilter types.List `json:"regionsFilter,omitempty"`
+	RegionsFilter types.List `tfsdk:"regions_filter"`
 	// (Optional.)
-	TagsFilter types.Map `json:"tagsFilter,omitempty"`
+	TagsFilter types.Map `tfsdk:"tags_filter"`
 	// (Optional.)
-	EbsVolumeScan types.Bool `json:"ebsVolumeScan,omitempty"`
+	EbsVolumeScan types.Bool `tfsdk:"ebs_volume_scan"`
 	// (Optional.)
-	EbsScanOptions *EbsScanOptionsInput `json:"ebsScanOptions,omitempty"`
+	EbsScanOptions *EbsScanOptionsInput `tfsdk:"ebs_scan_options"`
 	// (Optional.)
-	InstanceConnect types.Bool `json:"instanceConnect,omitempty"`
+	InstanceConnect types.Bool `tfsdk:"instance_connect"`
 }
 
 // EbsScanOptionsInput
 type EbsScanOptionsInput struct {
 	// (Optional.)
-	TargetInstancesPerScanner types.Int64 `json:"targetInstancesPerScanner,omitempty"`
+	TargetInstancesPerScanner types.Int64 `tfsdk:"target_instances_per_scanner"`
 	// (Optional.)
-	MaxAsgInstances types.Int64 `json:"maxAsgInstances,omitempty"`
+	MaxAsgInstances types.Int64 `tfsdk:"max_asg_instances"`
 }
 
 func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoov1.AWSConfigurationOptionsInput {
@@ -138,10 +137,15 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 	tags, _ := m.ScanConfiguration.Ec2ScanOptions.TagsFilter.ToMapValue(context.Background())
 	tags.ElementsAs(context.Background(), &tagsFilter, true)
 
+	var accountIDs []mondoov1.String
+	accountIds, _ := m.AccountIDs.ToListValue(context.Background())
+	accountIds.ElementsAs(context.Background(), &accountIDs, true)
+
 	opts = &mondoov1.AWSConfigurationOptionsInput{
-		Region: mondoov1.String(m.Region.ValueString()),
+		Region:         mondoov1.String(m.Region.ValueString()),
+		IsOrganization: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.IsOrganization.ValueBool())),
+		AccountIDs:     &accountIDs,
 		ScanConfiguration: mondoov1.ScanConfigurationInput{
-			AccountScan:       mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.AccountScan.ValueBool())),
 			Ec2Scan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2Scan.ValueBool())),
 			EcrScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcrScan.ValueBool())),
 			EcsScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcsScan.ValueBool())),
@@ -184,6 +188,13 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"token": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "Integration token",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the integration.",
 				Required:            true,
@@ -203,10 +214,6 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			"scan_configuration": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
-					"account_scan": schema.BoolAttribute{
-						MarkdownDescription: "Enable account scan.",
-						Optional:            true,
-					},
 					"ec2_scan": schema.BoolAttribute{
 						MarkdownDescription: "Enable EC2 scan.",
 						Optional:            true,
@@ -268,6 +275,23 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 							},
 						},
 					},
+					"event_scan_triggers": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"scan_type": schema.StringAttribute{
+								MarkdownDescription: "Scan type.",
+								Optional:            true,
+							},
+							"event_source": schema.StringAttribute{
+								MarkdownDescription: "Event source.",
+								Optional:            true,
+							},
+							"event_detail_type": schema.StringAttribute{
+								MarkdownDescription: "Event detail type.",
+								Optional:            true,
+							},
+						},
+					},
 				},
 			},
 			"account_ids": schema.ListAttribute{
@@ -319,8 +343,12 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 		spaceMrn = spacePrefix + data.SpaceId.ValueString()
 	}
 
+	var accountIDs []mondoov1.String
+	accountIds, _ := data.AccountIDs.ToListValue(context.Background())
+	accountIds.ElementsAs(context.Background(), &accountIDs, true)
+
 	// Check if both whitelist and blacklist are provided
-	if len(data.AccountIDs) > 0 && data.IsOrganization.ValueBool() {
+	if len(accountIDs) > 0 && data.IsOrganization.ValueBool() {
 		resp.Diagnostics.AddError("ConflictingAttributesError", "Cannot install CloudFormation Stack to both AWS organization and accounts.")
 		return
 	}
@@ -341,6 +369,7 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
 	data.SpaceId = types.StringValue(data.SpaceId.ValueString())
+	data.Token = types.StringValue(string(integration.Token))
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -367,6 +396,16 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	var accountIDs []mondoov1.String
+	accountIds, _ := data.AccountIDs.ToListValue(context.Background())
+	accountIds.ElementsAs(context.Background(), &accountIDs, true)
+
+	// Check if both whitelist and blacklist are provided
+	if len(accountIDs) > 0 && data.IsOrganization.ValueBool() {
+		resp.Diagnostics.AddError("ConflictingAttributesError", "Cannot install CloudFormation Stack to both AWS organization and accounts.")
+		return
+	}
 
 	if resp.Diagnostics.HasError() {
 		return
