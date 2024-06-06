@@ -61,9 +61,9 @@ resource "mondoo_integration_aws_serverless" "aws_serverless" {
   instance_state_change_trigger = true
   account_ids                   = [var.aws_account_id]
   scan_configuration = {
-    ec2_scan          = true
-    ecr_scan          = false
-    ecs_scan          = false
+    ec2_scan           = true
+    ecr_scan           = false
+    ecs_scan           = false
     cron_scan_in_hours = 24
     ec2_scan_options = {
       ssm             = true
@@ -89,7 +89,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
   }
 }
 
-# for organisation wide deploys use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instaed of aws_cloudformation_stack
+# for organisation wide deploys use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instead of aws_cloudformation_stack
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set_instance
 ```
