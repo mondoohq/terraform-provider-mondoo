@@ -64,7 +64,7 @@ resource "mondoo_integration_aws_serverless" "aws_serverless" {
     ec2_scan          = true
     ecr_scan          = false
     ecs_scan          = false
-    cron_scanin_hours = 24
+    cron_scan_in_hours = 24
     ec2_scan_options = {
       ssm             = true
       ebs_volume_scan = true
@@ -125,7 +125,7 @@ Required:
 
 Optional:
 
-- `cron_scanin_hours` (Number) Cron scan in hours.
+- `cron_scan_in_hours` (Number) Cron scan in hours.
 - `ec2_scan` (Boolean) Enable EC2 scan.
 - `ecr_scan` (Boolean) Enable ECR scan.
 - `ecs_scan` (Boolean) Enable ECS scan.

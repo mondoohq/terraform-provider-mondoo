@@ -54,7 +54,7 @@ type ScanConfigurationInput struct {
 	// (Optional.)
 	EcsScan types.Bool `tfsdk:"ecs_scan"`
 	// (Optional.)
-	CronScaninHours types.Int64 `tfsdk:"cron_scanin_hours"`
+	CronScaninHours types.Int64 `tfsdk:"cron_scan_in_hours"`
 	// (Optional.)
 	EventScanTriggers *[]*AWSEventPatternInput `tfsdk:"event_scan_triggers"`
 	// (Optional.)
@@ -224,7 +224,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 						MarkdownDescription: "Enable ECS scan.",
 						Optional:            true,
 					},
-					"cron_scanin_hours": schema.Int64Attribute{
+					"cron_scan_in_hours": schema.Int64Attribute{
 						MarkdownDescription: "Cron scan in hours.",
 						Optional:            true,
 					},
