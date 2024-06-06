@@ -70,7 +70,6 @@ type AWSEventPatternInput struct {
 	EventDetailType types.String `tfsdk:"event_detail_type"`
 }
 
-// Ec2ScanOptionsInput
 type Ec2ScanOptionsInput struct {
 	// (Optional.)
 	Ssm types.Bool `tfsdk:"ssm"`
@@ -88,7 +87,6 @@ type Ec2ScanOptionsInput struct {
 	InstanceConnect types.Bool `tfsdk:"instance_connect"`
 }
 
-// EbsScanOptionsInput
 type EbsScanOptionsInput struct {
 	// (Optional.)
 	TargetInstancesPerScanner types.Int64 `tfsdk:"target_instances_per_scanner"`
@@ -97,7 +95,7 @@ type EbsScanOptionsInput struct {
 }
 
 func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoov1.AWSConfigurationOptionsInput {
-	opts := &mondoov1.AWSConfigurationOptionsInput{}
+	var opts *mondoov1.AWSConfigurationOptionsInput
 	var eventScanTriggers []*mondoov1.AWSEventPatternInput
 
 	if m.InstanceStateChangeTrigger.ValueBool() && m.ConsoleSignInTrigger.ValueBool() {
