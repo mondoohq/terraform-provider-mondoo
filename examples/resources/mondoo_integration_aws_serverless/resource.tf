@@ -15,7 +15,7 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "AWS_ACCOUNT_ID" {
+variable "aws_account_id" {
   description = "value of the AWS account ID"
   type        = string
 }
@@ -44,7 +44,7 @@ resource "mondoo_integration_aws_serverless" "aws_serverless" {
   is_organization               = false
   console_sign_in_trigger       = true
   instance_state_change_trigger = true
-  account_ids                   = [var.AWS_ACCOUNT_ID]
+  account_ids                   = [var.aws_account_id]
   scan_configuration = {
     ec2_scan          = true
     ecr_scan          = false
