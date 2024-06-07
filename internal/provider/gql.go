@@ -374,7 +374,6 @@ func (c *ExtendedGqlClient) UploadComplianceFramework(ctx context.Context, space
 	return c.Mutate(ctx, &uploadMutation, input, nil)
 }
 
-// ComplianceFrameworkPayload is a struct to hold the response data in a user-friendly manner
 type ComplianceFrameworkPayload struct {
 	Mrn      mondoov1.String
 	Name     mondoov1.String

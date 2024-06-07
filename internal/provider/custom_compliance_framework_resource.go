@@ -38,7 +38,6 @@ func (r *customComplianceFrameworkResource) Metadata(ctx context.Context, req re
 	resp.TypeName = req.ProviderTypeName + "_custom_compliance_framework"
 }
 
-// Define the structure of the YAML file
 type Framework struct {
 	UID  string `yaml:"uid"`
 	Name string `yaml:"name"`
@@ -48,24 +47,24 @@ type Config struct {
 	Frameworks []Framework `yaml:"frameworks"`
 }
 
-func (r *customComplianceFrameworkResource) getFrameworkContent(data customComplianceFrameworkResourceModel) ([]byte, string, string, error) {
+func (r *customComplianceFrameworkResource) getFrameworkContent(data customComplianceFrameworkResourceModel) ([]byte, string, error) {
 	var complianceFrameworkData []byte
 	var config Config
 	if !data.DataUrl.IsNull() {
 		// load content from file
 		content, err := os.ReadFile(data.DataUrl.ValueString())
 		if err != nil {
-			return nil, "", "", err
+			return nil, "", err
 		}
 		complianceFrameworkData = content
 
 		// unmarshal the yaml content
 		err = yaml.Unmarshal(content, &config)
 		if err != nil {
-			return nil, "", "", fmt.Errorf("unable to unmarshal YAML: %w", err)
+			return nil, "", fmt.Errorf("unable to unmarshal YAML: %w", err)
 		}
 	}
-	return complianceFrameworkData, config.Frameworks[0].UID, newCrc32Checksum(complianceFrameworkData), nil
+	return complianceFrameworkData, config.Frameworks[0].UID, nil
 }
 
 func (r *customComplianceFrameworkResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -127,7 +126,7 @@ func (r *customComplianceFrameworkResource) Create(ctx context.Context, req reso
 		spaceMrn = spacePrefix + data.SpaceId.ValueString()
 	}
 
-	content, uid, _, err := r.getFrameworkContent(data)
+	content, uid, err := r.getFrameworkContent(data)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Compliance Framework Content, got error: %s", err))
 		return
@@ -183,7 +182,7 @@ func (r *customComplianceFrameworkResource) Update(ctx context.Context, req reso
 		spaceMrn = spacePrefix + data.SpaceId.ValueString()
 	}
 
-	content, _, _, err := r.getFrameworkContent(data)
+	content, _, err := r.getFrameworkContent(data)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Compliance Framework Content, got error: %s", err))
 		return
