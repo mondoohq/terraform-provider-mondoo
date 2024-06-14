@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -90,12 +91,11 @@ func (d *SpaceDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 
 	// we fetch the organization id from the service account
 	spaceMrn := ""
-	if data.SpaceMrn.ValueString() != "" {
+	if data.SpaceMrn.ValueString() != "" && data.SpaceID.ValueString() == "" {
 		spaceMrn = data.SpaceMrn.ValueString()
-	} else if data.SpaceMrn.ValueString() != "" {
-		spaceMrn = orgPrefix + data.SpaceID.ValueString()
-	}
-	if spaceMrn == "" {
+	} else if data.SpaceID.ValueString() != "" && data.SpaceMrn.ValueString() == "" {
+		spaceMrn = spacePrefix + data.SpaceID.ValueString()
+	} else {
 		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
 		return
 	}
@@ -106,8 +106,6 @@ func (d *SpaceDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	// For the purposes of this example code, hardcoding a response value to
-	// save into the Terraform state.
 	data.SpaceID = types.StringValue(payload.Id)
 	data.SpaceMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)

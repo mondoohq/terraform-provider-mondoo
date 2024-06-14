@@ -89,9 +89,7 @@ type spacePayload struct {
 	Id           string
 	Mrn          string
 	Name         string
-	Organization struct {
-		Id string
-	}
+	Organization orgPayload
 }
 
 func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayload, error) {

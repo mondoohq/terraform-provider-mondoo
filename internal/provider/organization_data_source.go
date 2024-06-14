@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -90,12 +91,11 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	// we fetch the organization id from the service account
 	orgMrn := ""
-	if data.OrgMrn.ValueString() != "" {
+	if data.OrgMrn.ValueString() != "" && data.OrgID.ValueString() == "" {
 		orgMrn = data.OrgMrn.ValueString()
-	} else if data.OrgID.ValueString() != "" {
+	} else if data.OrgID.ValueString() != "" && data.OrgMrn.ValueString() == "" {
 		orgMrn = orgPrefix + data.OrgID.ValueString()
-	}
-	if orgMrn == "" {
+	} else {
 		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
 		return
 	}
@@ -106,8 +106,6 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	// For the purposes of this example code, hardcoding a response value to
-	// save into the Terraform state.
 	data.OrgID = types.StringValue(payload.Id)
 	data.OrgMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)
