@@ -31,7 +31,7 @@ type complianceFrameworkResourceModel struct {
 }
 
 func (r *complianceFrameworkResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_compliance_framework"
+	resp.TypeName = req.ProviderTypeName + "_framework_assignment"
 }
 
 func (r *complianceFrameworkResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -95,7 +95,7 @@ func (r *complianceFrameworkResource) Create(ctx context.Context, req resource.C
 	listFrameworks.ElementsAs(ctx, &frameworkList, true)
 
 	for _, mrn := range frameworkList {
-		err := r.client.UpdateComplianceFramework(ctx, string(mrn), scopeMrn, data.Enabled.ValueBool())
+		err := r.client.UpdateFramework(ctx, string(mrn), scopeMrn, data.Enabled.ValueBool())
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Compliance Framework, got error: %s", err))
 			return
@@ -142,7 +142,7 @@ func (r *complianceFrameworkResource) Update(ctx context.Context, req resource.U
 	listFrameworks.ElementsAs(ctx, &frameworkList, true)
 
 	for _, mrn := range frameworkList {
-		err := r.client.UpdateComplianceFramework(ctx, string(mrn), scopeMrn, data.Enabled.ValueBool())
+		err := r.client.UpdateFramework(ctx, string(mrn), scopeMrn, data.Enabled.ValueBool())
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Compliance Framework, got error: %s", err))
 			return
@@ -173,7 +173,7 @@ func (r *complianceFrameworkResource) Delete(ctx context.Context, req resource.D
 	listFrameworks.ElementsAs(ctx, &frameworkList, true)
 
 	for _, mrn := range frameworkList {
-		err := r.client.UpdateComplianceFramework(ctx, string(mrn), scopeMrn, false)
+		err := r.client.UpdateFramework(ctx, string(mrn), scopeMrn, false)
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Compliance Framework, got error: %s", err))
 			return

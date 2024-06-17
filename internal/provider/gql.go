@@ -358,7 +358,7 @@ func (c *ExtendedGqlClient) SetScimGroupMapping(ctx context.Context, orgMrn stri
 	return c.Mutate(ctx, &setScimGroupMappingMutation, setScimGroupMappingInput, nil)
 }
 
-func (c *ExtendedGqlClient) UploadComplianceFramework(ctx context.Context, spaceMrn string, content []byte) error {
+func (c *ExtendedGqlClient) UploadFramework(ctx context.Context, spaceMrn string, content []byte) error {
 	// Define the mutation struct according to the provided query
 	var uploadMutation struct {
 		UploadFramework bool `graphql:"uploadFramework(input: $input)"`
@@ -381,7 +381,7 @@ type ComplianceFrameworkPayload struct {
 	ScopeMrn mondoov1.String
 }
 
-func (c *ExtendedGqlClient) GetComplianceFramework(ctx context.Context, spaceMrn string, spaceId string, uid string) (*ComplianceFrameworkPayload, error) {
+func (c *ExtendedGqlClient) GetFramework(ctx context.Context, spaceMrn string, spaceId string, uid string) (*ComplianceFrameworkPayload, error) {
 	// Define the query struct according to the provided query
 	var getFrameworkQuery struct {
 		ComplianceFramework ComplianceFrameworkPayload `graphql:"complianceFramework(input: $input)"`
@@ -406,7 +406,7 @@ func (c *ExtendedGqlClient) GetComplianceFramework(ctx context.Context, spaceMrn
 	return &getFrameworkQuery.ComplianceFramework, nil
 }
 
-func (c *ExtendedGqlClient) UpdateComplianceFramework(ctx context.Context, frameworkMrn string, scopeMrn string, enabled bool) error {
+func (c *ExtendedGqlClient) UpdateFramework(ctx context.Context, frameworkMrn string, scopeMrn string, enabled bool) error {
 	var updateMutation struct {
 		ApplyFramework bool `graphql:"applyFrameworkMutation(input: $input)"`
 	}
@@ -426,7 +426,7 @@ func (c *ExtendedGqlClient) UpdateComplianceFramework(ctx context.Context, frame
 	}
 }
 
-func (c *ExtendedGqlClient) DeleteComplianceFramework(ctx context.Context, mrn string) error {
+func (c *ExtendedGqlClient) DeleteFramework(ctx context.Context, mrn string) error {
 	// Define the mutation struct according to the provided query
 	var deleteMutation struct {
 		DeleteFramework bool `graphql:"deleteFramework(input: $input)"`

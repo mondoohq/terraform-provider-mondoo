@@ -35,7 +35,7 @@ type customComplianceFrameworkResourceModel struct {
 }
 
 func (r *customComplianceFrameworkResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_custom_compliance_framework"
+	resp.TypeName = req.ProviderTypeName + "_custom_framework"
 }
 
 type Framework struct {
@@ -132,13 +132,13 @@ func (r *customComplianceFrameworkResource) Create(ctx context.Context, req reso
 		return
 	}
 
-	err = r.client.UploadComplianceFramework(ctx, spaceMrn, content)
+	err = r.client.UploadFramework(ctx, spaceMrn, content)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to upload Compliance Framework, got error: %s", err))
 		return
 	}
 
-	framework, err := r.client.GetComplianceFramework(ctx, spaceMrn, data.SpaceId.ValueString(), uid)
+	framework, err := r.client.GetFramework(ctx, spaceMrn, data.SpaceId.ValueString(), uid)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Compliance Framework, got error: %s", err))
 		return
@@ -188,7 +188,7 @@ func (r *customComplianceFrameworkResource) Update(ctx context.Context, req reso
 		return
 	}
 
-	err = r.client.UploadComplianceFramework(ctx, spaceMrn, content)
+	err = r.client.UploadFramework(ctx, spaceMrn, content)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to upload Compliance Framework, got error: %s", err))
 		return
@@ -209,7 +209,7 @@ func (r *customComplianceFrameworkResource) Delete(ctx context.Context, req reso
 	}
 
 	// Do GraphQL request to API to update the resource.
-	err := r.client.DeleteComplianceFramework(ctx, data.Mrn.ValueString())
+	err := r.client.DeleteFramework(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete Compliance Framework, got error: %s", err))
 		return
