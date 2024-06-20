@@ -29,7 +29,7 @@ output "policies" {
 
 ### Optional
 
-- `assigned_only` (Boolean) Assigned only
+- `assigned_only` (Boolean) Only return enabled policies if set to `true`
 - `catalog_type` (String) Catalog type of either `ALL`, `POLICY` or `QUERYPACK`. Defaults to `ALL`
 - `space_id` (String) Space ID
 - `space_mrn` (String) Space MRN
@@ -43,11 +43,11 @@ output "policies" {
 
 Read-Only:
 
-- `action` (String) Action
-- `assigned` (Boolean) Assigned to
-- `created_at` (String) Created at
-- `is_public` (Boolean) Is public
-- `policy_mrn` (String) Policy MRN
+- `action` (String) Policies can be set to `Null`, `IGNORE` or `ACTIVE`
+- `assigned` (Boolean) Determines if a policy is enabled or disabled
+- `created_at` (String) Timestamp of policy creation
+- `is_public` (Boolean) Determines if a policy is public or private
+- `policy_mrn` (String) Unique policy Mondoo Resource Name
 - `policy_name` (String) Policy name
-- `updated_at` (String) Updated at
+- `updated_at` (String) Timestamp of policy update
 - `version` (String) Version

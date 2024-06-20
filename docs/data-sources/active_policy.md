@@ -39,11 +39,11 @@ output "policies_mrn" {
 
 Read-Only:
 
-- `action` (String) Action
-- `assigned` (Boolean) Assigned to
-- `created_at` (String) Created at
-- `is_public` (Boolean) Is public
-- `policy_mrn` (String) Policy MRN
+- `action` (String) Policies can be set to `Null`, `IGNORE` or `ACTIVE`
+- `assigned` (Boolean) Determines if a policy is enabled or disabled
+- `created_at` (String) Timestamp of policy creation
+- `is_public` (Boolean) Determines if a policy is public or private
+- `policy_mrn` (String) Unique policy Mondoo Resource Name
 - `policy_name` (String) Policy name
-- `updated_at` (String) Updated at
-- `version` (String) Version
+- `updated_at` (String) Timestamp of policy update
+- `version` (String) Version of the policy

@@ -62,7 +62,7 @@ func (d *activePolicyDataSource) Schema(ctx context.Context, req datasource.Sche
 					Attributes: map[string]schema.Attribute{
 						"policy_mrn": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Policy MRN",
+							MarkdownDescription: "Unique policy Mondoo Resource Name",
 						},
 						"policy_name": schema.StringAttribute{
 							Computed:            true,
@@ -70,27 +70,27 @@ func (d *activePolicyDataSource) Schema(ctx context.Context, req datasource.Sche
 						},
 						"assigned": schema.BoolAttribute{
 							Computed:            true,
-							MarkdownDescription: "Assigned to",
+							MarkdownDescription: "Determines if a policy is enabled or disabled",
 						},
 						"action": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Action",
+							MarkdownDescription: "Policies can be set to `Null`, `IGNORE` or `ACTIVE`",
 						},
 						"version": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Version",
+							MarkdownDescription: "Version of the policy",
 						},
 						"is_public": schema.BoolAttribute{
 							Computed:            true,
-							MarkdownDescription: "Is public",
+							MarkdownDescription: "Determines if a policy is public or private",
 						},
 						"created_at": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Created at",
+							MarkdownDescription: "Timestamp of policy creation",
 						},
 						"updated_at": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Updated at",
+							MarkdownDescription: "Timestamp of policy update",
 						},
 					},
 				},
