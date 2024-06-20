@@ -19,8 +19,9 @@ data "mondoo_policy" "policy" {
   assigned_only = true
 }
 
-output "policies" {
-  value = data.mondoo_policy.policy.policies.*.policy_mrn
+output "policies_mrn" {
+  value       = data.mondoo_policy.policy.policies.*.policy_mrn
+  description = "The MRN of the policies in the space according to the filter criteria."
 }
 ```
 

@@ -18,7 +18,8 @@ data "mondoo_active_policy" "policy" {
 }
 
 output "policies_mrn" {
-  value = data.mondoo_active_policy.policy.policies.*.policy_mrn
+  value       = data.mondoo_active_policy.policy.policies.*.policy_mrn
+  description = "The MRN of the policies in the space"
 }
 ```
 
