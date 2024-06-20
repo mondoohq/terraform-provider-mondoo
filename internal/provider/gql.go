@@ -156,6 +156,73 @@ func (c *ExtendedGqlClient) SetCustomPolicy(ctx context.Context, scopeMrn string
 	return setCustomPolicy.SetCustomPolicyPayload, err
 }
 
+type SpaceReportInput struct {
+	SpaceMrn mondoov1.String
+}
+
+type Policy struct {
+	Mrn       mondoov1.String
+	Name      mondoov1.String
+	Assigned  mondoov1.Boolean
+	Action    mondoov1.String
+	Version   mondoov1.String
+	IsPublic  mondoov1.Boolean
+	CreatedAt mondoov1.String
+	UpdatedAt mondoov1.String
+}
+
+type PolicyNode struct {
+	Policy Policy
+}
+
+type PolicyEdge struct {
+	Cursor mondoov1.String
+	Node   PolicyNode
+}
+
+type PolicyReportSummaries struct {
+	TotalCount int
+	Edges      []PolicyEdge
+}
+
+type SpaceReport struct {
+	SpaceMrn              mondoov1.String
+	PolicyReportSummaries PolicyReportSummaries
+}
+
+type SpaceReportPayload struct {
+	SpaceReport SpaceReport
+}
+
+func (c *ExtendedGqlClient) GetSpaceReport(ctx context.Context, spaceMrn string) (*SpaceReport, error) {
+	// Define the query struct according to the provided query
+	var spaceReportQuery struct {
+		SpaceReport struct {
+			SpaceReport SpaceReport `graphql:"... on SpaceReport"`
+		} `graphql:"spaceReport(input: $input)"`
+	}
+	// Define the input variable according to the provided query
+	input := mondoov1.SpaceReportInput{
+		SpaceMrn: mondoov1.String(spaceMrn),
+	}
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	tflog.Trace(ctx, "GetSpaceReportInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	// Execute the query
+	err := c.Query(ctx, &spaceReportQuery, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	return &spaceReportQuery.SpaceReport.SpaceReport, nil
+}
+
 func (c *ExtendedGqlClient) AssignPolicy(ctx context.Context, spaceMrn string, action mondoov1.PolicyAction, policyMrns []string) error {
 	var list *[]mondoov1.String
 
