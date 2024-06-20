@@ -1,17 +1,9 @@
 data "mondoo_policy" "policy" {
-  space_id = "eu-goofy-lamport-129172"
+  space_id      = "your-space-1234567"
+  catalog_type  = "ALL" # availabe options: "ALL", "POLICY", "QUERYPACK"
+  assigned_only = true
 }
 
-# output "policy" {
-#   value = data.mondoo_policy.policy
-# }
-
-output "policy" {
-  value = [
-    for policy in tolist(data.mondoo_policy.policy.policies) : {
-      policy_mrn = policy.policy_mrn
-    }
-  ]
+output "policies" {
+  value = data.mondoo_policy.policy.policies.*.policy_mrn
 }
-
-# https://github.com/mondoohq/samples/blob/main/graphql-api/policies_querypacks_frameworks/list_available_policies_query_packs.bru

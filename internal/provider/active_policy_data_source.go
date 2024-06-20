@@ -10,31 +10,40 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
-var _ datasource.DataSource = (*policyDataSource)(nil)
+var _ datasource.DataSource = (*activePolicyDataSource)(nil)
 
-func NewPolicyDataSource() datasource.DataSource {
-	return &policyDataSource{}
+func NewActivePolicyDataSource() datasource.DataSource {
+	return &activePolicyDataSource{}
 }
 
-type policyDataSource struct {
+type activePolicyDataSource struct {
 	client *ExtendedGqlClient
 }
 
-type policyDataSourceModel struct {
-	SpaceID      types.String  `tfsdk:"space_id"`
-	SpaceMrn     types.String  `tfsdk:"space_mrn"`
-	CatalogType  types.String  `tfsdk:"catalog_type"`
-	AssignedOnly types.Bool    `tfsdk:"assigned_only"`
-	Policies     []policyModel `tfsdk:"policies"`
+type policyModel struct {
+	PolicyMrn  types.String `tfsdk:"policy_mrn"`
+	PolicyName types.String `tfsdk:"policy_name"`
+	Assigned   types.Bool   `tfsdk:"assigned"`
+	Action     types.String `tfsdk:"action"`
+	Version    types.String `tfsdk:"version"`
+	IsPublic   types.Bool   `tfsdk:"is_public"`
+	CreatedAt  types.String `tfsdk:"created_at"`
+	UpdatedAt  types.String `tfsdk:"updated_at"`
 }
 
-func (d *policyDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_policy"
+type activePolicyDataSourceModel struct {
+	SpaceID  types.String  `tfsdk:"space_id"`
+	SpaceMrn types.String  `tfsdk:"space_mrn"`
+	Policies []policyModel `tfsdk:"policies"`
 }
 
-func (d *policyDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *activePolicyDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_active_policy"
+}
+
+func (d *activePolicyDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Data source for policies and querypacks",
+		MarkdownDescription: "Data source that reports all active policies in a space",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				Computed:            true,
@@ -45,16 +54,6 @@ func (d *policyDataSource) Schema(ctx context.Context, req datasource.SchemaRequ
 				Computed:            true,
 				Optional:            true,
 				MarkdownDescription: "Space MRN",
-			},
-			"catalog_type": schema.StringAttribute{
-				Computed:            true,
-				Optional:            true,
-				MarkdownDescription: "Catalog type of either `ALL`, `POLICY` or `QUERYPACK`. Defaults to `ALL`",
-			},
-			"assigned_only": schema.BoolAttribute{
-				Computed:            true,
-				Optional:            true,
-				MarkdownDescription: "Assigned only",
 			},
 			"policies": schema.ListNestedAttribute{
 				Computed:            true,
@@ -100,7 +99,7 @@ func (d *policyDataSource) Schema(ctx context.Context, req datasource.SchemaRequ
 	}
 }
 
-func (d *policyDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *activePolicyDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -120,8 +119,8 @@ func (d *policyDataSource) Configure(ctx context.Context, req datasource.Configu
 	d.client = &ExtendedGqlClient{client}
 }
 
-func (d *policyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data policyDataSourceModel
+func (d *activePolicyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data activePolicyDataSourceModel
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
@@ -131,24 +130,24 @@ func (d *policyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	// generate space mrn
-	scopeMrn := ""
+	spaceMrn := ""
 	if data.SpaceMrn.ValueString() != "" && data.SpaceID.ValueString() == "" {
-		scopeMrn = data.SpaceMrn.ValueString()
+		spaceMrn = data.SpaceMrn.ValueString()
 	} else if data.SpaceID.ValueString() != "" && data.SpaceMrn.ValueString() == "" {
-		scopeMrn = spacePrefix + data.SpaceID.ValueString()
+		spaceMrn = spacePrefix + data.SpaceID.ValueString()
 	} else {
 		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
 		return
 	}
 
-	// Fetch policies
-	policies, err := d.client.GetPolicies(ctx, scopeMrn, data.CatalogType.ValueString(), data.AssignedOnly.ValueBool())
+	// Fetch data from the API
+	policies, err := d.client.GetPolicySpaceReport(ctx, spaceMrn)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to fetch policies", err.Error())
+		resp.Diagnostics.AddError("Failed to fetch policy", err.Error())
 		return
 	}
 
-	// Convert policies to the model
+	// Extract policy data and populate the list of policies
 	data.Policies = make([]policyModel, len(*policies))
 	for i, policy := range *policies {
 		data.Policies[i] = policyModel{
