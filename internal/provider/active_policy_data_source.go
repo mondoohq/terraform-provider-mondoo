@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -49,11 +52,23 @@ func (d *activePolicyDataSource) Schema(ctx context.Context, req datasource.Sche
 				Computed:            true,
 				Optional:            true,
 				MarkdownDescription: "Space ID",
+				Validators: []validator.String{
+					// Validate only this attribute or other_attr is configured.
+					stringvalidator.ExactlyOneOf(path.Expressions{
+						path.MatchRoot("space_mrn"),
+					}...),
+				},
 			},
 			"space_mrn": schema.StringAttribute{
 				Computed:            true,
 				Optional:            true,
 				MarkdownDescription: "Space MRN",
+				Validators: []validator.String{
+					// Validate only this attribute or other_attr is configured.
+					stringvalidator.ExactlyOneOf(path.Expressions{
+						path.MatchRoot("space_id"),
+					}...),
+				},
 			},
 			"policies": schema.ListNestedAttribute{
 				Computed:            true,
@@ -131,11 +146,13 @@ func (d *activePolicyDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	// generate space mrn
 	spaceMrn := ""
-	if data.SpaceMrn.ValueString() != "" && data.SpaceID.ValueString() == "" {
+	if data.SpaceMrn.ValueString() != "" {
 		spaceMrn = data.SpaceMrn.ValueString()
-	} else if data.SpaceID.ValueString() != "" && data.SpaceMrn.ValueString() == "" {
+	} else if data.SpaceID.ValueString() != "" {
 		spaceMrn = spacePrefix + data.SpaceID.ValueString()
-	} else {
+	}
+
+	if spaceMrn == "" {
 		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
 		return
 	}
