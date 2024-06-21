@@ -6,12 +6,15 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -56,6 +59,12 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the space.",
 				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^([a-zA-Z \-'_]|\d){2,30}$`),
+						"must contain 2 to 30 characters, where each character can be a letter (uppercase or lowercase), a space, a dash, an underscore, or a digit",
+					),
+				},
 			},
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Id of the space. Must be globally unique.",
@@ -63,6 +72,12 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^[a-z]([\d-_]|[a-z]){6,35}[a-z\d]$`),
+						"must contain 6 to 35 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
+					),
 				},
 			},
 			"mrn": schema.StringAttribute{
@@ -75,6 +90,12 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			"org_id": schema.StringAttribute{
 				MarkdownDescription: "Id of the organization.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^[a-z]([\d-_]|[a-z]){6,35}[a-z\d]$`),
+						"must contain 6 to 35 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
+					),
+				},
 			},
 		},
 	}
