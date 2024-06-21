@@ -7,8 +7,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -45,11 +48,23 @@ func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.Sche
 				MarkdownDescription: "Organization ID",
 				Computed:            true,
 				Optional:            true,
+				Validators: []validator.String{
+					// Validate only this attribute or other_attr is configured.
+					stringvalidator.ExactlyOneOf(path.Expressions{
+						path.MatchRoot("mrn"),
+					}...),
+				},
 			},
 			"mrn": schema.StringAttribute{
 				MarkdownDescription: "Organization MRN",
 				Computed:            true,
 				Optional:            true,
+				Validators: []validator.String{
+					// Validate only this attribute or other_attr is configured.
+					stringvalidator.ExactlyOneOf(path.Expressions{
+						path.MatchRoot("id"),
+					}...),
+				},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Organization name",
@@ -91,11 +106,13 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	// we fetch the organization id from the service account
 	orgMrn := ""
-	if data.OrgMrn.ValueString() != "" && data.OrgID.ValueString() == "" {
+	if data.OrgMrn.ValueString() != "" {
 		orgMrn = data.OrgMrn.ValueString()
-	} else if data.OrgID.ValueString() != "" && data.OrgMrn.ValueString() == "" {
+	} else if data.OrgID.ValueString() != "" {
 		orgMrn = orgPrefix + data.OrgID.ValueString()
-	} else {
+	}
+
+	if orgMrn == "" {
 		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
 		return
 	}
