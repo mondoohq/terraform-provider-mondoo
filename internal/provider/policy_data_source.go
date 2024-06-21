@@ -65,6 +65,9 @@ func (d *policyDataSource) Schema(ctx context.Context, req datasource.SchemaRequ
 				Computed:            true,
 				Optional:            true,
 				MarkdownDescription: "Catalog type of either `ALL`, `POLICY` or `QUERYPACK`. Defaults to `ALL`",
+				Validators: []validator.String{
+					stringvalidator.OneOf("ALL", "POLICY", "QUERYPACK"),
+				},
 			},
 			"assigned_only": schema.BoolAttribute{
 				Computed:            true,
