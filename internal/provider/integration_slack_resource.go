@@ -3,12 +3,15 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -57,11 +60,20 @@ func (r *integrationSlackResource) Schema(ctx context.Context, req resource.Sche
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the integration.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(250),
+				},
 			},
 			"slack_token": schema.StringAttribute{
 				Required:    true,
 				Sensitive:   true,
 				Description: "The Slack token to authenticate with the Slack API.",
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^xox[baprs](-[0-9a-zA-Z]{10,48})+$`),
+						"must start with xox and one of the following characters b, a, p, r, s, followed by one or more blocks consisting of a dash and 10-48 alphanumeric characters",
+					),
+				},
 			},
 		},
 	}
