@@ -272,4 +272,26 @@ func (r *integrationAzureResource) Delete(ctx context.Context, req resource.Dele
 
 func (r *integrationAzureResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+
+	// mrn := req.ID
+	// integration, err := r.client.GetClientIntegration(ctx, mrn)
+	// if err != nil {
+	// 	resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import Azure integration, got error: %s", err))
+	// 	return
+	// }
+
+	// model := integrationAzureResourceModel{
+	// 	SpaceId:               types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+	// 	Mrn:                   types.StringValue(string(integration.Mrn)),
+	// 	Name:                  types.StringValue(string(integration.Name)),
+	// 	ClientId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.ClientId),
+	// 	TenantId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.TenantId),
+	// 	SubscriptionAllowList: types.ToListValue(ctx, integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsWhitelist),
+	// }
+
+	// resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
+	// resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
+	// resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
+	// resp.State.SetAttribute(ctx, path.Root("credentials"), model.Credential)
+
 }

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -203,5 +204,24 @@ func (r *integrationDomainResource) Delete(ctx context.Context, req resource.Del
 }
 
 func (r *integrationDomainResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	mrn := req.ID
+	integration, err := r.client.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to retrieve integration, got error: %s", err))
+		return
+	}
+
+	model := integrationDomainResourceModel{
+		SpaceId: types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		Mrn:     types.StringValue(integration.Mrn),
+		Host:    types.StringValue(integration.ConfigurationOptions.HostConfigurationOptions.Host),
+		Https:   types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTPS),
+		Http:    types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTP),
+	}
+
+	resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
+	resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
+	resp.State.SetAttribute(ctx, path.Root("host"), model.Host)
+	resp.State.SetAttribute(ctx, path.Root("https"), model.Https)
+	resp.State.SetAttribute(ctx, path.Root("http"), model.Http)
 }

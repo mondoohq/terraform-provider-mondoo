@@ -6,6 +6,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -14,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -261,5 +264,31 @@ func (r *integrationAwsResource) Delete(ctx context.Context, req resource.Delete
 }
 
 func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	mrn := req.ID
+	integration, err := r.client.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import AWS integration, got error: %s", err))
+		return
+	}
+
+	model := integrationAwsResourceModel{
+		SpaceId: types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		Mrn:     types.StringValue(string(integration.Mrn)),
+		Name:    types.StringValue(string(integration.Name)),
+		Credential: integrationAwsCredentialModel{
+			Role: &roleCredentialModel{
+				RoleArn:    types.StringValue(string(integration.ConfigurationOptions.HostedAwsConfigurationOptions.Role)),
+				ExternalId: basetypes.NewStringNull(), // cannot be imported
+			},
+			Key: &accessKeyCredentialModel{
+				AccessKey: types.StringValue(string(integration.ConfigurationOptions.HostedAwsConfigurationOptions.AccessKeyId)),
+				SecretKey: basetypes.NewStringNull(), // cannot be imported
+			},
+		},
+	}
+
+	resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
+	resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
+	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
+	resp.State.SetAttribute(ctx, path.Root("credentials"), model.Credential)
 }
