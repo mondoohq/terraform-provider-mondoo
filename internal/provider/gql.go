@@ -342,6 +342,54 @@ func (c *ExtendedGqlClient) TriggerAction(ctx context.Context, integrationMrn st
 	return q.TriggerAction, nil
 }
 
+type AssetScore struct {
+	Grade string
+	Value int64
+}
+
+type KeyValue struct {
+	Key   string
+	Value string
+}
+
+type AssetNode struct {
+	Id           string
+	Mrn          string
+	State        string
+	Name         string
+	UpdatedAt    string
+	ReferenceIDs []string `graphql:"referenceIDs"`
+	Asset_type   string
+	Score        AssetScore
+	Annotations  []KeyValue
+}
+
+type AssetEdge struct {
+	Cursor string
+	Node   AssetNode
+}
+
+type AssetsPayload struct {
+	TotalCount int
+	Edges      []AssetEdge
+}
+
+func (c *ExtendedGqlClient) GetAssets(ctx context.Context, spaceMrn string) (AssetsPayload, error) {
+	var q struct {
+		Assets AssetsPayload `graphql:"assets(spaceMrn: $spaceMrn)"`
+	}
+	variables := map[string]interface{}{
+		"spaceMrn": mondoov1.String(spaceMrn),
+	}
+
+	err := c.Query(ctx, &q, variables)
+	if err != nil {
+		return AssetsPayload{}, err
+	}
+
+	return q.Assets, nil
+}
+
 func (c *ExtendedGqlClient) SetScimGroupMapping(ctx context.Context, orgMrn string, group string, mappings []mondoov1.ScimGroupMapping) error {
 	var setScimGroupMappingMutation struct {
 		SetScimGroupMapping struct {
