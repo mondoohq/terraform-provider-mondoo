@@ -7,11 +7,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -65,6 +67,9 @@ func (r *integrationGcpResource) Schema(ctx context.Context, req resource.Schema
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the integration.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(250),
+				},
 			},
 			"project_id": schema.StringAttribute{
 				MarkdownDescription: "GCP project id",
