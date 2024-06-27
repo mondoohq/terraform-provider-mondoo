@@ -427,12 +427,11 @@ func (c *ExtendedGqlClient) UpdateFramework(ctx context.Context, frameworkMrn st
 }
 
 func (c *ExtendedGqlClient) BulkUpdateFramework(ctx context.Context, frameworkMrns basetypes.ListValue, spaceId string, enabled bool) error {
-	
 	scopeMrn := ""
 	if spaceId != "" {
 		scopeMrn = spacePrefix + spaceId
 	}
-	
+
 	var frameworkList []mondoov1.String
 	listFrameworks, _ := frameworkMrns.ToListValue(ctx)
 	listFrameworks.ElementsAs(ctx, &frameworkList, true)
