@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -411,19 +412,38 @@ func (c *ExtendedGqlClient) UpdateFramework(ctx context.Context, frameworkMrn st
 		ApplyFramework bool `graphql:"applyFrameworkMutation(input: $input)"`
 	}
 
-	if enabled {
-		return c.Mutate(ctx, &updateMutation, mondoov1.ComplianceFrameworkMutationInput{
-			FrameworkMrn: mondoov1.String(frameworkMrn),
-			ScopeMrn:     mondoov1.String(scopeMrn),
-			Action:       mondoov1.ComplianceFrameworkMutationActionEnable,
-		}, nil)
-	} else {
-		return c.Mutate(ctx, &updateMutation, mondoov1.ComplianceFrameworkMutationInput{
-			FrameworkMrn: mondoov1.String(frameworkMrn),
-			ScopeMrn:     mondoov1.String(scopeMrn),
-			Action:       mondoov1.ComplianceFrameworkMutationActionPreview,
-		}, nil)
+	input := mondoov1.ComplianceFrameworkMutationInput{
+		FrameworkMrn: mondoov1.String(frameworkMrn),
+		ScopeMrn:     mondoov1.String(scopeMrn),
 	}
+
+	if enabled {
+		input.Action = mondoov1.ComplianceFrameworkMutationActionEnable
+	} else {
+		input.Action = mondoov1.ComplianceFrameworkMutationActionPreview
+	}
+
+	return c.Mutate(ctx, &updateMutation, input, nil)
+}
+
+func (c *ExtendedGqlClient) BulkUpdateFramework(ctx context.Context, frameworkMrns basetypes.ListValue, spaceId string, enabled bool) error {
+	
+	scopeMrn := ""
+	if spaceId != "" {
+		scopeMrn = spacePrefix + spaceId
+	}
+	
+	var frameworkList []mondoov1.String
+	listFrameworks, _ := frameworkMrns.ToListValue(ctx)
+	listFrameworks.ElementsAs(ctx, &frameworkList, true)
+
+	for _, mrn := range frameworkList {
+		err := c.UpdateFramework(ctx, string(mrn), scopeMrn, enabled)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *ExtendedGqlClient) DeleteFramework(ctx context.Context, mrn string) error {

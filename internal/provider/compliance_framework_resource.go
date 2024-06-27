@@ -85,21 +85,10 @@ func (r *complianceFrameworkResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	}
-
-	var frameworkList []mondoov1.String
-	listFrameworks, _ := data.FrameworkMrn.ToListValue(ctx)
-	listFrameworks.ElementsAs(ctx, &frameworkList, true)
-
-	for _, mrn := range frameworkList {
-		err := r.client.UpdateFramework(ctx, string(mrn), scopeMrn, data.Enabled.ValueBool())
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Compliance Framework, got error: %s", err))
-			return
-		}
+	err := r.client.BulkUpdateFramework(ctx, data.FrameworkMrn, data.SpaceId.ValueString(), data.Enabled.ValueBool())
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err))
+		return
 	}
 
 	// Save data into Terraform state
@@ -132,21 +121,10 @@ func (r *complianceFrameworkResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	}
-
-	var frameworkList []mondoov1.String
-	listFrameworks, _ := data.FrameworkMrn.ToListValue(ctx)
-	listFrameworks.ElementsAs(ctx, &frameworkList, true)
-
-	for _, mrn := range frameworkList {
-		err := r.client.UpdateFramework(ctx, string(mrn), scopeMrn, data.Enabled.ValueBool())
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Compliance Framework, got error: %s", err))
-			return
-		}
+	err := r.client.BulkUpdateFramework(ctx, data.FrameworkMrn, data.SpaceId.ValueString(), data.Enabled.ValueBool())
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err))
+		return
 	}
 
 	// Save updated data into Terraform state
@@ -163,21 +141,10 @@ func (r *complianceFrameworkResource) Delete(ctx context.Context, req resource.D
 		return
 	}
 
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	}
-
-	var frameworkList []mondoov1.String
-	listFrameworks, _ := data.FrameworkMrn.ToListValue(ctx)
-	listFrameworks.ElementsAs(ctx, &frameworkList, true)
-
-	for _, mrn := range frameworkList {
-		err := r.client.UpdateFramework(ctx, string(mrn), scopeMrn, false)
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Compliance Framework, got error: %s", err))
-			return
-		}
+	err := r.client.BulkUpdateFramework(ctx, data.FrameworkMrn, data.SpaceId.ValueString(), false)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err))
+		return
 	}
 }
 
