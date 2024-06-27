@@ -13,17 +13,17 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
-var _ datasource.DataSource = (*assetDataSource)(nil)
+var _ datasource.DataSource = (*assetsDataSource)(nil)
 
-func NewAssetDataSource() datasource.DataSource {
-	return &assetDataSource{}
+func NewAssetsDataSource() datasource.DataSource {
+	return &assetsDataSource{}
 }
 
-type assetDataSource struct {
+type assetsDataSource struct {
 	client *ExtendedGqlClient
 }
 
-type assetDataSourceModel struct {
+type assetsDataSourceModel struct {
 	Id           types.String       `tfsdk:"id"`
 	Mrn          types.String       `tfsdk:"mrn"`
 	State        types.String       `tfsdk:"state"`
@@ -46,16 +46,16 @@ type scoreModel struct {
 }
 
 type spaceAssetDataSourceModel struct {
-	SpaceID  types.String           `tfsdk:"space_id"`
-	SpaceMrn types.String           `tfsdk:"space_mrn"`
-	Assets   []assetDataSourceModel `tfsdk:"assets"`
+	SpaceID  types.String            `tfsdk:"space_id"`
+	SpaceMrn types.String            `tfsdk:"space_mrn"`
+	Assets   []assetsDataSourceModel `tfsdk:"assets"`
 }
 
-func (d *assetDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_asset"
+func (d *assetsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_assets"
 }
 
-func (d *assetDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *assetsDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "The asset data source allows you to fetch assets from a space.",
 		Attributes: map[string]schema.Attribute{
@@ -152,7 +152,7 @@ func (d *assetDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 	}
 }
 
-func (d *assetDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *assetsDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -172,7 +172,7 @@ func (d *assetDataSource) Configure(ctx context.Context, req datasource.Configur
 	d.client = &ExtendedGqlClient{client}
 }
 
-func (d *assetDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *assetsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data spaceAssetDataSourceModel
 
 	// Read Terraform configuration data into the model
@@ -202,7 +202,7 @@ func (d *assetDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	}
 
 	// Map API response to the model
-	data.Assets = make([]assetDataSourceModel, len(assets.Edges))
+	data.Assets = make([]assetsDataSourceModel, len(assets.Edges))
 	for i, asset := range assets.Edges {
 
 		referenceIDs := make([]types.String, len(asset.Node.ReferenceIDs))
@@ -215,7 +215,7 @@ func (d *assetDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 			annotations[j] = *convertToAnnotationsModel(annotation)
 		}
 
-		data.Assets[i] = assetDataSourceModel{
+		data.Assets[i] = assetsDataSourceModel{
 			Id:           types.StringValue(asset.Node.Id),
 			Mrn:          types.StringValue(asset.Node.Mrn),
 			State:        types.StringValue(asset.Node.State),
