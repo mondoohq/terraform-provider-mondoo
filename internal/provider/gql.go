@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -402,4 +403,105 @@ func (c *ExtendedGqlClient) SetScimGroupMapping(ctx context.Context, orgMrn stri
 	}
 
 	return c.Mutate(ctx, &setScimGroupMappingMutation, setScimGroupMappingInput, nil)
+}
+
+func (c *ExtendedGqlClient) UploadFramework(ctx context.Context, spaceMrn string, content []byte) error {
+	// Define the mutation struct according to the provided query
+	var uploadMutation struct {
+		UploadFramework bool `graphql:"uploadFramework(input: $input)"`
+	}
+
+	// Define the input variable according to the provided query
+	input := mondoov1.UploadFrameworkInput{
+		SpaceMrn: mondoov1.String(spaceMrn),
+		Dataurl:  mondoov1.String(newDataUrl(content)),
+	}
+
+	// Execute the mutation
+	return c.Mutate(ctx, &uploadMutation, input, nil)
+}
+
+type ComplianceFrameworkPayload struct {
+	Mrn      mondoov1.String
+	Name     mondoov1.String
+	State    mondoov1.String
+	ScopeMrn mondoov1.String
+}
+
+func (c *ExtendedGqlClient) GetFramework(ctx context.Context, spaceMrn string, spaceId string, uid string) (*ComplianceFrameworkPayload, error) {
+	// Define the query struct according to the provided query
+	var getFrameworkQuery struct {
+		ComplianceFramework ComplianceFrameworkPayload `graphql:"complianceFramework(input: $input)"`
+	}
+	frameworkMrn := fmt.Sprintf("//policy.api.mondoo.app/spaces/%s/frameworks/%s", spaceId, uid)
+	// Define the input variable according to the provided query
+	input := mondoov1.ComplianceFrameworkInput{
+		ScopeMrn:     mondoov1.String(spaceMrn),
+		FrameworkMrn: mondoov1.String(frameworkMrn),
+	}
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	// Execute the query
+	err := c.Query(ctx, &getFrameworkQuery, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	return &getFrameworkQuery.ComplianceFramework, nil
+}
+
+func (c *ExtendedGqlClient) UpdateFramework(ctx context.Context, frameworkMrn string, scopeMrn string, enabled bool) error {
+	var updateMutation struct {
+		ApplyFramework bool `graphql:"applyFrameworkMutation(input: $input)"`
+	}
+
+	input := mondoov1.ComplianceFrameworkMutationInput{
+		FrameworkMrn: mondoov1.String(frameworkMrn),
+		ScopeMrn:     mondoov1.String(scopeMrn),
+	}
+
+	if enabled {
+		input.Action = mondoov1.ComplianceFrameworkMutationActionEnable
+	} else {
+		input.Action = mondoov1.ComplianceFrameworkMutationActionPreview
+	}
+
+	return c.Mutate(ctx, &updateMutation, input, nil)
+}
+
+func (c *ExtendedGqlClient) BulkUpdateFramework(ctx context.Context, frameworkMrns basetypes.ListValue, spaceId string, enabled bool) error {
+	scopeMrn := ""
+	if spaceId != "" {
+		scopeMrn = spacePrefix + spaceId
+	}
+
+	var frameworkList []mondoov1.String
+	listFrameworks, _ := frameworkMrns.ToListValue(ctx)
+	listFrameworks.ElementsAs(ctx, &frameworkList, true)
+
+	for _, mrn := range frameworkList {
+		err := c.UpdateFramework(ctx, string(mrn), scopeMrn, enabled)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *ExtendedGqlClient) DeleteFramework(ctx context.Context, mrn string) error {
+	// Define the mutation struct according to the provided query
+	var deleteMutation struct {
+		DeleteFramework bool `graphql:"deleteFramework(input: $input)"`
+	}
+
+	// Define the input variable according to the provided query
+	input := mondoov1.DeleteFrameworkInput{
+		Mrn: mondoov1.String(mrn),
+	}
+
+	// Execute the mutation
+	return c.Mutate(ctx, &deleteMutation, input, nil)
 }
