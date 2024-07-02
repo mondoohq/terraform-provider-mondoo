@@ -155,6 +155,135 @@ func (c *ExtendedGqlClient) SetCustomPolicy(ctx context.Context, scopeMrn string
 	return setCustomPolicy.SetCustomPolicyPayload, err
 }
 
+type SpaceReportInput struct {
+	SpaceMrn mondoov1.String
+}
+
+type Policy struct {
+	Mrn       mondoov1.String
+	Name      mondoov1.String
+	Assigned  mondoov1.Boolean
+	Action    mondoov1.String
+	Version   mondoov1.String
+	IsPublic  mondoov1.Boolean
+	CreatedAt mondoov1.String
+	UpdatedAt mondoov1.String
+}
+
+type PolicyNode struct {
+	Policy Policy
+}
+
+type PolicyEdge struct {
+	Cursor mondoov1.String
+	Node   PolicyNode
+}
+
+type PolicyReportSummaries struct {
+	TotalCount int
+	Edges      []PolicyEdge
+}
+
+type SpaceReport struct {
+	SpaceMrn              mondoov1.String
+	PolicyReportSummaries PolicyReportSummaries
+}
+
+type SpaceReportPayload struct {
+	SpaceReport SpaceReport
+}
+
+func (c *ExtendedGqlClient) GetPolicySpaceReport(ctx context.Context, spaceMrn string) (*[]Policy, error) {
+	// Define the query struct according to the provided query
+	var spaceReportQuery struct {
+		Report struct {
+			SpaceReport SpaceReport `graphql:"... on SpaceReport"`
+		} `graphql:"spaceReport(input: $input)"`
+	}
+	// Define the input variable according to the provided query
+	input := mondoov1.SpaceReportInput{
+		SpaceMrn: mondoov1.String(spaceMrn),
+	}
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	tflog.Trace(ctx, "GetSpaceReportInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	// Execute the query
+	err := c.Query(ctx, &spaceReportQuery, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	var policies []Policy
+	for _, edges := range spaceReportQuery.Report.SpaceReport.PolicyReportSummaries.Edges {
+		policies = append(policies, edges.Node.Policy)
+	}
+
+	return &policies, nil
+}
+
+type ContentInput struct {
+	ScopeMrn     string
+	CatalogType  string
+	AssignedOnly bool
+}
+
+type Node struct {
+	Policy Policy `graphql:"... on Policy"`
+}
+
+type Edge struct {
+	Node Node
+}
+
+type Content struct {
+	TotalCount int
+	Edges      []Edge
+}
+
+type ContentPayload struct {
+	Content Content
+}
+
+func (c *ExtendedGqlClient) GetPolicies(ctx context.Context, scopeMrn string, catalogType string, assignedOnly bool) (*[]Policy, error) {
+	// Define the query struct according to the provided query
+	var contentQuery struct {
+		Content Content `graphql:"content(input: $input)"`
+	}
+	// Define the input variable according to the provided query
+	input := mondoov1.ContentSearchInput{
+		ScopeMrn:     mondoov1.String(scopeMrn),
+		CatalogType:  mondoov1.CatalogType(catalogType),
+		AssignedOnly: mondoov1.NewBooleanPtr(mondoov1.Boolean(assignedOnly)),
+	}
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	tflog.Trace(ctx, "GetContentInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	// Execute the query
+	err := c.Query(ctx, &contentQuery, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	var policies []Policy
+	for _, edges := range contentQuery.Content.Edges {
+		policies = append(policies, edges.Node.Policy)
+	}
+
+	return &policies, nil
+}
+
 func (c *ExtendedGqlClient) AssignPolicy(ctx context.Context, spaceMrn string, action mondoov1.PolicyAction, policyMrns []string) error {
 	var list *[]mondoov1.String
 
