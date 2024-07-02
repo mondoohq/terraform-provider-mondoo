@@ -3,12 +3,15 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -56,6 +59,12 @@ func (r *integrationDomainResource) Schema(ctx context.Context, req resource.Sch
 			"host": schema.StringAttribute{
 				MarkdownDescription: "Domain name or IP address.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$|^([a-z0-9-]+\.)+[a-z]{2,}$`),
+						"must contain only lowercase letters and at least one dot or be an IPv4 address",
+					),
+				},
 			},
 			"https": schema.BoolAttribute{
 				MarkdownDescription: "Enable HTTPS port.",

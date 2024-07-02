@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -66,6 +69,9 @@ func (r *integrationAzureResource) Schema(ctx context.Context, req resource.Sche
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the integration.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(250),
+				},
 			},
 			"client_id": schema.StringAttribute{
 				MarkdownDescription: "Azure Client ID.",
@@ -83,11 +89,23 @@ func (r *integrationAzureResource) Schema(ctx context.Context, req resource.Sche
 				MarkdownDescription: "List of Azure subscriptions to scan.",
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators: []validator.List{
+					// Validate only this attribute or other_attr is configured.
+					listvalidator.ConflictsWith(path.Expressions{
+						path.MatchRoot("subscription_deny_list"),
+					}...),
+				},
 			},
 			"subscription_deny_list": schema.ListAttribute{
 				MarkdownDescription: "List of Azure subscriptions to exclude from scanning.",
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators: []validator.List{
+					// Validate only this attribute or other_attr is configured.
+					listvalidator.ConflictsWith(path.Expressions{
+						path.MatchRoot("subscription_allow_list"),
+					}...),
+				},
 			},
 			"credentials": schema.SingleNestedAttribute{
 				Required: true,

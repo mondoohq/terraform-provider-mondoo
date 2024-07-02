@@ -1,0 +1,44 @@
+frameworks:
+  - uid: example-framework
+    name: Example Framework
+    version: "1.0"
+    license: open-source
+    tags:
+      example.com/icon: example
+    authors:
+      - name: Example Author
+    groups:
+      - uid: example-group-am
+        title: Asset Management (AM)
+        controls:
+          - uid: example-control-am-01
+            title: Asset Inventory
+            docs:
+              desc: >-
+                A short description
+            evidence:
+              - uid: example-evidence-01
+          - uid: example-control-am-02
+            title: Acceptable Use and Safe Handling of Assets Policy
+            docs:
+              desc: >-
+                A short description
+            evidence:
+              - uid: example-evidence-02
+      - uid: example-group-bcm
+        title: Business Continuity Management (BCM)
+        controls:
+          - uid: example-control-bcm-01
+            title: Top Management Responsibility
+            docs:
+              desc: >-
+                A short description
+            evidence:
+              - uid: example-evidence-03
+          - uid: example-control-bcm-02
+            title: Business Impact Analysis Policies and Instructions
+            docs:
+              desc: >-
+                A short description
+            evidence:
+              - uid: example-evidence-04

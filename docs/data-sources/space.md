@@ -21,7 +21,7 @@ variable "mondoo_org" {
 provider "mondoo" {}
 
 resource "mondoo_space" "test" {
-  org_id = var.mondoo_org.value
+  org_id = var.mondoo_org
   name   = "test-space"
 }
 
@@ -41,6 +41,11 @@ output "space_name" {
 output "space_mrn" {
   description = "The MRN of the space"
   value       = data.mondoo_space.space.mrn
+}
+
+output "space_id" {
+  description = "The ID of the space"
+  value       = data.mondoo_space.space.id
 }
 ```
 

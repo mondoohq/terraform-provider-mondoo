@@ -6,11 +6,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	mondoov1 "go.mondoo.com/mondoo-go"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -63,6 +66,9 @@ func (r *queryPackAssignmentResource) Schema(ctx context.Context, req resource.S
 				Default:             stringdefault.StaticString("enabled"),
 				Computed:            true,
 				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("enabled", "disabled"),
+				},
 			},
 		},
 	}
