@@ -23,6 +23,17 @@ type policyDataSource struct {
 	client *ExtendedGqlClient
 }
 
+type policyModel struct {
+	PolicyMrn  types.String `tfsdk:"policy_mrn"`
+	PolicyName types.String `tfsdk:"policy_name"`
+	Assigned   types.Bool   `tfsdk:"assigned"`
+	Action     types.String `tfsdk:"action"`
+	Version    types.String `tfsdk:"version"`
+	IsPublic   types.Bool   `tfsdk:"is_public"`
+	CreatedAt  types.String `tfsdk:"created_at"`
+	UpdatedAt  types.String `tfsdk:"updated_at"`
+}
+
 type policyDataSourceModel struct {
 	SpaceID      types.String  `tfsdk:"space_id"`
 	SpaceMrn     types.String  `tfsdk:"space_mrn"`
