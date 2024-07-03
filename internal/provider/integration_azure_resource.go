@@ -3,13 +3,16 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -271,27 +274,46 @@ func (r *integrationAzureResource) Delete(ctx context.Context, req resource.Dele
 }
 
 func (r *integrationAzureResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	mrn := req.ID
+	integration, err := r.client.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import Azure integration, got error: %s", err))
+		return
+	}
 
-	// mrn := req.ID
-	// integration, err := r.client.GetClientIntegration(ctx, mrn)
-	// if err != nil {
-	// 	resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import Azure integration, got error: %s", err))
-	// 	return
-	// }
+	allowList := r.ConvertListValue(ctx, integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsWhitelist)
+	denyList := r.ConvertListValue(ctx, integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsBlacklist)
 
-	// model := integrationAzureResourceModel{
-	// 	SpaceId:               types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
-	// 	Mrn:                   types.StringValue(string(integration.Mrn)),
-	// 	Name:                  types.StringValue(string(integration.Name)),
-	// 	ClientId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.ClientId),
-	// 	TenantId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.TenantId),
-	// 	SubscriptionAllowList: types.ToListValue(ctx, integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsWhitelist),
-	// }
+	model := integrationAzureResourceModel{
+		SpaceId:               types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		Mrn:                   types.StringValue(string(integration.Mrn)),
+		Name:                  types.StringValue(string(integration.Name)),
+		ClientId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.ClientId),
+		TenantId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.TenantId),
+		SubscriptionAllowList: allowList,
+		SubscriptionDenyList:  denyList,
+		Credential: integrationAzureCredentialModel{
+			PEMFile: basetypes.NewStringNull(),
+		},
+		ScanVms: types.BoolValue(integration.ConfigurationOptions.AzureConfigurationOptions.ScanVms),
+	}
 
-	// resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
-	// resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
-	// resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
-	// resp.State.SetAttribute(ctx, path.Root("credentials"), model.Credential)
+	resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
+	resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
+	resp.State.SetAttribute(ctx, path.Root("client_id"), model.ClientId)
+	resp.State.SetAttribute(ctx, path.Root("tenant_id"), model.TenantId)
+	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
+	resp.State.SetAttribute(ctx, path.Root("credentials"), model.Credential)
+	resp.State.SetAttribute(ctx, path.Root("scan_vms"), model.ScanVms)
+	resp.State.SetAttribute(ctx, path.Root("subscription_allow_list"), model.SubscriptionAllowList)
+	resp.State.SetAttribute(ctx, path.Root("subscription_deny_list"), model.SubscriptionDenyList)
+}
 
+func (r *integrationAzureResource) ConvertListValue(ctx context.Context, list []string) types.List {
+	var valueList []attr.Value
+	for _, str := range list {
+		valueList = append(valueList, types.StringValue(str))
+	}
+	// Ensure the list is of type types.StringType
+	return types.ListValueMust(types.StringType, valueList)
 }
