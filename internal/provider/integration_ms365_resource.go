@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -34,7 +35,7 @@ type integrationMs365ResourceModel struct {
 	TenantId types.String `tfsdk:"tenant_id"`
 
 	// credentials
-	Credential integrationMs365CredentialModel `tfsdk:"credentials"`
+	Credential *integrationMs365CredentialModel `tfsdk:"credentials"`
 }
 
 type integrationMs365CredentialModel struct {
@@ -219,5 +220,28 @@ func (r *integrationMs365Resource) Delete(ctx context.Context, req resource.Dele
 }
 
 func (r *integrationMs365Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	mrn := req.ID
+	integration, err := r.client.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Ms365 integration, got error: %s", err))
+		return
+	}
+
+	model := integrationMs365ResourceModel{
+		Mrn:      types.StringValue(string(integration.Mrn)),
+		Name:     types.StringValue(string(integration.Name)),
+		SpaceId:  types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		TenantId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.TenantId),
+		ClientId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.ClientId),
+		Credential: &integrationMs365CredentialModel{
+			PEMFile: types.StringPointerValue(nil),
+		},
+	}
+
+	resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
+	resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
+	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
+	resp.State.SetAttribute(ctx, path.Root("tenant_id"), model.TenantId)
+	resp.State.SetAttribute(ctx, path.Root("client_id"), model.ClientId)
+	resp.State.SetAttribute(ctx, path.Root("pem_file"), model.Credential.PEMFile)
 }

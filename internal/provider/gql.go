@@ -404,11 +404,18 @@ type HostedAwsConfigurationOptions struct {
 	Role        string
 }
 
+type GcpConfigurationOptions struct {
+	ProjectId string
+	// OrganizationId string
+	DiscoverAll bool
+}
+
 type ClientIntegrationConfigurationOptions struct {
 	// AWSConfigurationOptions   AWSConfigurationOptions   `graphql:"... on AWSConfigurationOptions"`
 	AzureConfigurationOptions AzureConfigurationOptions `graphql:"... on AzureConfigurationOptions"`
 	HostConfigurationOptions  HostConfigurationOptions  `graphql:"... on HostConfigurationOptions"`
 	Ms365ConfigurationOptions Ms365ConfigurationOptions `graphql:"... on Ms365ConfigurationOptions"`
+	GcpConfigurationOptions   GcpConfigurationOptions   `graphql:"... on GcpConfigurationOptions"`
 	// SlackConfigurationOptions     SlackConfigurationOptions     `graphql:"... on SlackConfigurationOptions"`
 	GithubConfigurationOptions    GithubConfigurationOptions    `graphql:"... on GithubConfigurationOptions"`
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
