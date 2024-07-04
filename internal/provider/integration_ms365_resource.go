@@ -35,7 +35,7 @@ type integrationMs365ResourceModel struct {
 	TenantId types.String `tfsdk:"tenant_id"`
 
 	// credentials
-	Credential *integrationMs365CredentialModel `tfsdk:"credentials"`
+	Credential integrationMs365CredentialModel `tfsdk:"credentials"`
 }
 
 type integrationMs365CredentialModel struct {
@@ -233,7 +233,7 @@ func (r *integrationMs365Resource) ImportState(ctx context.Context, req resource
 		SpaceId:  types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
 		TenantId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.TenantId),
 		ClientId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.ClientId),
-		Credential: &integrationMs365CredentialModel{
+		Credential: integrationMs365CredentialModel{
 			PEMFile: types.StringPointerValue(nil),
 		},
 	}
@@ -243,5 +243,5 @@ func (r *integrationMs365Resource) ImportState(ctx context.Context, req resource
 	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
 	resp.State.SetAttribute(ctx, path.Root("tenant_id"), model.TenantId)
 	resp.State.SetAttribute(ctx, path.Root("client_id"), model.ClientId)
-	resp.State.SetAttribute(ctx, path.Root("pem_file"), model.Credential.PEMFile)
+	resp.State.SetAttribute(ctx, path.Root("credentials"), model.Credential)
 }

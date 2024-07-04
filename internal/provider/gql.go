@@ -380,9 +380,9 @@ type HostConfigurationOptions struct {
 	HTTP  bool   `graphql:"http"`
 }
 
-// type SlackConfigurationOptions struct {
-// 	SlackToken string `graphql:"slackToken"`
-// }
+type SlackConfigurationOptions struct {
+	Placeholder string
+}
 
 type GithubConfigurationOptions struct {
 	Owner        string
@@ -412,11 +412,11 @@ type GcpConfigurationOptions struct {
 
 type ClientIntegrationConfigurationOptions struct {
 	// AWSConfigurationOptions   AWSConfigurationOptions   `graphql:"... on AWSConfigurationOptions"`
-	AzureConfigurationOptions AzureConfigurationOptions `graphql:"... on AzureConfigurationOptions"`
-	HostConfigurationOptions  HostConfigurationOptions  `graphql:"... on HostConfigurationOptions"`
-	Ms365ConfigurationOptions Ms365ConfigurationOptions `graphql:"... on Ms365ConfigurationOptions"`
-	GcpConfigurationOptions   GcpConfigurationOptions   `graphql:"... on GcpConfigurationOptions"`
-	// SlackConfigurationOptions     SlackConfigurationOptions     `graphql:"... on SlackConfigurationOptions"`
+	AzureConfigurationOptions     AzureConfigurationOptions     `graphql:"... on AzureConfigurationOptions"`
+	HostConfigurationOptions      HostConfigurationOptions      `graphql:"... on HostConfigurationOptions"`
+	Ms365ConfigurationOptions     Ms365ConfigurationOptions     `graphql:"... on Ms365ConfigurationOptions"`
+	GcpConfigurationOptions       GcpConfigurationOptions       `graphql:"... on GcpConfigurationOptions"`
+	SlackConfigurationOptions     SlackConfigurationOptions     `graphql:"... on SlackConfigurationOptions"`
 	GithubConfigurationOptions    GithubConfigurationOptions    `graphql:"... on GithubConfigurationOptions"`
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
 	// Add other configuration options here

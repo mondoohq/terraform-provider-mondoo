@@ -265,7 +265,7 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 	mrn := req.ID
 	integration, err := r.client.GetClientIntegration(ctx, mrn)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Domain integration, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get GitHub integration, got error: %s", err))
 		return
 	}
 
