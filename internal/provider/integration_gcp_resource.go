@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -240,9 +239,5 @@ func (r *integrationGcpResource) ImportState(ctx context.Context, req resource.I
 		},
 	}
 
-	resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
-	resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
-	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
-	resp.State.SetAttribute(ctx, path.Root("project_id"), model.ProjectId)
-	resp.State.SetAttribute(ctx, path.Root("credentials"), model.Credential)
+	resp.State.Set(ctx, &model)
 }

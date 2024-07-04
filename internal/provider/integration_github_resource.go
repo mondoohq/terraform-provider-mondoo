@@ -3,12 +3,12 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
-  "regexp"
-  
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -314,14 +314,7 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 		model.Owner = types.StringValue(integration.ConfigurationOptions.GithubConfigurationOptions.Organization)
 	}
 
-	resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
-	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
-	resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
-	resp.State.SetAttribute(ctx, path.Root("owner"), model.Owner)
-	resp.State.SetAttribute(ctx, path.Root("repository"), model.Repository)
-	resp.State.SetAttribute(ctx, path.Root("repository_allow_list"), model.RepositoryAllowList)
-	resp.State.SetAttribute(ctx, path.Root("repository_deny_list"), model.RepositoryDenyList)
-	resp.State.SetAttribute(ctx, path.Root("credential"), model.Credential)
+	resp.State.Set(ctx, &model)
 }
 
 func (r *integrationGithubResource) ConvertListValue(ctx context.Context, list []string) types.List {

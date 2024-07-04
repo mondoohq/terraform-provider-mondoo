@@ -6,8 +6,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -304,8 +304,5 @@ func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.I
 		},
 	}
 
-	resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
-	resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
-	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
-	resp.State.SetAttribute(ctx, path.Root("credentials"), model.Credential)
+	resp.State.Set(ctx, &model)
 }

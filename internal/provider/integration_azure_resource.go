@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
-  
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -316,15 +316,7 @@ func (r *integrationAzureResource) ImportState(ctx context.Context, req resource
 		ScanVms: types.BoolValue(integration.ConfigurationOptions.AzureConfigurationOptions.ScanVms),
 	}
 
-	resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
-	resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
-	resp.State.SetAttribute(ctx, path.Root("client_id"), model.ClientId)
-	resp.State.SetAttribute(ctx, path.Root("tenant_id"), model.TenantId)
-	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
-	resp.State.SetAttribute(ctx, path.Root("credentials"), model.Credential)
-	resp.State.SetAttribute(ctx, path.Root("scan_vms"), model.ScanVms)
-	resp.State.SetAttribute(ctx, path.Root("subscription_allow_list"), model.SubscriptionAllowList)
-	resp.State.SetAttribute(ctx, path.Root("subscription_deny_list"), model.SubscriptionDenyList)
+	resp.State.Set(ctx, &model)
 }
 
 func (r *integrationAzureResource) ConvertListValue(ctx context.Context, list []string) types.List {

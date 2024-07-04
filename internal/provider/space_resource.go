@@ -236,8 +236,5 @@ func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStat
 		OrgID:    types.StringValue(spacePayload.Organization.Id),
 	}
 
-	resp.State.SetAttribute(ctx, path.Root("id"), model.SpaceID)
-	resp.State.SetAttribute(ctx, path.Root("name"), model.Name)
-	resp.State.SetAttribute(ctx, path.Root("org_id"), model.OrgID)
-	resp.State.SetAttribute(ctx, path.Root("mrn"), model.SpaceMrn)
+	resp.State.Set(ctx, &model)
 }

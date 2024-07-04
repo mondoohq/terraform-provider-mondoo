@@ -3,11 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -228,9 +227,5 @@ func (r *integrationDomainResource) ImportState(ctx context.Context, req resourc
 		Http:    types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTP),
 	}
 
-	resp.State.SetAttribute(ctx, path.Root("space_id"), model.SpaceId)
-	resp.State.SetAttribute(ctx, path.Root("mrn"), model.Mrn)
-	resp.State.SetAttribute(ctx, path.Root("host"), model.Host)
-	resp.State.SetAttribute(ctx, path.Root("https"), model.Https)
-	resp.State.SetAttribute(ctx, path.Root("http"), model.Http)
+	resp.State.Set(ctx, &model)
 }
