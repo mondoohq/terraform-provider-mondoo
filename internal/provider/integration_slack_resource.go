@@ -217,8 +217,8 @@ func (r *integrationSlackResource) ImportState(ctx context.Context, req resource
 	}
 
 	model := integrationSlackResourceModel{
-		Mrn:        types.StringValue(string(integration.Mrn)),
-		Name:       types.StringValue(string(integration.Name)),
+		Mrn:        types.StringValue(integration.Mrn),
+		Name:       types.StringValue(integration.Name),
 		SlackToken: types.StringPointerValue(nil),
 		SpaceId:    types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
 	}

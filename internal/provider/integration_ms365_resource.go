@@ -232,8 +232,8 @@ func (r *integrationMs365Resource) ImportState(ctx context.Context, req resource
 	}
 
 	model := integrationMs365ResourceModel{
-		Mrn:      types.StringValue(string(integration.Mrn)),
-		Name:     types.StringValue(string(integration.Name)),
+		Mrn:      types.StringValue(integration.Mrn),
+		Name:     types.StringValue(integration.Name),
 		SpaceId:  types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
 		TenantId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.TenantId),
 		ClientId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.ClientId),

@@ -290,15 +290,15 @@ func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.I
 
 	model := integrationAwsResourceModel{
 		SpaceId: types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
-		Mrn:     types.StringValue(string(integration.Mrn)),
-		Name:    types.StringValue(string(integration.Name)),
+		Mrn:     types.StringValue(integration.Mrn),
+		Name:    types.StringValue(integration.Name),
 		Credential: integrationAwsCredentialModel{
 			Role: &roleCredentialModel{
-				RoleArn:    types.StringValue(string(integration.ConfigurationOptions.HostedAwsConfigurationOptions.Role)),
+				RoleArn:    types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.Role),
 				ExternalId: basetypes.NewStringNull(), // cannot be imported
 			},
 			Key: &accessKeyCredentialModel{
-				AccessKey: types.StringValue(string(integration.ConfigurationOptions.HostedAwsConfigurationOptions.AccessKeyId)),
+				AccessKey: types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.AccessKeyId),
 				SecretKey: basetypes.NewStringNull(), // cannot be imported
 			},
 		},

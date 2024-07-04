@@ -304,8 +304,8 @@ func (r *integrationAzureResource) ImportState(ctx context.Context, req resource
 
 	model := integrationAzureResourceModel{
 		SpaceId:               types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
-		Mrn:                   types.StringValue(string(integration.Mrn)),
-		Name:                  types.StringValue(string(integration.Name)),
+		Mrn:                   types.StringValue(integration.Mrn),
+		Name:                  types.StringValue(integration.Name),
 		ClientId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.ClientId),
 		TenantId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.TenantId),
 		SubscriptionAllowList: allowList,

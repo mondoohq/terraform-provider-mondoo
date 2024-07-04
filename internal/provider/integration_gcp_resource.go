@@ -230,8 +230,8 @@ func (r *integrationGcpResource) ImportState(ctx context.Context, req resource.I
 	}
 
 	model := integrationGcpResourceModel{
-		Mrn:       types.StringValue(string(integration.Mrn)),
-		Name:      types.StringValue(string(integration.Name)),
+		Mrn:       types.StringValue(integration.Mrn),
+		Name:      types.StringValue(integration.Name),
 		SpaceId:   types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
 		ProjectId: types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.ProjectId),
 		Credential: integrationGcpCredentialModel{
