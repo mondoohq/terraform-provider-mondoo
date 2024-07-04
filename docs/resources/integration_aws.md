@@ -24,7 +24,7 @@ variable "aws_access_key" {
 }
 
 variable "aws_secret_key" {
-  description = "AWS access key"
+  description = "AWS secret key"
   type        = string
 }
 
