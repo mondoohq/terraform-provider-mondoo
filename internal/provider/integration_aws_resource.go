@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -295,11 +294,11 @@ func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.I
 		Credential: integrationAwsCredentialModel{
 			Role: &roleCredentialModel{
 				RoleArn:    types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.Role),
-				ExternalId: basetypes.NewStringNull(), // cannot be imported
+				ExternalId: types.StringPointerValue(nil), // cannot be imported
 			},
 			Key: &accessKeyCredentialModel{
 				AccessKey: types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.AccessKeyId),
-				SecretKey: basetypes.NewStringNull(), // cannot be imported
+				SecretKey: types.StringPointerValue(nil), // cannot be imported
 			},
 		},
 	}

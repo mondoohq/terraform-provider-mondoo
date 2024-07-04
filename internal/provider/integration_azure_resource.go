@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -311,7 +310,7 @@ func (r *integrationAzureResource) ImportState(ctx context.Context, req resource
 		SubscriptionAllowList: allowList,
 		SubscriptionDenyList:  denyList,
 		Credential: integrationAzureCredentialModel{
-			PEMFile: basetypes.NewStringNull(),
+			PEMFile: types.StringPointerValue(nil),
 		},
 		ScanVms: types.BoolValue(integration.ConfigurationOptions.AzureConfigurationOptions.ScanVms),
 	}
