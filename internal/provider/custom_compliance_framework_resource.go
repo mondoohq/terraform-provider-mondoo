@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -217,5 +217,24 @@ func (r *customComplianceFrameworkResource) Delete(ctx context.Context, req reso
 }
 
 func (r *customComplianceFrameworkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	// resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	mrn := req.ID
+	splitMrn := strings.Split(mrn, "/")
+	spaceMrn := spacePrefix + splitMrn[len(splitMrn)-3]
+	spaceId := splitMrn[len(splitMrn)-3]
+	uid := splitMrn[len(splitMrn)-1]
+
+	framework, err := r.client.GetFramework(ctx, spaceMrn, spaceId, uid)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Compliance Framework, got error: %s", err))
+		return
+	}
+
+	model := customComplianceFrameworkResourceModel{
+		Mrn:     types.StringValue(string(framework.Mrn)),
+		DataUrl: types.StringPointerValue(nil),
+		SpaceId: types.StringValue(spaceId),
+	}
+
+	resp.State.Set(ctx, &model)
 }

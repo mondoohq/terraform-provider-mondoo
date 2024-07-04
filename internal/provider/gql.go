@@ -168,6 +168,7 @@ type Policy struct {
 	IsPublic  mondoov1.Boolean
 	CreatedAt mondoov1.String
 	UpdatedAt mondoov1.String
+	Docs      mondoov1.String
 }
 
 type PolicyNode struct {
@@ -250,6 +251,28 @@ type ContentPayload struct {
 	Content Content
 }
 
+func (c *ExtendedGqlClient) DownloadBundle(ctx context.Context, policyMrn string) (string, error) {
+	var q struct {
+		DownloadBundle struct {
+			PolicyBundleYaml struct {
+				Yaml string `graphql:"yaml"`
+			} `graphql:"... on PolicyBundleYaml"`
+		} `graphql:"downloadBundle(input: $input)"`
+	}
+	variables := map[string]interface{}{
+		"input": mondoov1.DownloadBundleInput{
+			Mrn: mondoov1.String(policyMrn),
+		},
+	}
+
+	err := c.Query(ctx, &q, variables)
+	if err != nil {
+		return "", err
+	}
+
+	return q.DownloadBundle.PolicyBundleYaml.Yaml, nil
+}
+
 func (c *ExtendedGqlClient) GetPolicies(ctx context.Context, scopeMrn string, catalogType string, assignedOnly bool) (*[]Policy, error) {
 	// Define the query struct according to the provided query
 	var contentQuery struct {
@@ -282,6 +305,28 @@ func (c *ExtendedGqlClient) GetPolicies(ctx context.Context, scopeMrn string, ca
 	}
 
 	return &policies, nil
+}
+
+func (c *ExtendedGqlClient) GetPolicy(ctx context.Context, policyMrn string, spaceMrn string) (*Policy, error) {
+	var q struct {
+		Policy Policy `graphql:"policy(input: $input)"`
+	}
+
+	input := mondoov1.PolicyInput{
+		Mrn:      mondoov1.NewStringPtr(mondoov1.String(policyMrn)),
+		SpaceMrn: mondoov1.NewStringPtr(mondoov1.String(spaceMrn)),
+	}
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	err := c.Query(ctx, &q, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	return &q.Policy, nil
 }
 
 func (c *ExtendedGqlClient) AssignPolicy(ctx context.Context, spaceMrn string, action mondoov1.PolicyAction, policyMrns []string) error {
