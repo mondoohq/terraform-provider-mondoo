@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -105,6 +107,9 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the integration.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(250),
+				},
 			},
 			"credentials": schema.SingleNestedAttribute{
 				Required: true,
@@ -134,10 +139,22 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 							"access_key": schema.StringAttribute{
 								Required:  true,
 								Sensitive: true,
+								Validators: []validator.String{
+									stringvalidator.RegexMatches(
+										regexp.MustCompile(`^([A-Z0-9]{20})$`),
+										"must be a 20 character string with uppercase letters and numbers only",
+									),
+								},
 							},
 							"secret_key": schema.StringAttribute{
 								Required:  true,
 								Sensitive: true,
+								Validators: []validator.String{
+									stringvalidator.RegexMatches(
+										regexp.MustCompile(`^([a-zA-Z0-9+/]{40})$`),
+										"must be a 40 character string with alphanumeric values and + and / only",
+									),
+								},
 							},
 						},
 					},

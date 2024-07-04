@@ -6,8 +6,12 @@ package provider
 import (
 	"context"
 	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -44,11 +48,23 @@ func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.Sche
 				MarkdownDescription: "Organization ID",
 				Computed:            true,
 				Optional:            true,
+				Validators: []validator.String{
+					// Validate only this attribute or other_attr is configured.
+					stringvalidator.ExactlyOneOf(path.Expressions{
+						path.MatchRoot("mrn"),
+					}...),
+				},
 			},
 			"mrn": schema.StringAttribute{
 				MarkdownDescription: "Organization MRN",
 				Computed:            true,
 				Optional:            true,
+				Validators: []validator.String{
+					// Validate only this attribute or other_attr is configured.
+					stringvalidator.ExactlyOneOf(path.Expressions{
+						path.MatchRoot("id"),
+					}...),
+				},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Organization name",
@@ -95,6 +111,7 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 	} else if data.OrgID.ValueString() != "" {
 		orgMrn = orgPrefix + data.OrgID.ValueString()
 	}
+
 	if orgMrn == "" {
 		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
 		return
@@ -106,8 +123,6 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	// For the purposes of this example code, hardcoding a response value to
-	// save into the Terraform state.
 	data.OrgID = types.StringValue(payload.Id)
 	data.OrgMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)

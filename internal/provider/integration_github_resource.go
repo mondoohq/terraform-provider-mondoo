@@ -4,13 +4,17 @@ import (
 	"context"
 	"fmt"
 	"strings"
-
+  "regexp"
+  
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -103,6 +107,9 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the integration.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(250),
+				},
 			},
 			"owner": schema.StringAttribute{
 				MarkdownDescription: "GitHub Owner.",
@@ -116,11 +123,23 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 				MarkdownDescription: "List of GitHub repositories to scan.",
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators: []validator.List{
+					// Validate only this attribute or other_attr is configured.
+					listvalidator.ConflictsWith(path.Expressions{
+						path.MatchRoot("repository_deny_list"),
+					}...),
+				},
 			},
 			"repository_deny_list": schema.ListAttribute{
 				MarkdownDescription: "List of GitHub repositories to exclude from scanning.",
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators: []validator.List{
+					// Validate only this attribute or other_attr is configured.
+					listvalidator.ConflictsWith(path.Expressions{
+						path.MatchRoot("repository_allow_list"),
+					}...),
+				},
 			},
 			"credentials": schema.SingleNestedAttribute{
 				Required: true,
@@ -129,6 +148,12 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 						MarkdownDescription: "Token for GitHub integration.",
 						Required:            true,
 						Sensitive:           true,
+						Validators: []validator.String{
+							stringvalidator.RegexMatches(
+								regexp.MustCompile(`^(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})$`),
+								"must be a valid classic GitHub Token with 40 characters in length, with a prefix of ghp_ or a fine-grained GitHub token with 93 characters in length, with a prefix of github_pat_",
+							),
+						},
 					},
 				},
 			},
