@@ -493,58 +493,12 @@ func (c *ExtendedGqlClient) DeleteIntegration(ctx context.Context, mrn string) (
 	return &deleteMutation.DeleteClientIntegration, nil
 }
 
-// type AWSConfigurationOptions struct {
-// 	AccountIds                []string
-// 	Region                    string
-// 	IsOrganization            bool
-// 	ScanConfiguration         ScanConfiguration
-// 	SnsEndpoint               string
-// 	OriginAWSAccountId        string `graphql:"originAWSAccountId"`
-// 	CloudFormationTemplateUrl string
-// }
-
-// type ScanConfiguration struct {
-// 	AccountScan       bool
-// 	Ec2Scan           bool `graphql:"ec2Scan"`
-// 	EcrScan           bool `graphql:"ecrScan"`
-// 	EcsScan           bool `graphql:"ecsScan"`
-// 	CronScaninHours   int
-// 	EventScanTriggers []AWSEventPattern
-// 	Ec2ScanOptions    Ec2ScanOptions `graphql:"ec2ScanOptions"`
-// }
-
-// type AWSEventPattern struct {
-// 	ScanType        string
-// 	EventSource     string
-// 	EventDetailType string
-// }
-
-// type Ec2ScanOptions struct {
-// 	Ssm                    bool
-// 	AwsSecretsManagerVault bool
-// 	SecretsMetadataQuery   string
-// 	InstanceIdsFilter      []string
-// 	RegionsFilter          []string
-// 	TagsFilter             map[string]string
-// 	VaultType              string
-// 	EbsVolumeScan          bool
-// 	EbsScanOptions         EbsScanOptions
-// 	InstanceConnect        bool
-// }
-
-// type EbsScanOptions struct {
-// 	TargetInstancesPerScanner int
-// 	MaxAsgInstances           int
-// }
-
 type AzureConfigurationOptions struct {
 	TenantId               string
 	ClientId               string
 	SubscriptionsWhitelist []string
 	SubscriptionsBlacklist []string
-	// Certificate            string
-	ScanVms bool
-	// ClientSecret           string
+	ScanVms                bool
 }
 
 type HostConfigurationOptions struct {
@@ -558,11 +512,10 @@ type SlackConfigurationOptions struct {
 }
 
 type GithubConfigurationOptions struct {
-	Owner        string
-	Repository   string
-	Organization string
-	// Token          string
-	Type           string //graphql enum
+	Owner          string
+	Repository     string
+	Organization   string
+	Type           string
 	ReposAllowList []string
 	ReposDenyList  []string
 }
@@ -578,13 +531,11 @@ type HostedAwsConfigurationOptions struct {
 }
 
 type GcpConfigurationOptions struct {
-	ProjectId string
-	// OrganizationId string
+	ProjectId   string
 	DiscoverAll bool
 }
 
 type ClientIntegrationConfigurationOptions struct {
-	// AWSConfigurationOptions   AWSConfigurationOptions   `graphql:"... on AWSConfigurationOptions"`
 	AzureConfigurationOptions     AzureConfigurationOptions     `graphql:"... on AzureConfigurationOptions"`
 	HostConfigurationOptions      HostConfigurationOptions      `graphql:"... on HostConfigurationOptions"`
 	Ms365ConfigurationOptions     Ms365ConfigurationOptions     `graphql:"... on Ms365ConfigurationOptions"`
