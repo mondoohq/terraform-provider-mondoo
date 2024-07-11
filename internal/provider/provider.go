@@ -181,6 +181,7 @@ func (p *MondooProvider) DataSources(ctx context.Context) []func() datasource.Da
 		NewSpaceDataSource,
 		NewPolicyDataSource,
 		NewAssetsDataSource,
+		NewComplianceFrameworkDataSource,
 	}
 }
 
