@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -279,5 +280,28 @@ func (r *integrationAwsResource) Delete(ctx context.Context, req resource.Delete
 }
 
 func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	mrn := req.ID
+	integration, err := r.client.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import AWS integration, got error: %s", err))
+		return
+	}
+
+	model := integrationAwsResourceModel{
+		SpaceId: types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		Mrn:     types.StringValue(integration.Mrn),
+		Name:    types.StringValue(integration.Name),
+		Credential: integrationAwsCredentialModel{
+			Role: &roleCredentialModel{
+				RoleArn:    types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.Role),
+				ExternalId: types.StringPointerValue(nil), // cannot be imported
+			},
+			Key: &accessKeyCredentialModel{
+				AccessKey: types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.AccessKeyId),
+				SecretKey: types.StringPointerValue(nil), // cannot be imported
+			},
+		},
+	}
+
+	resp.State.Set(ctx, &model)
 }

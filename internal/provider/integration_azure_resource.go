@@ -3,9 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -289,5 +291,38 @@ func (r *integrationAzureResource) Delete(ctx context.Context, req resource.Dele
 }
 
 func (r *integrationAzureResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	mrn := req.ID
+	integration, err := r.client.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import Azure integration, got error: %s", err))
+		return
+	}
+
+	allowList := r.ConvertListValue(ctx, integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsWhitelist)
+	denyList := r.ConvertListValue(ctx, integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsBlacklist)
+
+	model := integrationAzureResourceModel{
+		SpaceId:               types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		Mrn:                   types.StringValue(integration.Mrn),
+		Name:                  types.StringValue(integration.Name),
+		ClientId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.ClientId),
+		TenantId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.TenantId),
+		SubscriptionAllowList: allowList,
+		SubscriptionDenyList:  denyList,
+		Credential: integrationAzureCredentialModel{
+			PEMFile: types.StringPointerValue(nil),
+		},
+		ScanVms: types.BoolValue(integration.ConfigurationOptions.AzureConfigurationOptions.ScanVms),
+	}
+
+	resp.State.Set(ctx, &model)
+}
+
+func (r *integrationAzureResource) ConvertListValue(ctx context.Context, list []string) types.List {
+	var valueList []attr.Value
+	for _, str := range list {
+		valueList = append(valueList, types.StringValue(str))
+	}
+	// Ensure the list is of type types.StringType
+	return types.ListValueMust(types.StringType, valueList)
 }

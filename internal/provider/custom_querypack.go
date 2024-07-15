@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -287,4 +288,40 @@ func (r *customQueryPackResource) Delete(ctx context.Context, req resource.Delet
 			return
 		}
 	}
+}
+
+func (r *customQueryPackResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	mrn := req.ID
+	splitMrn := strings.Split(mrn, "/")
+	spaceMrn := spacePrefix + splitMrn[len(splitMrn)-3]
+	spaceId := splitMrn[len(splitMrn)-3]
+
+	queryPack, err := r.client.GetPolicy(ctx, mrn, spaceMrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get policy, got error: %s", err))
+		return
+	}
+
+	content, err := r.client.DownloadBundle(ctx, string(queryPack.Mrn))
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to download bundle, got error: %s", err))
+		return
+	}
+
+	mrns, _ := types.ListValueFrom(ctx, types.StringType, []string{mrn})
+
+	model := customQueryPackResourceModel{
+		SpaceId:       types.StringValue(spaceId),
+		Mrns:          mrns,
+		Overwrite:     types.BoolValue(false),
+		Source:        types.StringPointerValue(nil),
+		Content:       types.StringValue(content),
+		Crc32Checksum: types.StringPointerValue(nil),
+	}
+
+	checksum := newCrc32Checksum([]byte(content))
+
+	model.Crc32Checksum = types.StringValue(checksum)
+
+	resp.State.Set(ctx, &model)
 }

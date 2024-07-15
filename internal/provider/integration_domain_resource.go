@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -212,5 +212,20 @@ func (r *integrationDomainResource) Delete(ctx context.Context, req resource.Del
 }
 
 func (r *integrationDomainResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	mrn := req.ID
+	integration, err := r.client.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to retrieve integration, got error: %s", err))
+		return
+	}
+
+	model := integrationDomainResourceModel{
+		SpaceId: types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		Mrn:     types.StringValue(integration.Mrn),
+		Host:    types.StringValue(integration.ConfigurationOptions.HostConfigurationOptions.Host),
+		Https:   types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTPS),
+		Http:    types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTP),
+	}
+
+	resp.State.Set(ctx, &model)
 }

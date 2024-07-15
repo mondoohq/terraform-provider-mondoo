@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -42,7 +44,7 @@ type integrationGithubResourceModel struct {
 	RepositoryDenyList  types.List `tfsdk:"repository_deny_list"`
 
 	// credentials
-	Credential integrationGithubCredentialModel `tfsdk:"credentials"`
+	Credential *integrationGithubCredentialModel `tfsdk:"credentials"`
 }
 
 type integrationGithubCredentialModel struct {
@@ -285,5 +287,41 @@ func (r *integrationGithubResource) Delete(ctx context.Context, req resource.Del
 }
 
 func (r *integrationGithubResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	mrn := req.ID
+	integration, err := r.client.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get GitHub integration, got error: %s", err))
+		return
+	}
+
+	allowList := r.ConvertListValue(ctx, integration.ConfigurationOptions.GithubConfigurationOptions.ReposAllowList)
+	denyList := r.ConvertListValue(ctx, integration.ConfigurationOptions.GithubConfigurationOptions.ReposDenyList)
+
+	model := integrationGithubResourceModel{
+		Mrn:                 types.StringValue(mrn),
+		Name:                types.StringValue(integration.Name),
+		SpaceId:             types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		Owner:               types.StringValue(integration.ConfigurationOptions.GithubConfigurationOptions.Owner),
+		Repository:          types.StringValue(integration.ConfigurationOptions.GithubConfigurationOptions.Repository),
+		RepositoryAllowList: allowList,
+		RepositoryDenyList:  denyList,
+		Credential: &integrationGithubCredentialModel{
+			Token: types.StringPointerValue(nil),
+		},
+	}
+
+	if model.Owner.ValueString() == "" {
+		model.Owner = types.StringValue(integration.ConfigurationOptions.GithubConfigurationOptions.Organization)
+	}
+
+	resp.State.Set(ctx, &model)
+}
+
+func (r *integrationGithubResource) ConvertListValue(ctx context.Context, list []string) types.List {
+	var valueList []attr.Value
+	for _, str := range list {
+		valueList = append(valueList, types.StringValue(str))
+	}
+	// Ensure the list is of type types.StringType
+	return types.ListValueMust(types.StringType, valueList)
 }
