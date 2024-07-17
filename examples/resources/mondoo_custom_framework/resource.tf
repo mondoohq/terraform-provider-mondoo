@@ -20,7 +20,7 @@ resource "mondoo_space" "my_space" {
   org_id = var.mondoo_org
 }
 
-resource "mondoo_custom_framework" "compliance_framework_example" {
+resource "mondoo_custom_framework" "custom_framework" {
   space_id = mondoo_space.my_space.id
   data_url = var.my_custom_framework
 }

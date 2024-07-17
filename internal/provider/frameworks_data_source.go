@@ -13,20 +13,20 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
-var _ datasource.DataSource = (*complianceFrameworkDataSource)(nil)
+var _ datasource.DataSource = (*frameworksDataSource)(nil)
 
-func NewComplianceFrameworkDataSource() datasource.DataSource {
-	return &complianceFrameworkDataSource{}
+func NewFrameworksDataSource() datasource.DataSource {
+	return &frameworksDataSource{}
 }
 
-type complianceFrameworkDataSource struct {
+type frameworksDataSource struct {
 	client *ExtendedGqlClient
 }
 
-type complianceFrameworkDataSourceModel struct {
-	SpaceID              types.String               `tfsdk:"space_id"`
-	SpaceMrn             types.String               `tfsdk:"space_mrn"`
-	ComplianceFrameworks []complianceFrameworkModel `tfsdk:"compliance_frameworks"`
+type frameworksDataSourceModel struct {
+	SpaceID    types.String     `tfsdk:"space_id"`
+	SpaceMrn   types.String     `tfsdk:"space_mrn"`
+	Frameworks []frameworkModel `tfsdk:"frameworks"`
 }
 
 type author struct {
@@ -44,7 +44,7 @@ type tag struct {
 	Value types.String `tfsdk:"value"`
 }
 
-type complianceFrameworkModel struct {
+type frameworkModel struct {
 	Mrn                      types.String `tfsdk:"mrn"`
 	Name                     types.String `tfsdk:"name"`
 	State                    types.String `tfsdk:"state"`
@@ -53,11 +53,11 @@ type complianceFrameworkModel struct {
 	PreviousCompletionScores []entry      `tfsdk:"previous_completion_scores"`
 }
 
-func (d *complianceFrameworkDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_compliance_framework"
+func (d *frameworksDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_frameworks"
 }
 
-func (d *complianceFrameworkDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *frameworksDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Data source to return compliance frameworks in a Space",
 		Attributes: map[string]schema.Attribute{
@@ -83,7 +83,7 @@ func (d *complianceFrameworkDataSource) Schema(ctx context.Context, req datasour
 					}...),
 				},
 			},
-			"compliance_frameworks": schema.ListNestedAttribute{
+			"frameworks": schema.ListNestedAttribute{
 				Computed:            true,
 				MarkdownDescription: "List of compliance frameworks",
 				NestedObject: schema.NestedAttributeObject{
@@ -155,7 +155,7 @@ func (d *complianceFrameworkDataSource) Schema(ctx context.Context, req datasour
 	}
 }
 
-func (d *complianceFrameworkDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *frameworksDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -175,8 +175,8 @@ func (d *complianceFrameworkDataSource) Configure(ctx context.Context, req datas
 	d.client = &ExtendedGqlClient{client}
 }
 
-func (d *complianceFrameworkDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data complianceFrameworkDataSourceModel
+func (d *frameworksDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data frameworksDataSourceModel
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
@@ -199,14 +199,14 @@ func (d *complianceFrameworkDataSource) Read(ctx context.Context, req datasource
 	}
 
 	// Fetch policies
-	frameworks, err := d.client.GetComplianceFrameworks(ctx, scopeMrn)
+	frameworks, err := d.client.ListFrameworks(ctx, scopeMrn)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to fetch frameworks", err.Error())
 		return
 	}
 
 	// Make API request to fetch compliance frameworks
-	data.ComplianceFrameworks = make([]complianceFrameworkModel, len(frameworks))
+	data.Frameworks = make([]frameworkModel, len(frameworks))
 	for i, framework := range frameworks {
 
 		authors := make([]author, len(framework.Authors))
@@ -233,7 +233,7 @@ func (d *complianceFrameworkDataSource) Read(ctx context.Context, req datasource
 			}
 		}
 
-		data.ComplianceFrameworks[i] = complianceFrameworkModel{
+		data.Frameworks[i] = frameworkModel{
 			Mrn:                      types.StringValue(string(framework.Mrn)),
 			Name:                     types.StringValue(string(framework.Name)),
 			State:                    types.StringValue(string(framework.State)),

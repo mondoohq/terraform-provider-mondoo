@@ -742,7 +742,7 @@ type GetComplianceFrameworksQuery struct {
 	ComplianceFrameworks []ComplianceFrameworksPayload `graphql:"complianceFrameworks(input: $input)"`
 }
 
-func (c *ExtendedGqlClient) ListComplianceFrameworks(ctx context.Context, scopeMrn string) ([]ComplianceFrameworksPayload, error) {
+func (c *ExtendedGqlClient) ListFrameworks(ctx context.Context, scopeMrn string) ([]ComplianceFrameworksPayload, error) {
 	// Define the query struct according to the provided query
 	var getFrameworksQuery GetComplianceFrameworksQuery
 

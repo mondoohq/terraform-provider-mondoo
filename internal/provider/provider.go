@@ -170,8 +170,8 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewIntegrationSlackResource,
 		NewIntegrationMs365Resource,
 		NewIntegrationGithubResource,
-		NewComplianceFrameworkResource,
-		NewCustomComplianceFrameworkResource,
+		NewFrameworkAssignmentResource,
+		NewCustomFrameworkResource,
 	}
 }
 
@@ -179,9 +179,9 @@ func (p *MondooProvider) DataSources(ctx context.Context) []func() datasource.Da
 	return []func() datasource.DataSource{
 		NewOrganizationDataSource,
 		NewSpaceDataSource,
-		NewPolicyDataSource,
+		NewPoliciesDataSource,
 		NewAssetsDataSource,
-		NewComplianceFrameworkDataSource,
+		NewFrameworksDataSource,
 	}
 }
 
