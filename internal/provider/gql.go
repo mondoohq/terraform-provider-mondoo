@@ -283,6 +283,7 @@ func (c *ExtendedGqlClient) GetPolicies(ctx context.Context, scopeMrn string, ca
 		ScopeMrn:     mondoov1.String(scopeMrn),
 		CatalogType:  mondoov1.CatalogType(catalogType),
 		AssignedOnly: mondoov1.NewBooleanPtr(mondoov1.Boolean(assignedOnly)),
+		Limit:        mondoov1.NewIntPtr(mondoov1.Int(10000)),
 	}
 
 	variables := map[string]interface{}{
