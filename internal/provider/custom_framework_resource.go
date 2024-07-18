@@ -15,17 +15,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var _ resource.Resource = (*customComplianceFrameworkResource)(nil)
+var _ resource.Resource = (*customFrameworkResource)(nil)
 
-func NewCustomComplianceFrameworkResource() resource.Resource {
-	return &customComplianceFrameworkResource{}
+func NewCustomFrameworkResource() resource.Resource {
+	return &customFrameworkResource{}
 }
 
-type customComplianceFrameworkResource struct {
+type customFrameworkResource struct {
 	client *ExtendedGqlClient
 }
 
-type customComplianceFrameworkResourceModel struct {
+type customFrameworkResourceModel struct {
 	// scope
 	SpaceId types.String `tfsdk:"space_id"`
 
@@ -34,7 +34,7 @@ type customComplianceFrameworkResourceModel struct {
 	DataUrl types.String `tfsdk:"data_url"`
 }
 
-func (r *customComplianceFrameworkResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *customFrameworkResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_custom_framework"
 }
 
@@ -47,8 +47,8 @@ type Config struct {
 	Frameworks []Framework `yaml:"frameworks"`
 }
 
-func (r *customComplianceFrameworkResource) getFrameworkContent(data customComplianceFrameworkResourceModel) ([]byte, string, error) {
-	var complianceFrameworkData []byte
+func (r *customFrameworkResource) getFrameworkContent(data customFrameworkResourceModel) ([]byte, string, error) {
+	var frameworkData []byte
 	var config Config
 	if !data.DataUrl.IsNull() {
 		// load content from file
@@ -56,7 +56,7 @@ func (r *customComplianceFrameworkResource) getFrameworkContent(data customCompl
 		if err != nil {
 			return nil, "", err
 		}
-		complianceFrameworkData = content
+		frameworkData = content
 
 		// unmarshal the yaml content
 		err = yaml.Unmarshal(content, &config)
@@ -64,10 +64,10 @@ func (r *customComplianceFrameworkResource) getFrameworkContent(data customCompl
 			return nil, "", fmt.Errorf("unable to unmarshal YAML: %w", err)
 		}
 	}
-	return complianceFrameworkData, config.Frameworks[0].UID, nil
+	return frameworkData, config.Frameworks[0].UID, nil
 }
 
-func (r *customComplianceFrameworkResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *customFrameworkResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Set custom Compliance Frameworks for a Mondoo Space.`,
 		Attributes: map[string]schema.Attribute{
@@ -90,7 +90,7 @@ func (r *customComplianceFrameworkResource) Schema(ctx context.Context, req reso
 	}
 }
 
-func (r *customComplianceFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *customFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -110,8 +110,8 @@ func (r *customComplianceFrameworkResource) Configure(ctx context.Context, req r
 	r.client = &ExtendedGqlClient{client}
 }
 
-func (r *customComplianceFrameworkResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data customComplianceFrameworkResourceModel
+func (r *customFrameworkResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data customFrameworkResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -150,8 +150,8 @@ func (r *customComplianceFrameworkResource) Create(ctx context.Context, req reso
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *customComplianceFrameworkResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data customComplianceFrameworkResourceModel
+func (r *customFrameworkResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data customFrameworkResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -166,8 +166,8 @@ func (r *customComplianceFrameworkResource) Read(ctx context.Context, req resour
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *customComplianceFrameworkResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data customComplianceFrameworkResourceModel
+func (r *customFrameworkResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data customFrameworkResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -198,8 +198,8 @@ func (r *customComplianceFrameworkResource) Update(ctx context.Context, req reso
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *customComplianceFrameworkResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data customComplianceFrameworkResourceModel
+func (r *customFrameworkResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data customFrameworkResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -216,7 +216,7 @@ func (r *customComplianceFrameworkResource) Delete(ctx context.Context, req reso
 	}
 }
 
-func (r *customComplianceFrameworkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *customFrameworkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
 	mrn := req.ID
 	splitMrn := strings.Split(mrn, "/")
@@ -230,7 +230,7 @@ func (r *customComplianceFrameworkResource) ImportState(ctx context.Context, req
 		return
 	}
 
-	model := customComplianceFrameworkResourceModel{
+	model := customFrameworkResourceModel{
 		Mrn:     types.StringValue(string(framework.Mrn)),
 		DataUrl: types.StringPointerValue(nil),
 		SpaceId: types.StringValue(spaceId),

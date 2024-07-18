@@ -283,6 +283,7 @@ func (c *ExtendedGqlClient) GetPolicies(ctx context.Context, scopeMrn string, ca
 		ScopeMrn:     mondoov1.String(scopeMrn),
 		CatalogType:  mondoov1.CatalogType(catalogType),
 		AssignedOnly: mondoov1.NewBooleanPtr(mondoov1.Boolean(assignedOnly)),
+		Limit:        mondoov1.NewIntPtr(mondoov1.Int(10000)),
 	}
 
 	variables := map[string]interface{}{
@@ -704,6 +705,64 @@ func (c *ExtendedGqlClient) GetFramework(ctx context.Context, spaceMrn string, s
 	}
 
 	return &getFrameworkQuery.ComplianceFramework, nil
+}
+
+type ComplianceFrameworksPayload struct {
+	Authors                  []Author `graphql:"authors"`
+	Completion               mondoov1.Float
+	Description              mondoov1.String
+	Mrn                      mondoov1.String
+	Name                     mondoov1.String
+	PreviousCompletionScores PreviousCompletionScores `graphql:"previousCompletionScores"`
+	ScopeMrn                 mondoov1.String
+	State                    mondoov1.String
+	Summary                  mondoov1.String
+	Tags                     []Tag `graphql:"tags"`
+}
+
+type Author struct {
+	Name  mondoov1.String
+	Email mondoov1.String
+}
+
+type PreviousCompletionScores struct {
+	Entries []Entry `graphql:"entries"`
+}
+
+type Entry struct {
+	Score     mondoov1.Float
+	Timestamp mondoov1.String
+}
+
+type Tag struct {
+	Key   mondoov1.String
+	Value mondoov1.String
+}
+
+type GetComplianceFrameworksQuery struct {
+	ComplianceFrameworks []ComplianceFrameworksPayload `graphql:"complianceFrameworks(input: $input)"`
+}
+
+func (c *ExtendedGqlClient) ListFrameworks(ctx context.Context, scopeMrn string) ([]ComplianceFrameworksPayload, error) {
+	// Define the query struct according to the provided query
+	var getFrameworksQuery GetComplianceFrameworksQuery
+
+	// Define the input variable according to the provided query
+	input := mondoov1.ComplianceFrameworksInput{
+		ScopeMrn: mondoov1.String(scopeMrn),
+	}
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	// Execute the query
+	err := c.Query(ctx, &getFrameworksQuery, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	return getFrameworksQuery.ComplianceFrameworks, nil
 }
 
 func (c *ExtendedGqlClient) UpdateFramework(ctx context.Context, frameworkMrn string, scopeMrn string, enabled bool) error {

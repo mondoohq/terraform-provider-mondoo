@@ -14,7 +14,7 @@ resource "mondoo_space" "my_space" {
   org_id = var.mondoo_org
 }
 
-resource "mondoo_framework_assignment" "compliance_framework_example" {
+resource "mondoo_framework_assignment" "framework_assignment" {
   space_id = mondoo_space.my_space.id
   framework_mrn = ["//policy.api.mondoo.app/frameworks/cis-controls-8",
   "//policy.api.mondoo.app/frameworks/iso-27001-2022"]

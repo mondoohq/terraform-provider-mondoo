@@ -11,17 +11,17 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
-var _ resource.Resource = (*complianceFrameworkResource)(nil)
+var _ resource.Resource = (*frameworkAssignmentResource)(nil)
 
-func NewComplianceFrameworkResource() resource.Resource {
-	return &complianceFrameworkResource{}
+func NewFrameworkAssignmentResource() resource.Resource {
+	return &frameworkAssignmentResource{}
 }
 
-type complianceFrameworkResource struct {
+type frameworkAssignmentResource struct {
 	client *ExtendedGqlClient
 }
 
-type complianceFrameworkResourceModel struct {
+type frameworkAssignmentResourceModel struct {
 	// scope
 	SpaceId types.String `tfsdk:"space_id"`
 
@@ -30,11 +30,11 @@ type complianceFrameworkResourceModel struct {
 	Enabled      types.Bool `tfsdk:"enabled"`
 }
 
-func (r *complianceFrameworkResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *frameworkAssignmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_framework_assignment"
 }
 
-func (r *complianceFrameworkResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *frameworkAssignmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Set Compliance Frameworks for a Mondoo Space.`,
 		Attributes: map[string]schema.Attribute{
@@ -55,7 +55,7 @@ func (r *complianceFrameworkResource) Schema(ctx context.Context, req resource.S
 	}
 }
 
-func (r *complianceFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *frameworkAssignmentResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -75,8 +75,8 @@ func (r *complianceFrameworkResource) Configure(ctx context.Context, req resourc
 	r.client = &ExtendedGqlClient{client}
 }
 
-func (r *complianceFrameworkResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data complianceFrameworkResourceModel
+func (r *frameworkAssignmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data frameworkAssignmentResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -95,8 +95,8 @@ func (r *complianceFrameworkResource) Create(ctx context.Context, req resource.C
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *complianceFrameworkResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data complianceFrameworkResourceModel
+func (r *frameworkAssignmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data frameworkAssignmentResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -111,8 +111,8 @@ func (r *complianceFrameworkResource) Read(ctx context.Context, req resource.Rea
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *complianceFrameworkResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data complianceFrameworkResourceModel
+func (r *frameworkAssignmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data frameworkAssignmentResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -131,8 +131,8 @@ func (r *complianceFrameworkResource) Update(ctx context.Context, req resource.U
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *complianceFrameworkResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data complianceFrameworkResourceModel
+func (r *frameworkAssignmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data frameworkAssignmentResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -148,6 +148,6 @@ func (r *complianceFrameworkResource) Delete(ctx context.Context, req resource.D
 	}
 }
 
-func (r *complianceFrameworkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *frameworkAssignmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
 }

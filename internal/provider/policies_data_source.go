@@ -13,13 +13,13 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
-var _ datasource.DataSource = (*policyDataSource)(nil)
+var _ datasource.DataSource = (*policiesDataSource)(nil)
 
-func NewPolicyDataSource() datasource.DataSource {
-	return &policyDataSource{}
+func NewPoliciesDataSource() datasource.DataSource {
+	return &policiesDataSource{}
 }
 
-type policyDataSource struct {
+type policiesDataSource struct {
 	client *ExtendedGqlClient
 }
 
@@ -34,7 +34,7 @@ type policyModel struct {
 	UpdatedAt  types.String `tfsdk:"updated_at"`
 }
 
-type policyDataSourceModel struct {
+type policiesDataSourceModel struct {
 	SpaceID      types.String  `tfsdk:"space_id"`
 	SpaceMrn     types.String  `tfsdk:"space_mrn"`
 	CatalogType  types.String  `tfsdk:"catalog_type"`
@@ -42,11 +42,11 @@ type policyDataSourceModel struct {
 	Policies     []policyModel `tfsdk:"policies"`
 }
 
-func (d *policyDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_policy"
+func (d *policiesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_policies"
 }
 
-func (d *policyDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *policiesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Data source for policies and querypacks",
 		Attributes: map[string]schema.Attribute{
@@ -129,7 +129,7 @@ func (d *policyDataSource) Schema(ctx context.Context, req datasource.SchemaRequ
 	}
 }
 
-func (d *policyDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *policiesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -149,8 +149,8 @@ func (d *policyDataSource) Configure(ctx context.Context, req datasource.Configu
 	d.client = &ExtendedGqlClient{client}
 }
 
-func (d *policyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data policyDataSourceModel
+func (d *policiesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data policiesDataSourceModel
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
