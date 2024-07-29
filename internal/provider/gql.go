@@ -418,8 +418,9 @@ func (c *ExtendedGqlClient) DeletePolicy(ctx context.Context, policyMrn string) 
 }
 
 type CreateClientIntegrationPayload struct {
-	Mrn  mondoov1.String
-	Name mondoov1.String
+	Mrn   mondoov1.String
+	Name  mondoov1.String
+	Token mondoov1.String
 }
 
 func (c *ExtendedGqlClient) CreateIntegration(ctx context.Context, spaceMrn, name string, typ mondoov1.ClientIntegrationType, opts mondoov1.ClientIntegrationConfigurationInput) (*CreateClientIntegrationPayload, error) {
@@ -446,6 +447,45 @@ func (c *ExtendedGqlClient) CreateIntegration(ctx context.Context, spaceMrn, nam
 		return nil, err
 	}
 	return &createMutation.CreateClientIntegration.Integration, nil
+}
+
+type GetClientIntegrationTokenInput struct {
+	mrn            mondoov1.String
+	longLivedToken mondoov1.Boolean
+}
+
+type ClientIntegrationToken struct {
+	Token mondoov1.String
+}
+
+func (c *ExtendedGqlClient) GetClientIntegrationToken(ctx context.Context, mrn string, longLivedToken bool) (*ClientIntegrationToken, error) {
+	// Define the response structure
+	var query struct {
+		ClientIntegrationToken ClientIntegrationToken `graphql:"getClientIntegrationToken(input: $input)"`
+	}
+
+	// Define the input variables
+	input := GetClientIntegrationTokenInput{
+		mrn:            mondoov1.String(mrn),
+		longLivedToken: mondoov1.Boolean(longLivedToken),
+	}
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	// Trace the input variables for debugging
+	tflog.Trace(ctx, "GetClientIntegrationTokenInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	// Perform the GraphQL query
+	err := c.Query(ctx, &query, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the token from the response
+	return &query.ClientIntegrationToken, nil
 }
 
 type UpdateIntegrationPayload struct {

@@ -164,6 +164,7 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewScimGroupMappingResource,
 		NewIntegrationAzureResource,
 		NewIntegrationAwsResource,
+		NewIntegrationAwsServerlessResource,
 		NewIntegrationDomainResource,
 		NewIntegrationGcpResource,
 		NewIntegrationOciTenantResource,
