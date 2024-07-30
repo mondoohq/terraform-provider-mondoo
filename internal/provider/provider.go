@@ -48,7 +48,7 @@ func (p *MondooProvider) Schema(ctx context.Context, req provider.SchemaRequest,
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"credentials": schema.StringAttribute{
-				MarkdownDescription: "Either the path to or the contents of a service account key file in JSON format.",
+				MarkdownDescription: "The contents of a service account key file in JSON format.",
 				Optional:            true,
 			},
 			"space": schema.StringAttribute{
@@ -104,6 +104,8 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		opts = append(opts, option.WithServiceAccountFile(configPath))
 	} else if token != "" {
 		opts = append(opts, option.WithAPIToken(token))
+	} else if data.Credentials.ValueString() != "" {
+		opts = append(opts, option.WithServiceAccount([]byte(data.Credentials.ValueString())))
 	}
 
 	if len(opts) == 0 {
