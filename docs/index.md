@@ -34,7 +34,7 @@ By default, the provider will use the Mondoo CLI configuration file to authentic
 
 ### Optional
 
-- `credentials` (String) Either the path to or the contents of a service account key file in JSON format.
+- `credentials` (String) The contents of a service account key file in JSON format.
 - `endpoint` (String) The endpoint url of the server to manage resources
 - `region` (String) The default region to manage resources in.
 - `space` (String) The default space to manage resources in.
