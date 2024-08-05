@@ -24,6 +24,12 @@ variable "origin_aws_account" {
   default     = "764453172858"
 }
 
+variable "mondoo_sns_handler" {
+  description = "Mondoo SNS Handler"
+  type        = string
+  default     = "https://api.mondoo.com/AWS/SNSEventHandler"
+}
+
 variable "aws_region" {
   description = "AWS Region"
   type        = string
@@ -80,12 +86,13 @@ resource "mondoo_integration_aws_serverless" "aws_serverless" {
 # for single account deploys
 resource "aws_cloudformation_stack" "mondoo_stack" {
   name         = "mondoo-stack"
-  template_url = "https://s3.amazonaws.com/mondoo.${data.aws_region.current.name}/mondoo-lambda-stackset-cf.json"
+  template_url = "https://s3.amazonaws.com/mondoo.${data.aws_region.current.name}/mondoo-root-cf.json"
   capabilities = ["CAPABILITY_NAMED_IAM"]
   parameters = {
     MondooIntegrationMrn = mondoo_integration_aws_serverless.aws_serverless.mrn
     MondooToken          = mondoo_integration_aws_serverless.aws_serverless.token
     OriginAwsAccount     = var.origin_aws_account
+    MondooSnsHandler     = var.mondoo_sns_handler
   }
 }
 
