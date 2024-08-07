@@ -436,7 +436,7 @@ func (r *integrationAwsServerlessResource) Delete(ctx context.Context, req resou
 
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete AWS serverless integration, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete AWS serverless integration '%s', got error: %s", data.Mrn.ValueString(), err.Error()))
 		return
 	}
 }
