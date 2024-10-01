@@ -137,6 +137,7 @@ Optional:
 - `ecr_scan` (Boolean) Enable ECR scan.
 - `ecs_scan` (Boolean) Enable ECS scan.
 - `event_scan_triggers` (Attributes) (see [below for nested schema](#nestedatt--scan_configuration--event_scan_triggers))
+- `vpc_configuration` (Attributes) (see [below for nested schema](#nestedatt--scan_configuration--vpc_configuration))
 
 <a id="nestedatt--scan_configuration--ec2_scan_options"></a>
 ### Nested Schema for `scan_configuration.ec2_scan_options`
@@ -172,3 +173,13 @@ Optional:
 - `event_detail_type` (String) Event detail type.
 - `event_source` (String) Event source.
 - `scan_type` (String) Scan type.
+
+
+<a id="nestedatt--scan_configuration--vpc_configuration"></a>
+### Nested Schema for `scan_configuration.vpc_configuration`
+
+Optional:
+
+- `cidr_block` (String) CIDR block for the Mondoo VPC.
+- `use_default_vpc` (Boolean) Use default VPC.
+- `use_mondoo_vpc` (Boolean) Use Mondoo VPC.
