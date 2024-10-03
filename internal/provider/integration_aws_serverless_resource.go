@@ -59,6 +59,17 @@ type ScanConfigurationInput struct {
 	EventScanTriggers *[]*AWSEventPatternInput `tfsdk:"event_scan_triggers"`
 	// (Optional.)
 	Ec2ScanOptions *Ec2ScanOptionsInput `tfsdk:"ec2_scan_options"`
+	// (Optional.)
+	VpcConfiguration *VPCConfigurationInput `tfsdk:"vpc_configuration"`
+}
+
+type VPCConfigurationInput struct {
+	// (Optional.)
+	UseDefaultVPC types.Bool `tfsdk:"use_default_vpc"`
+	// (Optional.)
+	UseMondooVPC types.Bool `tfsdk:"use_mondoo_vpc"`
+	// (Optional.)
+	CIDR types.String `tfsdk:"cidr_block"`
 }
 
 type AWSEventPatternInput struct {
@@ -144,6 +155,11 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 		IsOrganization: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.IsOrganization.ValueBool())),
 		AccountIDs:     &accountIDs,
 		ScanConfiguration: mondoov1.ScanConfigurationInput{
+			VpcConfiguration: &mondoov1.VPCConfigurationInput{
+				UseDefaultVPC: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.VpcConfiguration.UseDefaultVPC.ValueBool())),
+				UseMondooVPC:  mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool())),
+				CIDR:          mondoov1.NewStringPtr(mondoov1.String(m.ScanConfiguration.VpcConfiguration.CIDR.ValueString())),
+			},
 			Ec2Scan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2Scan.ValueBool())),
 			EcrScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcrScan.ValueBool())),
 			EcsScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcsScan.ValueBool())),
@@ -228,6 +244,23 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 						MarkdownDescription: "Cron scan in hours.",
 						Optional:            true,
 					},
+					"vpc_configuration": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"use_default_vpc": schema.BoolAttribute{
+								MarkdownDescription: "Use default VPC.",
+								Optional:            true,
+							},
+							"use_mondoo_vpc": schema.BoolAttribute{
+								MarkdownDescription: "Use Mondoo VPC.",
+								Optional:            true,
+							},
+							"cidr_block": schema.StringAttribute{
+								MarkdownDescription: "CIDR block for the Mondoo VPC.",
+								Optional:            true,
+							},
+						},
+					},
 					"ec2_scan_options": schema.SingleNestedAttribute{
 						Required: true,
 						Attributes: map[string]schema.Attribute{
@@ -302,6 +335,43 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 				Optional:            true,
 			},
 		},
+	}
+}
+
+func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data integrationAwsServerlessResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// user has provided both default or mondoo vpc
+	if !data.ScanConfiguration.VpcConfiguration.UseDefaultVPC.IsNull() && !data.ScanConfiguration.VpcConfiguration.UseMondooVPC.IsNull() {
+		defaultVpc := data.ScanConfiguration.VpcConfiguration.UseDefaultVPC.ValueBool()
+		mondooVpc := data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool()
+		if defaultVpc && mondooVpc {
+			resp.Diagnostics.AddError(
+				"ConflictingAttributesError",
+				"Cannot set both use_default_vpc and use_mondoo_vpc to true at the same time.",
+			)
+		}
+
+		if !defaultVpc && !mondooVpc {
+			resp.Diagnostics.AddError(
+				"ConflictingAttributesError",
+				"Cannot set both use_default_vpc and use_mondoo_vpc to false at the same time.",
+			)
+		}
+	}
+	// user has provided mondoo vpc only
+	if mondooVpc := data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool(); mondooVpc {
+		if cidr := data.ScanConfiguration.VpcConfiguration.CIDR.ValueString(); cidr == "" {
+			resp.Diagnostics.AddError(
+				"MissingAttributeError",
+				"Attribute cidr_block must not be empty when use_mondoo_vpc is set to true.",
+			)
+		}
 	}
 }
 

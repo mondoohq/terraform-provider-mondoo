@@ -61,9 +61,9 @@ func TestAccSpaceWithIDResource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	min := 1000
-	max := 3000
-	customSpaceID := "my-custom-space-id" + fmt.Sprint(rand.Intn(max-min)+min)
+	minV := 1000
+	maxV := 3000
+	customSpaceID := "my-custom-space-id" + fmt.Sprint(rand.Intn(maxV-minV)+minV)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
