@@ -181,5 +181,4 @@ Optional:
 Optional:
 
 - `cidr_block` (String) CIDR block for the Mondoo VPC.
-- `use_default_vpc` (Boolean) Use default VPC.
 - `use_mondoo_vpc` (Boolean) Use Mondoo VPC.
