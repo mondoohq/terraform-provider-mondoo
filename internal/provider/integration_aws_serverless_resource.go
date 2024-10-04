@@ -64,9 +64,6 @@ type ScanConfigurationInput struct {
 }
 
 type VPCConfigurationInput struct {
-	// (Optional.)
-	UseDefaultVPC types.Bool `tfsdk:"use_default_vpc"`
-	// (Optional.)
 	UseMondooVPC types.Bool `tfsdk:"use_mondoo_vpc"`
 	// (Optional.)
 	CIDR types.String `tfsdk:"cidr_block"`
@@ -149,17 +146,11 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 	var accountIDs []mondoov1.String
 	accountIds, _ := m.AccountIDs.ToListValue(context.Background())
 	accountIds.ElementsAs(context.Background(), &accountIDs, true)
-
 	opts = &mondoov1.AWSConfigurationOptionsInput{
 		Region:         mondoov1.String(m.Region.ValueString()),
 		IsOrganization: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.IsOrganization.ValueBool())),
 		AccountIDs:     &accountIDs,
 		ScanConfiguration: mondoov1.ScanConfigurationInput{
-			VpcConfiguration: &mondoov1.VPCConfigurationInput{
-				UseDefaultVPC: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.VpcConfiguration.UseDefaultVPC.ValueBool())),
-				UseMondooVPC:  mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool())),
-				CIDR:          mondoov1.NewStringPtr(mondoov1.String(m.ScanConfiguration.VpcConfiguration.CIDR.ValueString())),
-			},
 			Ec2Scan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2Scan.ValueBool())),
 			EcrScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcrScan.ValueBool())),
 			EcsScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcsScan.ValueBool())),
@@ -178,6 +169,15 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 				InstanceConnect: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2ScanOptions.InstanceConnect.ValueBool())),
 			},
 		},
+	}
+
+	if m.ScanConfiguration.VpcConfiguration != nil {
+		useMondooVPC := m.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool()
+		opts.ScanConfiguration.VpcConfiguration = &mondoov1.VPCConfigurationInput{
+			UseMondooVPC:  mondoov1.NewBooleanPtr(mondoov1.Boolean(useMondooVPC)),
+			UseDefaultVPC: mondoov1.NewBooleanPtr(mondoov1.Boolean(!useMondooVPC)),
+			CIDR:          mondoov1.NewStringPtr(mondoov1.String(m.ScanConfiguration.VpcConfiguration.CIDR.ValueString())),
+		}
 	}
 
 	return opts
@@ -247,10 +247,6 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 					"vpc_configuration": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"use_default_vpc": schema.BoolAttribute{
-								MarkdownDescription: "Use default VPC.",
-								Optional:            true,
-							},
 							"use_mondoo_vpc": schema.BoolAttribute{
 								MarkdownDescription: "Use Mondoo VPC.",
 								Optional:            true,
@@ -346,26 +342,8 @@ func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, re
 		return
 	}
 
-	// user has provided both default or mondoo vpc
-	if !data.ScanConfiguration.VpcConfiguration.UseDefaultVPC.IsNull() && !data.ScanConfiguration.VpcConfiguration.UseMondooVPC.IsNull() {
-		defaultVpc := data.ScanConfiguration.VpcConfiguration.UseDefaultVPC.ValueBool()
-		mondooVpc := data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool()
-		if defaultVpc && mondooVpc {
-			resp.Diagnostics.AddError(
-				"ConflictingAttributesError",
-				"Cannot set both use_default_vpc and use_mondoo_vpc to true at the same time.",
-			)
-		}
-
-		if !defaultVpc && !mondooVpc {
-			resp.Diagnostics.AddError(
-				"ConflictingAttributesError",
-				"Cannot set both use_default_vpc and use_mondoo_vpc to false at the same time.",
-			)
-		}
-	}
 	// user has provided mondoo vpc only
-	if mondooVpc := data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool(); mondooVpc {
+	if mondooVpc := data.ScanConfiguration.VpcConfiguration != nil && data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool(); mondooVpc {
 		if cidr := data.ScanConfiguration.VpcConfiguration.CIDR.ValueString(); cidr == "" {
 			resp.Diagnostics.AddError(
 				"MissingAttributeError",
