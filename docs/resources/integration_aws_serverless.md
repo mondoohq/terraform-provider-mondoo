@@ -142,12 +142,9 @@ Optional:
 <a id="nestedatt--scan_configuration--ec2_scan_options"></a>
 ### Nested Schema for `scan_configuration.ec2_scan_options`
 
-Required:
-
-- `ebs_scan_options` (Attributes, Deprecated) (see [below for nested schema](#nestedatt--scan_configuration--ec2_scan_options--ebs_scan_options))
-
 Optional:
 
+- `ebs_scan_options` (Attributes, Deprecated) (see [below for nested schema](#nestedatt--scan_configuration--ec2_scan_options--ebs_scan_options))
 - `ebs_volume_scan` (Boolean) Enable EBS volume scan.
 - `exclude_instance_ids_filter` (List of String) List of instance IDs to exclude.
 - `exclude_regions_filter` (List of String) List of regions to exclude.

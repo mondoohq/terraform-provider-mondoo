@@ -320,7 +320,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 								Optional:            true,
 							},
 							"ebs_scan_options": schema.SingleNestedAttribute{
-								Required:           true,
+								Optional:           true,
 								DeprecationMessage: "This field is deprecated and will be removed in the future.",
 								Attributes: map[string]schema.Attribute{
 									"target_instances_per_scanner": schema.Int64Attribute{
