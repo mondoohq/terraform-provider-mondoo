@@ -142,13 +142,13 @@ Optional:
 <a id="nestedatt--scan_configuration--ec2_scan_options"></a>
 ### Nested Schema for `scan_configuration.ec2_scan_options`
 
-Required:
-
-- `ebs_scan_options` (Attributes) (see [below for nested schema](#nestedatt--scan_configuration--ec2_scan_options--ebs_scan_options))
-
 Optional:
 
+- `ebs_scan_options` (Attributes, Deprecated) (see [below for nested schema](#nestedatt--scan_configuration--ec2_scan_options--ebs_scan_options))
 - `ebs_volume_scan` (Boolean) Enable EBS volume scan.
+- `exclude_instance_ids_filter` (List of String) List of instance IDs to exclude.
+- `exclude_regions_filter` (List of String) List of regions to exclude.
+- `exclude_tags_filter` (Map of String) Excluded Tags filter.
 - `instance_connect` (Boolean) Enable instance connect.
 - `instance_ids_filter` (List of String) List of instance IDs filter.
 - `regions_filter` (List of String) List of regions filter.
@@ -160,8 +160,8 @@ Optional:
 
 Optional:
 
-- `max_asg_instances` (Number) Max ASG instances.
-- `target_instances_per_scanner` (Number) Target instances per scanner.
+- `max_asg_instances` (Number, Deprecated) Max ASG instances.
+- `target_instances_per_scanner` (Number, Deprecated) Target instances per scanner.
 
 
 

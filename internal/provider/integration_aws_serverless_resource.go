@@ -82,11 +82,17 @@ type Ec2ScanOptionsInput struct {
 	// (Optional.)
 	Ssm types.Bool `tfsdk:"ssm"`
 	// (Optional.)
-	InstanceIDsFilter types.List `tfsdk:"instance_ids_filter"`
+	InstanceIdsFilter types.List `tfsdk:"instance_ids_filter"`
 	// (Optional.)
 	RegionsFilter types.List `tfsdk:"regions_filter"`
 	// (Optional.)
 	TagsFilter types.Map `tfsdk:"tags_filter"`
+	// (Optional.)
+	ExcludeInstanceIdsFilter types.List `tfsdk:"exclude_instance_ids_filter"`
+	// (Optional.)
+	ExcludeRegionsFilter types.List `tfsdk:"exclude_regions_filter"`
+	// (Optional.)
+	ExcludeTagsFilter types.Map `tfsdk:"exclude_tags_filter"`
 	// (Optional.)
 	EbsVolumeScan types.Bool `tfsdk:"ebs_volume_scan"`
 	// (Optional.)
@@ -132,16 +138,28 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 	}
 
 	var instanceIdsFilter []mondoov1.String
-	instanceIds, _ := m.ScanConfiguration.Ec2ScanOptions.InstanceIDsFilter.ToListValue(context.Background())
+	instanceIds, _ := m.ScanConfiguration.Ec2ScanOptions.InstanceIdsFilter.ToListValue(context.Background())
 	instanceIds.ElementsAs(context.Background(), &instanceIdsFilter, true)
 
-	var RegionsFilter []mondoov1.String
+	var regionsFilter []mondoov1.String
 	regions, _ := m.ScanConfiguration.Ec2ScanOptions.RegionsFilter.ToListValue(context.Background())
-	regions.ElementsAs(context.Background(), &RegionsFilter, true)
+	regions.ElementsAs(context.Background(), &regionsFilter, true)
 
 	var tagsFilter mondoov1.Map
 	tags, _ := m.ScanConfiguration.Ec2ScanOptions.TagsFilter.ToMapValue(context.Background())
 	tags.ElementsAs(context.Background(), &tagsFilter, true)
+
+	var excludeInstanceIdsFilter []mondoov1.String
+	excludeInstanceIds, _ := m.ScanConfiguration.Ec2ScanOptions.ExcludeInstanceIdsFilter.ToListValue(context.Background())
+	excludeInstanceIds.ElementsAs(context.Background(), &excludeInstanceIdsFilter, true)
+
+	var excludeRegionsFilter []mondoov1.String
+	excludeRegions, _ := m.ScanConfiguration.Ec2ScanOptions.ExcludeRegionsFilter.ToListValue(context.Background())
+	excludeRegions.ElementsAs(context.Background(), &excludeRegionsFilter, true)
+
+	var excludeTagsFilter mondoov1.Map
+	excludeTags, _ := m.ScanConfiguration.Ec2ScanOptions.ExcludeTagsFilter.ToMapValue(context.Background())
+	excludeTags.ElementsAs(context.Background(), &excludeTagsFilter, true)
 
 	var accountIDs []mondoov1.String
 	accountIds, _ := m.AccountIDs.ToListValue(context.Background())
@@ -157,11 +175,14 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 			CronScaninHours:   mondoov1.NewIntPtr(mondoov1.Int(m.ScanConfiguration.CronScaninHours.ValueInt64())),
 			EventScanTriggers: &eventScanTriggers,
 			Ec2ScanOptions: &mondoov1.Ec2ScanOptionsInput{
-				Ssm:               mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2ScanOptions.Ssm.ValueBool())),
-				InstanceIDsFilter: &instanceIdsFilter,
-				RegionsFilter:     &RegionsFilter,
-				TagsFilter:        &tagsFilter,
-				EbsVolumeScan:     mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2ScanOptions.EbsVolumeScan.ValueBool())),
+				Ssm:                       mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2ScanOptions.Ssm.ValueBool())),
+				InstanceIDsFilter:         &instanceIdsFilter,
+				RegionsFilter:             &regionsFilter,
+				TagsFilter:                &tagsFilter,
+				ExcludedInstanceIDsFilter: &excludeInstanceIdsFilter,
+				ExcludedRegionsFilter:     &excludeRegionsFilter,
+				ExcludedTagsFilter:        &excludeTagsFilter,
+				EbsVolumeScan:             mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2ScanOptions.EbsVolumeScan.ValueBool())),
 				EbsScanOptions: &mondoov1.EbsScanOptionsInput{
 					TargetInstancesPerScanner: mondoov1.NewIntPtr(mondoov1.Int(m.ScanConfiguration.Ec2ScanOptions.EbsScanOptions.TargetInstancesPerScanner.ValueInt64())),
 					MaxAsgInstances:           mondoov1.NewIntPtr(mondoov1.Int(m.ScanConfiguration.Ec2ScanOptions.EbsScanOptions.MaxAsgInstances.ValueInt64())),
@@ -279,20 +300,38 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 								Optional:            true,
 								ElementType:         types.StringType,
 							},
+							"exclude_instance_ids_filter": schema.ListAttribute{
+								MarkdownDescription: "List of instance IDs to exclude.",
+								Optional:            true,
+								ElementType:         types.StringType,
+							},
+							"exclude_regions_filter": schema.ListAttribute{
+								MarkdownDescription: "List of regions to exclude.",
+								Optional:            true,
+								ElementType:         types.StringType,
+							},
+							"exclude_tags_filter": schema.MapAttribute{
+								MarkdownDescription: "Excluded Tags filter.",
+								Optional:            true,
+								ElementType:         types.StringType,
+							},
 							"ebs_volume_scan": schema.BoolAttribute{
 								MarkdownDescription: "Enable EBS volume scan.",
 								Optional:            true,
 							},
 							"ebs_scan_options": schema.SingleNestedAttribute{
-								Required: true,
+								Optional:           true,
+								DeprecationMessage: "This field is deprecated and will be removed in the future.",
 								Attributes: map[string]schema.Attribute{
 									"target_instances_per_scanner": schema.Int64Attribute{
 										MarkdownDescription: "Target instances per scanner.",
 										Optional:            true,
+										DeprecationMessage:  "This field is deprecated and will be removed in the future.",
 									},
 									"max_asg_instances": schema.Int64Attribute{
 										MarkdownDescription: "Max ASG instances.",
 										Optional:            true,
+										DeprecationMessage:  "This field is deprecated and will be removed in the future.",
 									},
 								},
 							},
