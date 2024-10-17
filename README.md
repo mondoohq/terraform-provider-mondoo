@@ -20,15 +20,25 @@ provider "mondoo" {
 }
 ```
 
+### Requirements
+
+If you wish to work on the provider, you'll need:
+
+- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.0
+- [Go](https://golang.org/doc/install) >= 1.21
+
 ## Developing the provider
 
-If you wish to work on the provider, you'll first need [Go](http://www.go.dev) installed on your machine (
-see [Requirements](#requirements) above).
+To enter development mode, run `make dev/enter`. This will build the provider inside the Terraform plugins directory
+and generate a Terraform configuration `~/.terraformrc`.
 
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin`
-directory.
+Once in development mode, you can change directories to any of the Terraform plans in the [examples/](examples/) folder.
 
-To generate or update documentation, run `go generate`.
+To exit development mode, run `make dev/exit`. Note that this will remove the Terraform configuration `~/.terraformrc`.
+
+### Documentation and Test
+
+To generate or update documentation, run `make generate`.
 
 In order to run the full suite of Acceptance tests, run `make testacc`.
 
@@ -46,11 +56,6 @@ structure contains the following directories:
 - A resource and a data source (`internal/provider/`),
 - Examples (`examples/`) and generated documentation (`docs/`),
 - Miscellaneous meta files.
-
-### Requirements
-
-- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.21
 
 ### Building The Provider
 
