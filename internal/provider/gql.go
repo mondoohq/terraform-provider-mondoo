@@ -14,7 +14,7 @@ import (
 )
 
 // The extended GraphQL client allows us to pass additional information to
-// resources and data sources, things like the Mondoo space
+// resources and data sources, things like the Mondoo space.
 type ExtendedGqlClient struct {
 	*mondoov1.Client
 
@@ -23,12 +23,12 @@ type ExtendedGqlClient struct {
 	space string
 }
 
-// SpaceID returns the space ID configured into the extended GraphQL client
+// SpaceID returns the space ID configured into the extended GraphQL client.
 func (c *ExtendedGqlClient) SpaceID() string {
 	return c.space
 }
 
-// SpaceMrn returns the space MRN configured into the extended GraphQL client
+// SpaceMrn returns the space MRN configured into the extended GraphQL client.
 func (c *ExtendedGqlClient) SpaceMrn() string {
 	if c.space != "" {
 		return spacePrefix + c.space
