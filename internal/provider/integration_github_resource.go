@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -294,8 +293,8 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 		return
 	}
 
-	allowList := r.ConvertListValue(ctx, integration.ConfigurationOptions.GithubConfigurationOptions.ReposAllowList)
-	denyList := r.ConvertListValue(ctx, integration.ConfigurationOptions.GithubConfigurationOptions.ReposDenyList)
+	allowList := ConvertListValue(integration.ConfigurationOptions.GithubConfigurationOptions.ReposAllowList)
+	denyList := ConvertListValue(integration.ConfigurationOptions.GithubConfigurationOptions.ReposDenyList)
 
 	model := integrationGithubResourceModel{
 		Mrn:                 types.StringValue(mrn),
@@ -315,13 +314,4 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 	}
 
 	resp.State.Set(ctx, &model)
-}
-
-func (r *integrationGithubResource) ConvertListValue(ctx context.Context, list []string) types.List {
-	var valueList []attr.Value
-	for _, str := range list {
-		valueList = append(valueList, types.StringValue(str))
-	}
-	// Ensure the list is of type types.StringType
-	return types.ListValueMust(types.StringType, valueList)
 }

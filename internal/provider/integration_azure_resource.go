@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -298,8 +297,8 @@ func (r *integrationAzureResource) ImportState(ctx context.Context, req resource
 		return
 	}
 
-	allowList := r.ConvertListValue(ctx, integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsWhitelist)
-	denyList := r.ConvertListValue(ctx, integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsBlacklist)
+	allowList := ConvertListValue(integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsWhitelist)
+	denyList := ConvertListValue(integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsBlacklist)
 
 	model := integrationAzureResourceModel{
 		SpaceId:               types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
@@ -316,13 +315,4 @@ func (r *integrationAzureResource) ImportState(ctx context.Context, req resource
 	}
 
 	resp.State.Set(ctx, &model)
-}
-
-func (r *integrationAzureResource) ConvertListValue(ctx context.Context, list []string) types.List {
-	var valueList []attr.Value
-	for _, str := range list {
-		valueList = append(valueList, types.StringValue(str))
-	}
-	// Ensure the list is of type types.StringType
-	return types.ListValueMust(types.StringType, valueList)
 }
