@@ -166,7 +166,7 @@ func (r *integrationGithubResource) Configure(ctx context.Context, req resource.
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -177,7 +177,7 @@ func (r *integrationGithubResource) Configure(ctx context.Context, req resource.
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *integrationGithubResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

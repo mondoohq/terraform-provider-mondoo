@@ -115,7 +115,7 @@ func (r *integrationOciTenantResource) Configure(ctx context.Context, req resour
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -126,7 +126,7 @@ func (r *integrationOciTenantResource) Configure(ctx context.Context, req resour
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *integrationOciTenantResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

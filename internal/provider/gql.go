@@ -13,8 +13,27 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
+// The extended GraphQL client allows us to pass additional information to
+// resources and data sources, things like the Mondoo space
 type ExtendedGqlClient struct {
 	*mondoov1.Client
+
+	// The default space configured at the provider level, if configured, all resources
+	// will be managed there unless the resource itself specifies a different space
+	space string
+}
+
+// SpaceID returns the space ID configured into the extended GraphQL client
+func (c *ExtendedGqlClient) SpaceID() string {
+	return c.space
+}
+
+// SpaceMrn returns the space MRN configured into the extended GraphQL client
+func (c *ExtendedGqlClient) SpaceMrn() string {
+	if c.space != "" {
+		return spacePrefix + c.space
+	}
+	return ""
 }
 
 // newDataUrl generates a https://tools.ietf.org/html/rfc2397 data url for a given content.

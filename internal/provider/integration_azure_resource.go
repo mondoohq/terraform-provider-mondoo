@@ -128,7 +128,7 @@ func (r *integrationAzureResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -139,7 +139,7 @@ func (r *integrationAzureResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *integrationAzureResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
 const (
@@ -107,7 +106,7 @@ func (r *SpaceResource) Configure(ctx context.Context, req resource.ConfigureReq
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
@@ -116,7 +115,7 @@ func (r *SpaceResource) Configure(ctx context.Context, req resource.ConfigureReq
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

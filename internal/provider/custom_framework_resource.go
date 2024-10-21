@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	mondoov1 "go.mondoo.com/mondoo-go"
 	"gopkg.in/yaml.v2"
 )
 
@@ -99,7 +98,7 @@ func (r *customFrameworkResource) Configure(ctx context.Context, req resource.Co
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -110,7 +109,7 @@ func (r *customFrameworkResource) Configure(ctx context.Context, req resource.Co
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *customFrameworkResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

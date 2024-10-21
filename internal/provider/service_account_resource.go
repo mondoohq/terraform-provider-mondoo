@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -45,7 +46,7 @@ func NewServiceAccountResource() resource.Resource {
 
 // ServiceAccountResource defines the resource implementation.
 type ServiceAccountResource struct {
-	client *mondoov1.Client
+	client *ExtendedGqlClient
 }
 
 // ServiceAccountResourceModel describes the resource data model.
@@ -133,7 +134,7 @@ func (r *ServiceAccountResource) Configure(ctx context.Context, req resource.Con
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(

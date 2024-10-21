@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -113,7 +112,7 @@ func (r *customQueryPackResource) Configure(ctx context.Context, req resource.Co
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -124,7 +123,7 @@ func (r *customQueryPackResource) Configure(ctx context.Context, req resource.Co
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *customQueryPackResource) getContent(data customQueryPackResourceModel) ([]byte, string, error) {

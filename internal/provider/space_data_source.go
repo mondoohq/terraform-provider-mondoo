@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -80,7 +79,7 @@ func (d *SpaceDataSource) Configure(ctx context.Context, req datasource.Configur
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -91,7 +90,7 @@ func (d *SpaceDataSource) Configure(ctx context.Context, req datasource.Configur
 		return
 	}
 
-	d.client = &ExtendedGqlClient{client}
+	d.client = client
 }
 
 func (d *SpaceDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -119,7 +118,7 @@ func (d *SpaceDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 
 	payload, err := d.client.GetSpace(ctx, spaceMrn)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch organization, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch space, got error: %s", err))
 		return
 	}
 

@@ -26,7 +26,7 @@ func NewRegistrationTokenResource() resource.Resource {
 
 // RegistrationTokenResource defines the resource implementation.
 type RegistrationTokenResource struct {
-	client *mondoov1.Client
+	client *ExtendedGqlClient
 }
 
 // RegistrationTokenResourceModel describes the resource data model.
@@ -107,7 +107,7 @@ func (r *RegistrationTokenResource) Configure(ctx context.Context, req resource.
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(

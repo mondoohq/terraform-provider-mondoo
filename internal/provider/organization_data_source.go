@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -80,7 +79,7 @@ func (d *OrganizationDataSource) Configure(ctx context.Context, req datasource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -91,7 +90,7 @@ func (d *OrganizationDataSource) Configure(ctx context.Context, req datasource.C
 		return
 	}
 
-	d.client = &ExtendedGqlClient{client}
+	d.client = client
 }
 
 func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

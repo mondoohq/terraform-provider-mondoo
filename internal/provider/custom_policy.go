@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -114,7 +113,7 @@ func (r *customPolicyResource) Configure(ctx context.Context, req resource.Confi
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -125,7 +124,7 @@ func (r *customPolicyResource) Configure(ctx context.Context, req resource.Confi
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 // newCrc32Checksum generates a crc32 checksum for a given content.

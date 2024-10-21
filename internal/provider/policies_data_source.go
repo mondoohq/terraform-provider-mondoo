@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
 var _ datasource.DataSource = (*policiesDataSource)(nil)
@@ -135,7 +134,7 @@ func (d *policiesDataSource) Configure(ctx context.Context, req datasource.Confi
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -146,7 +145,7 @@ func (d *policiesDataSource) Configure(ctx context.Context, req datasource.Confi
 		return
 	}
 
-	d.client = &ExtendedGqlClient{client}
+	d.client = client
 }
 
 func (d *policiesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

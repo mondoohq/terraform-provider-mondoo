@@ -59,7 +59,7 @@ func (p *MondooProvider) Schema(ctx context.Context, req provider.SchemaRequest,
 				Optional:            true,
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "The default region to manage resources in.",
+				MarkdownDescription: "The default region to manage resources in. Valid regions are `us` or `eu`.",
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("us", "eu"),
@@ -159,8 +159,12 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		)
 		return
 	}
-	resp.DataSourceData = client
-	resp.ResourceData = client
+
+	// The extended GraphQL client allows us to pass additional information to
+	// resources and data sources, things like the Mondoo space
+	extendedClient := &ExtendedGqlClient{client, data.Space.ValueString()}
+	resp.DataSourceData = extendedClient
+	resp.ResourceData = extendedClient
 }
 
 func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resource {
