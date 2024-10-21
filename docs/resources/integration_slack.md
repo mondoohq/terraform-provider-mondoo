@@ -21,6 +21,7 @@ variable "mondoo_org" {
 variable "slack_token" {
   description = "The Slack Token"
   type        = string
+  sensitive   = true
 }
 
 provider "mondoo" {

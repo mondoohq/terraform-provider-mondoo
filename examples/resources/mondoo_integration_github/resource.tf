@@ -6,6 +6,7 @@ variable "mondoo_org" {
 variable "github_token" {
   description = "The GitHub Token"
   type        = string
+  sensitive   = true
 }
 
 provider "mondoo" {
