@@ -105,12 +105,16 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			return
 		}
 		opts = append(opts, option.WithServiceAccount(data))
+		ctx = tflog.SetField(ctx, "env_config_base64", true)
 	} else if configPath != "" {
 		opts = append(opts, option.WithServiceAccountFile(configPath))
+		ctx = tflog.SetField(ctx, "env_config_path", true)
 	} else if token != "" {
 		opts = append(opts, option.WithAPIToken(token))
+		ctx = tflog.SetField(ctx, "env_api_token", true)
 	} else if data.Credentials.ValueString() != "" {
 		opts = append(opts, option.WithServiceAccount([]byte(data.Credentials.ValueString())))
+		ctx = tflog.SetField(ctx, "field_credentials", true)
 	} else {
 		// if no option was provided, try the default location of Mondoo CLI configuration file
 		defaultConfigPath, err := detectDefaultConfig()
@@ -123,7 +127,9 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			return
 		}
 		opts = append(opts, option.WithServiceAccountFile(defaultConfigPath))
+		ctx = tflog.SetField(ctx, "default_cli_config_file", true)
 	}
+	tflog.Debug(ctx, "Detected authentication credentials")
 
 	// allow the override of the endpoint
 	// 1. via MONDOO_API_ENDPOINT
@@ -136,12 +142,14 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			url = url + "/query"
 		}
 		opts = append(opts, option.WithEndpoint(url))
+		ctx = tflog.SetField(ctx, "env_api_endpoint", true)
 	} else if data.Endpoint.ValueString() != "" {
 		url := data.Endpoint.ValueString()
 		if !strings.HasSuffix(url, "/query") {
 			url = url + "/query"
 		}
 		opts = append(opts, option.WithEndpoint(url))
+		ctx = tflog.SetField(ctx, "field_endpoint", true)
 	} else if data.Region.ValueString() != "" {
 		switch data.Region.ValueString() {
 		case "eu":
@@ -149,8 +157,15 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		case "us":
 			opts = append(opts, option.UseUSRegion())
 		}
+		ctx = tflog.SetField(ctx, "field_region", true)
 	}
 
+	space := data.Space.ValueString()
+	if space != "" {
+		ctx = tflog.SetField(ctx, "provider_space", space)
+	}
+
+	tflog.Debug(ctx, "Creating Mondoo client")
 	client, err := mondoov1.NewClient(opts...)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -162,7 +177,7 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	// The extended GraphQL client allows us to pass additional information to
 	// resources and data sources, things like the Mondoo space
-	extendedClient := &ExtendedGqlClient{client, data.Space.ValueString()}
+	extendedClient := &ExtendedGqlClient{client, space}
 	resp.DataSourceData = extendedClient
 	resp.ResourceData = extendedClient
 }
