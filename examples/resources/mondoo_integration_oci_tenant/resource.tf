@@ -1,29 +1,10 @@
-# Variables
-# ----------------------------------------------
-
-variable "mondoo_org" {
-  description = "The Mondoo Organization ID"
-  type        = string
-  default     = "your-org-1234567"
-}
-
-# Configure the Mondoo
-# ----------------------------------------------
-
 provider "mondoo" {
-  region = "us"
-}
-
-resource "mondoo_space" "my_space" {
-  name   = "My Space Name"
-  org_id = var.mondoo_org
+  space = "hungry-poet-123456"
 }
 
 # Setup the OCI integration
 resource "mondoo_integration_oci_tenant" "tenant_abc" {
-  space_id = mondoo_space.my_space.id
-  name     = "tenant ABC"
-
+  name    = "tenant ABC"
   tenancy = "ocid1.tenancy.oc1..aaaaaaaavvvvvvvvwwwwwwwwxxxxxx..."
   region  = "us-ashburn-1"
   user    = "ocid1.user.oc1..aaaaaaaabbbbbbbbccccccccddddeeeeee..."
