@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"os"
 	"strings"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	cnquery_config "go.mondoo.com/cnquery/v11/cli/config"
 	mondoov1 "go.mondoo.com/mondoo-go"
 	"go.mondoo.com/mondoo-go/option"
 )
@@ -85,6 +88,8 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	// 1. via MONDOO_CONFIG_BASE64
 	// 2. via MONDOO_CONFIG_PATH
 	// 3. via MONDOO_API_TOKEN
+	// 4. via `credentials` field
+	// 5. via default Mondoo CLI configuration file
 	configBase64 := os.Getenv("MONDOO_CONFIG_BASE64")
 	configPath := os.Getenv("MONDOO_CONFIG_PATH")
 	token := os.Getenv("MONDOO_API_TOKEN")
@@ -106,14 +111,18 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		opts = append(opts, option.WithAPIToken(token))
 	} else if data.Credentials.ValueString() != "" {
 		opts = append(opts, option.WithServiceAccount([]byte(data.Credentials.ValueString())))
-	}
-
-	if len(opts) == 0 {
-		resp.Diagnostics.AddError(
-			"MONDOO_API_TOKEN, MONDOO_CONFIG_PATH or MONDOO_CONFIG_BASE64 need to be set",
-			"MONDOO_API_TOKEN, MONDOO_CONFIG_PATH or MONDOO_CONFIG_BASE64 need to be set",
-		)
-		return
+	} else {
+		// if no option was provided, try the default location of Mondoo CLI configuration file
+		defaultConfigPath, err := detectDefaultConfig()
+		if err != nil {
+			tflog.Debug(ctx, err.Error())
+			resp.Diagnostics.AddError("No authentication found",
+				"MONDOO_API_TOKEN, MONDOO_CONFIG_PATH or MONDOO_CONFIG_BASE64 need to be set.\n\n"+
+					"To create a service account, see https://mondoo.com/docs/platform/maintain/access/service_accounts/",
+			)
+			return
+		}
+		opts = append(opts, option.WithServiceAccountFile(defaultConfigPath))
 	}
 
 	// allow the override of the endpoint
@@ -194,4 +203,23 @@ func New(version string) func() provider.Provider {
 			version: version,
 		}
 	}
+}
+
+// detectDefaultConfig tries to detect the default Mondoo CLI configuration file.
+func detectDefaultConfig() (string, error) {
+	f := cnquery_config.DefaultConfigFile
+	homeConfig, err := cnquery_config.HomePath(f)
+	if err != nil {
+		return "", errors.New("failed to detect mondoo config")
+	}
+	if cnquery_config.ProbeFile(homeConfig) {
+		return homeConfig, nil
+	}
+
+	sysConfig := cnquery_config.SystemConfigPath(f)
+	if cnquery_config.ProbeFile(sysConfig) {
+		return sysConfig, nil
+	}
+
+	return "", errors.New("no mondoo config found")
 }
