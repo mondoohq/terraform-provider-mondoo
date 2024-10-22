@@ -16,9 +16,7 @@ variable "org_id" {
 # Configure the Mondoo
 # ----------------------------------------------
 
-provider "mondoo" {
-  region = "us"
-}
+provider "mondoo" {}
 
 resource "mondoo_space" "my_space" {
   count  = length(var.space_names)
