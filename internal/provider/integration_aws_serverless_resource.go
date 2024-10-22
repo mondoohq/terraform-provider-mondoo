@@ -183,11 +183,7 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 				ExcludedRegionsFilter:     &excludeRegionsFilter,
 				ExcludedTagsFilter:        &excludeTagsFilter,
 				EbsVolumeScan:             mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2ScanOptions.EbsVolumeScan.ValueBool())),
-				EbsScanOptions: &mondoov1.EbsScanOptionsInput{
-					TargetInstancesPerScanner: mondoov1.NewIntPtr(mondoov1.Int(m.ScanConfiguration.Ec2ScanOptions.EbsScanOptions.TargetInstancesPerScanner.ValueInt64())),
-					MaxAsgInstances:           mondoov1.NewIntPtr(mondoov1.Int(m.ScanConfiguration.Ec2ScanOptions.EbsScanOptions.MaxAsgInstances.ValueInt64())),
-				},
-				InstanceConnect: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2ScanOptions.InstanceConnect.ValueBool())),
+				InstanceConnect:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2ScanOptions.InstanceConnect.ValueBool())),
 			},
 		},
 	}
