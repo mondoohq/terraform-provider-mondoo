@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var _ resource.Resource = (*frameworkAssignmentResource)(nil)
@@ -22,24 +23,24 @@ type frameworkAssignmentResource struct {
 
 type frameworkAssignmentResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// resource details
 	FrameworkMrn types.List `tfsdk:"framework_mrn"`
 	Enabled      types.Bool `tfsdk:"enabled"`
 }
 
-func (r *frameworkAssignmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *frameworkAssignmentResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_framework_assignment"
 }
 
-func (r *frameworkAssignmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *frameworkAssignmentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Set Compliance Frameworks for a Mondoo Space.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"framework_mrn": schema.ListAttribute{
 				MarkdownDescription: "Compliance Framework MRN.",
@@ -54,7 +55,7 @@ func (r *frameworkAssignmentResource) Schema(ctx context.Context, req resource.S
 	}
 }
 
-func (r *frameworkAssignmentResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *frameworkAssignmentResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -84,9 +85,26 @@ func (r *frameworkAssignmentResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	err := r.client.BulkUpdateFramework(ctx, data.FrameworkMrn, data.SpaceId.ValueString(), data.Enabled.ValueBool())
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err))
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
+	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
+	// Do GraphQL request to API to create the resource.
+	tflog.Debug(ctx, "Creating framework assignment")
+	err = r.client.BulkUpdateFramework(ctx,
+		data.FrameworkMrn,
+		space.ID(),
+		data.Enabled.ValueBool(),
+	)
+	if err != nil {
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err),
+			)
 		return
 	}
 
@@ -120,9 +138,33 @@ func (r *frameworkAssignmentResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	err := r.client.BulkUpdateFramework(ctx, data.FrameworkMrn, data.SpaceId.ValueString(), data.Enabled.ValueBool())
+	// ensure space id is not changed
+	var stateSpaceID string
+	req.State.GetAttribute(ctx, path.Root("id"), &stateSpaceID)
+
+	var planSpaceID string
+	req.Plan.GetAttribute(ctx, path.Root("id"), &planSpaceID)
+
+	providerSpaceID := r.client.Space().ID()
+
+	if stateSpaceID != planSpaceID || providerSpaceID != planSpaceID {
+		resp.Diagnostics.AddError(
+			"Space ID cannot be changed",
+			"Note that the Mondoo space can be configured at the resource or provider level.",
+		)
+		return
+	}
+
+	tflog.Debug(ctx, "Updating framework assignment")
+	err := r.client.BulkUpdateFramework(ctx,
+		data.FrameworkMrn,
+		planSpaceID,
+		data.Enabled.ValueBool())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err),
+			)
 		return
 	}
 
@@ -140,9 +182,15 @@ func (r *frameworkAssignmentResource) Delete(ctx context.Context, req resource.D
 		return
 	}
 
-	err := r.client.BulkUpdateFramework(ctx, data.FrameworkMrn, data.SpaceId.ValueString(), false)
+	err := r.client.BulkUpdateFramework(ctx,
+		data.FrameworkMrn,
+		data.SpaceID.ValueString(),
+		false)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err),
+			)
 		return
 	}
 }
