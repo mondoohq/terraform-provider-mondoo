@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -27,7 +28,7 @@ type integrationMs365Resource struct {
 
 type integrationMs365ResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
 	Mrn      types.String `tfsdk:"mrn"`
@@ -52,8 +53,8 @@ func (r *integrationMs365Resource) Schema(ctx context.Context, req resource.Sche
 		MarkdownDescription: `Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. See [Mondoo documentation](https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/) for more details.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
@@ -121,14 +122,18 @@ func (r *integrationMs365Resource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	// Do GraphQL request to API to create the resource.
-	spaceMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceId.ValueString()
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource.
+	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
-		spaceMrn,
+		space.MRN(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeMs365,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -139,7 +144,10 @@ func (r *integrationMs365Resource) Create(ctx context.Context, req resource.Crea
 			},
 		})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create MS365 integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create MS365 integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -147,14 +155,17 @@ func (r *integrationMs365Resource) Create(ctx context.Context, req resource.Crea
 	// NOTE: we ignore the error since the integration state does not depend on it
 	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunScan)
 	if err != nil {
-		resp.Diagnostics.AddWarning("Client Error", fmt.Sprintf("Unable to trigger integration, got error: %s", err))
+		resp.Diagnostics.
+			AddWarning("Client Error",
+				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+			)
 		return
 	}
 
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceId = types.StringValue(data.SpaceId.ValueString())
+	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -195,9 +206,17 @@ func (r *integrationMs365Resource) Update(ctx context.Context, req resource.Upda
 		},
 	}
 
-	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString(), mondoov1.ClientIntegrationTypeMs365, opts)
+	_, err := r.client.UpdateIntegration(ctx,
+		data.Mrn.ValueString(),
+		data.Name.ValueString(),
+		mondoov1.ClientIntegrationTypeMs365,
+		opts,
+	)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Ms365 integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to update Ms365 integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -218,7 +237,10 @@ func (r *integrationMs365Resource) Delete(ctx context.Context, req resource.Dele
 	// Do GraphQL request to API to update the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete Ms365 integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to delete Ms365 integration, got error: %s", err),
+			)
 		return
 	}
 }
@@ -227,14 +249,30 @@ func (r *integrationMs365Resource) ImportState(ctx context.Context, req resource
 	mrn := req.ID
 	integration, err := r.client.GetClientIntegration(ctx, mrn)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Ms365 integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to get integration, got error: %s", err),
+			)
+		return
+	}
+
+	spaceID := strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]
+	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
+		// The provider is configured to manage resources in a different space than the one the
+		// resource is currently configured, we won't allow that
+		resp.Diagnostics.AddError(
+			"Conflict Error",
+			fmt.Sprintf(
+				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+				r.client.Space().ID(), spaceID),
+		)
 		return
 	}
 
 	model := integrationMs365ResourceModel{
 		Mrn:      types.StringValue(integration.Mrn),
 		Name:     types.StringValue(integration.Name),
-		SpaceId:  types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		SpaceID:  types.StringValue(spaceID),
 		TenantId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.TenantId),
 		ClientId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.ClientId),
 		Credential: integrationMs365CredentialModel{
