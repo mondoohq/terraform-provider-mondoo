@@ -13,11 +13,6 @@ Continuously scan GitHub organizations and repositories for misconfigurations.
 ## Example Usage
 
 ```terraform
-variable "mondoo_org" {
-  description = "The Mondoo Organization ID"
-  type        = string
-}
-
 variable "github_token" {
   description = "The GitHub Token"
   type        = string
@@ -25,20 +20,12 @@ variable "github_token" {
 }
 
 provider "mondoo" {
-  region = "us"
-}
-
-# Create a new space
-resource "mondoo_space" "gh_space" {
-  name   = "My GitHub Space Name"
-  org_id = var.mondoo_org
+  space = "hungry-poet-123456"
 }
 
 # Setup the GitHub integration
 resource "mondoo_integration_github" "gh_integration" {
-  space_id = mondoo_space.gh_space.id
-  name     = "GitHub Integration"
-
+  name  = "GitHub Integration"
   owner = "lunalectric"
 
   # define a repository if you want to restrict scan to a single repository
@@ -62,13 +49,13 @@ resource "mondoo_integration_github" "gh_integration" {
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
 - `owner` (String) GitHub Owner.
-- `space_id` (String) Mondoo Space Identifier.
 
 ### Optional
 
 - `repository` (String) GitHub Repository.
 - `repository_allow_list` (List of String) List of GitHub repositories to scan.
 - `repository_deny_list` (List of String) List of GitHub repositories to exclude from scanning.
+- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
 
 ### Read-Only
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -15,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -30,7 +30,7 @@ type integrationGithubResource struct {
 
 type integrationGithubResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
 	Mrn  types.String `tfsdk:"mrn"`
@@ -93,8 +93,8 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 		MarkdownDescription: `Continuously scan GitHub organizations and repositories for misconfigurations.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
@@ -190,22 +190,28 @@ func (r *integrationGithubResource) Create(ctx context.Context, req resource.Cre
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
+	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	// Do GraphQL request to API to create the resource.
-	spaceMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceId.ValueString()
-	}
-
+	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
-		spaceMrn,
+		space.MRN(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeGitHub,
 		mondoov1.ClientIntegrationConfigurationInput{
 			GitHubConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Domain integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create Domain integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -213,14 +219,17 @@ func (r *integrationGithubResource) Create(ctx context.Context, req resource.Cre
 	// NOTE: we ignore the error since the integration state does not depend on it
 	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunScan)
 	if err != nil {
-		resp.Diagnostics.AddWarning("Client Error", fmt.Sprintf("Unable to trigger integration, got error: %s", err))
+		resp.Diagnostics.
+			AddWarning("Client Error",
+				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+			)
 		return
 	}
 
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(data.Name.ValueString())
-	data.SpaceId = types.StringValue(data.SpaceId.ValueString())
+	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -257,9 +266,17 @@ func (r *integrationGithubResource) Update(ctx context.Context, req resource.Upd
 		GitHubConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
-	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString(), mondoov1.ClientIntegrationTypeGitHub, opts)
+	_, err := r.client.UpdateIntegration(ctx,
+		data.Mrn.ValueString(),
+		data.Name.ValueString(),
+		mondoov1.ClientIntegrationTypeGitHub,
+		opts,
+	)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Domain integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to update Domain integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -280,16 +297,17 @@ func (r *integrationGithubResource) Delete(ctx context.Context, req resource.Del
 	// Do GraphQL request to API to update the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete Domain integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to delete Domain integration, got error: %s", err),
+			)
 		return
 	}
 }
 
 func (r *integrationGithubResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	mrn := req.ID
-	integration, err := r.client.GetClientIntegration(ctx, mrn)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get GitHub integration, got error: %s", err))
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
 		return
 	}
 
@@ -297,9 +315,9 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 	denyList := ConvertListValue(integration.ConfigurationOptions.GithubConfigurationOptions.ReposDenyList)
 
 	model := integrationGithubResourceModel{
-		Mrn:                 types.StringValue(mrn),
+		Mrn:                 types.StringValue(integration.Mrn),
 		Name:                types.StringValue(integration.Name),
-		SpaceId:             types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		SpaceID:             types.StringValue(integration.SpaceID()),
 		Owner:               types.StringValue(integration.ConfigurationOptions.GithubConfigurationOptions.Owner),
 		Repository:          types.StringValue(integration.ConfigurationOptions.GithubConfigurationOptions.Repository),
 		RepositoryAllowList: allowList,
