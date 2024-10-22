@@ -576,6 +576,10 @@ type GcpConfigurationOptions struct {
 	DiscoverAll bool
 }
 
+type ShodanConfigurationOptions struct {
+	Targets []string
+}
+
 type ClientIntegrationConfigurationOptions struct {
 	AzureConfigurationOptions     AzureConfigurationOptions     `graphql:"... on AzureConfigurationOptions"`
 	HostConfigurationOptions      HostConfigurationOptions      `graphql:"... on HostConfigurationOptions"`
@@ -584,6 +588,7 @@ type ClientIntegrationConfigurationOptions struct {
 	SlackConfigurationOptions     SlackConfigurationOptions     `graphql:"... on SlackConfigurationOptions"`
 	GithubConfigurationOptions    GithubConfigurationOptions    `graphql:"... on GithubConfigurationOptions"`
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
+	ShodanConfigurationOptions    ShodanConfigurationOptions    `graphql:"... on ShodanConfigurationOptions"`
 	// Add other configuration options here
 }
 
