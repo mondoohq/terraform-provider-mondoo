@@ -41,8 +41,11 @@ resource "mondoo_integration_shodan" "shodan_integration" {
 
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
-- `space_id` (String) Mondoo Space Identifier.
 - `targets` (List of String) Shodan scan targets.
+
+### Optional
+
+- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
 
 ### Read-Only
 

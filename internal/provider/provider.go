@@ -42,12 +42,12 @@ type MondooProviderModel struct {
 	Endpoint    types.String `tfsdk:"endpoint"`
 }
 
-func (p *MondooProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (p *MondooProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "mondoo"
 	resp.Version = p.version
 }
 
-func (p *MondooProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *MondooProvider) Schema(ctx context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"credentials": schema.StringAttribute{

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -50,7 +49,6 @@ func (r *integrationSlackResource) Schema(ctx context.Context, req resource.Sche
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
 				Optional:            true,
-				Computed:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
@@ -117,7 +115,6 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-
 	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	// Do GraphQL request to API to create the resource.
@@ -191,9 +188,17 @@ func (r *integrationSlackResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Do GraphQL request to API to update the resource.
-	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString(), mondoov1.ClientIntegrationTypeHostedSlack, opts)
+	_, err := r.client.UpdateIntegration(ctx,
+		data.Mrn.ValueString(),
+		data.Name.ValueString(),
+		mondoov1.ClientIntegrationTypeHostedSlack,
+		opts,
+	)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update OCI tenant integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to update OCI tenant integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -214,37 +219,26 @@ func (r *integrationSlackResource) Delete(ctx context.Context, req resource.Dele
 	// Do GraphQL request to API to update the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete Slack integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to delete Slack integration, got error: %s", err),
+			)
 		return
 	}
 }
 
 func (r *integrationSlackResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	mrn := req.ID
-	integration, err := r.client.GetClientIntegration(ctx, mrn)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Slack integration, got error: %s", err))
-		return
-	}
 
-	spaceID := strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]
-	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
-		// The provider is configured to manage resources in a different space than the one the resource is
-		// currently configured, we won't allow that
-		resp.Diagnostics.AddError(
-			"Conflict Error",
-			fmt.Sprintf(
-				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
-				r.client.Space().ID(), spaceID),
-		)
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
 		return
 	}
 
 	model := integrationSlackResourceModel{
 		Mrn:        types.StringValue(integration.Mrn),
 		Name:       types.StringValue(integration.Name),
+		SpaceID:    types.StringValue(integration.SpaceID()),
 		SlackToken: types.StringPointerValue(nil),
-		SpaceID:    types.StringValue(spaceID),
 	}
 
 	resp.State.Set(ctx, &model)
