@@ -27,7 +27,6 @@ func TestAccSpaceResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_space.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_space.test", "org_id", orgID),
-					resource.TestCheckResourceAttr("mondoo_space.test", "foo", orgID),
 				),
 			},
 			// ImportState testing
@@ -40,7 +39,7 @@ func TestAccSpaceResource(t *testing.T) {
 			{
 				Config: testAccSpaceResourceConfig(orgID, "two"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_space.test", "name", "twoo"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "name", "two"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase

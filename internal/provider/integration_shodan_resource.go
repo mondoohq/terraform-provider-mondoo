@@ -54,11 +54,12 @@ func (r *integrationShodanResource) Metadata(_ context.Context, req resource.Met
 
 func (r *integrationShodanResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously scan Internet-connected devices with Shodan.`,
+		MarkdownDescription: `Continuously assess external risk for domains and IP addresses.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,

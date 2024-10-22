@@ -39,7 +39,7 @@ resource "mondoo_space" "test" {
 }
 
 data "mondoo_space" "space"{
-  mrn = mondoo_space.test.mrn
+  id = mondoo_space.test.id
 
   depends_on = [
     mondoo_space.test

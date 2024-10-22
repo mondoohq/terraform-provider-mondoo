@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_shodan Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously scan Internet-connected devices with Shodan.
+  Continuously assess external risk for domains and IP addresses.
 ---
 
 # mondoo_integration_shodan (Resource)
 
-Continuously scan Internet-connected devices with Shodan.
+Continuously assess external risk for domains and IP addresses.
 
 ## Example Usage
 
@@ -26,7 +26,7 @@ provider "mondoo" {
 # Setup the Shodan integration
 resource "mondoo_integration_shodan" "shodan_integration" {
   name    = "Shodan Integration"
-  targets = ["8.8.8.8", "mondoo.com"]
+  targets = ["8.8.8.8", "mondoo.com", "63.192.236.0/24"]
 
   credentials = {
     token = var.shodan_token

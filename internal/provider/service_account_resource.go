@@ -148,14 +148,17 @@ func (r *ServiceAccountResource) Configure(ctx context.Context, req resource.Con
 	r.client = client
 }
 
-func (r *ServiceAccountResource) getScope(data ServiceAccountResourceModel) string {
+func (r *ServiceAccountResource) getScope(ctx context.Context, data ServiceAccountResourceModel) string {
 	scopeMrn := ""
 	// Give presedence to the org id
 	if data.OrgID.ValueString() != "" {
 		scopeMrn = orgPrefix + data.OrgID.ValueString()
-	} else if space, err := r.client.ComputeSpace(data.SpaceID); err != nil {
-		scopeMrn = space.ID()
+		ctx = tflog.SetField(ctx, "org_mrn", scopeMrn)
+	} else if space, err := r.client.ComputeSpace(data.SpaceID); err == nil {
+		scopeMrn = space.MRN()
+		ctx = tflog.SetField(ctx, "space_mrn", scopeMrn)
 	}
+	tflog.Debug(ctx, "Scope for service account")
 	return scopeMrn
 }
 
@@ -193,7 +196,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 		rolesInput = append(rolesInput, mondoov1.RoleInput{Mrn: mondoov1.String(role)})
 	}
 
-	scopeMrn := r.getScope(data)
+	scopeMrn := r.getScope(ctx, data)
 	if scopeMrn == "" {
 		resp.Diagnostics.AddError(
 			"Either space_id or org_id needs to be set",
@@ -209,7 +212,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 		Roles:       &rolesInput,
 	}
 
-	tflog.Trace(ctx, "CreateSpaceInput", map[string]interface{}{
+	tflog.Debug(ctx, "CreateSpaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createInput),
 	})
 
@@ -225,7 +228,10 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 
 	err := r.client.Mutate(ctx, &createMutation, createInput, nil)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create space, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create service sccount, got error: %s", err),
+			)
 		return
 	}
 
@@ -245,7 +251,10 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 
 	jsonData, err := json.Marshal(serviceAccount)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create service account, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create service account, got error: %s", err),
+			)
 		return
 	}
 
@@ -253,7 +262,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 	data.Credential = types.StringValue(base64.StdEncoding.EncodeToString(jsonData))
 
 	// Write logs using the tflog package
-	tflog.Trace(ctx, "created a service account resource")
+	tflog.Debug(ctx, "created a service account resource")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -344,7 +353,7 @@ func (r *ServiceAccountResource) Update(ctx context.Context, req resource.Update
 		Name:  mondoov1.NewStringPtr(mondoov1.String(data.Name.ValueString())),
 		Notes: mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
 	}
-	tflog.Trace(ctx, "UpdateServiceAccountInput", map[string]interface{}{
+	tflog.Debug(ctx, "UpdateServiceAccountInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
 	})
 	err := r.client.Mutate(ctx, &updateMutation, updateInput, nil)
@@ -367,7 +376,7 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	scopeMrn := r.getScope(data)
+	scopeMrn := r.getScope(ctx, data)
 	if scopeMrn == "" {
 		resp.Diagnostics.AddError(
 			"Either space_id or org_id needs to be set",
@@ -386,7 +395,7 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 		ScopeMrn: mondoov1.String(scopeMrn),
 		Mrns:     []mondoov1.String{mondoov1.String(data.Mrn.ValueString())},
 	}
-	tflog.Trace(ctx, "UpdateServiceAccountInput", map[string]interface{}{
+	tflog.Debug(ctx, "UpdateServiceAccountInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", deleteInput),
 	})
 	err := r.client.Mutate(ctx, &deleteMutation, deleteInput, nil)
