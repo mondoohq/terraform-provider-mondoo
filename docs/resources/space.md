@@ -13,9 +13,7 @@ Space resource
 ## Example Usage
 
 ```terraform
-provider "mondoo" {
-  region = "us"
-}
+provider "mondoo" {}
 
 resource "mondoo_space" "my_space" {
   name = "My Space New"
