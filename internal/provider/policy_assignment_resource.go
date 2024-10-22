@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -31,7 +32,7 @@ type policyAssignmentResource struct {
 
 type policyAssigmentsResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// assigned policies
 	PolicyMrns types.List `tfsdk:"policies"`
@@ -40,16 +41,16 @@ type policyAssigmentsResourceModel struct {
 	State types.String `tfsdk:"state"`
 }
 
-func (r *policyAssignmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *policyAssignmentResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_policy_assignment"
 }
 
-func (r *policyAssignmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *policyAssignmentResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"policies": schema.ListAttribute{
 				MarkdownDescription: "Policies to assign to the space.",
@@ -103,32 +104,29 @@ func (r *policyAssignmentResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	} else {
-		resp.Diagnostics.AddError(
-			"Either space_id needs to be set",
-			"Either space_id needs to be set",
-		)
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource
 	policyMrns := []string{}
 	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
 
 	state := data.State.ValueString()
-	var err error
+	tflog.Debug(ctx, "Creating policy assignment")
 	// default action is active
 	if state == "" || state == "enabled" {
 		action := mondoov1.PolicyActionActive
-		err = r.client.AssignPolicy(ctx, scopeMrn, action, policyMrns)
+		err = r.client.AssignPolicy(ctx, space.MRN(), action, policyMrns)
 	} else if state == "preview" {
 		action := mondoov1.PolicyActionIgnore
-		err = r.client.AssignPolicy(ctx, scopeMrn, action, policyMrns)
+		err = r.client.AssignPolicy(ctx, space.MRN(), action, policyMrns)
 	} else if state == "disabled" {
-		err = r.client.UnassignPolicy(ctx, scopeMrn, policyMrns)
+		err = r.client.UnassignPolicy(ctx, space.MRN(), policyMrns)
 	} else {
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
@@ -175,32 +173,29 @@ func (r *policyAssignmentResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	} else {
-		resp.Diagnostics.AddError(
-			"Either space_id needs to be set",
-			"Either space_id needs to be set",
-		)
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource
 	policyMrns := []string{}
 	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
 
 	state := data.State.ValueString()
-	var err error
+	tflog.Debug(ctx, "Updating policy assignment")
 	// default action is active
 	if state == "" || state == "enabled" {
 		action := mondoov1.PolicyActionActive
-		err = r.client.AssignPolicy(ctx, scopeMrn, action, policyMrns)
+		err = r.client.AssignPolicy(ctx, space.MRN(), action, policyMrns)
 	} else if state == "preview" {
 		action := mondoov1.PolicyActionIgnore
-		err = r.client.AssignPolicy(ctx, scopeMrn, action, policyMrns)
+		err = r.client.AssignPolicy(ctx, space.MRN(), action, policyMrns)
 	} else if state == "disabled" {
-		err = r.client.UnassignPolicy(ctx, scopeMrn, policyMrns)
+		err = r.client.UnassignPolicy(ctx, space.MRN(), policyMrns)
 	} else {
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
@@ -231,23 +226,21 @@ func (r *policyAssignmentResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	} else {
-		resp.Diagnostics.AddError(
-			"Either space_id needs to be set",
-			"Either space_id needs to be set",
-		)
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource
 	policyMrns := []string{}
 	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
 
+	tflog.Debug(ctx, "Deleting policy assignment")
 	// no matter the state, we unassign the policies
-	err := r.client.UnassignPolicy(ctx, scopeMrn, policyMrns)
+	err = r.client.UnassignPolicy(ctx, space.MRN(), policyMrns)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating policy assignment",
