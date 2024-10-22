@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -35,7 +36,7 @@ type customQueryPackResource struct {
 // customQueryPackResourceModel describes the resource data model.
 type customQueryPackResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// policy mrn
 	Mrns      types.List `tfsdk:"mrns"`
@@ -49,17 +50,17 @@ type customQueryPackResourceModel struct {
 	Crc32Checksum types.String `tfsdk:"crc32c"`
 }
 
-func (r *customQueryPackResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *customQueryPackResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_custom_querypack"
 }
 
-func (r *customQueryPackResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *customQueryPackResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Custom Query Pack resource",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"mrns": schema.ListAttribute{
 				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created query packs",
@@ -106,7 +107,7 @@ func (r *customQueryPackResource) Schema(ctx context.Context, req resource.Schem
 	}
 }
 
-func (r *customQueryPackResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *customQueryPackResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -153,18 +154,13 @@ func (r *customQueryPackResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
-
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	} else {
-		resp.Diagnostics.AddError(
-			"Either space_id needs to be set",
-			"Either space_id needs to be set",
-		)
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	if data.Content.IsNull() && data.Source.IsNull() {
 		resp.Diagnostics.AddError(
@@ -183,17 +179,29 @@ func (r *customQueryPackResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	// call graphql api
-	setCustomPolicyPayload, err := r.client.SetCustomQueryPack(ctx, scopeMrn, data.Overwrite.ValueBoolPointer(), policyBundleData)
+	// Do GraphQL request to API to create the resource
+	tflog.Debug(ctx, "Creating custom querypack")
+	setCustomPolicyPayload, err := r.client.SetCustomQueryPack(ctx,
+		space.MRN(),
+		data.Overwrite.ValueBoolPointer(),
+		policyBundleData,
+	)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to store policy, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to store policy, got error: %s", err),
+			)
 		return
 	}
 
 	// Save data into Terraform state
 	data.Content = types.StringValue(string(policyBundleData))
 	data.Crc32Checksum = types.StringValue(checksum)
-	data.Mrns, _ = types.ListValueFrom(ctx, types.StringType, setCustomPolicyPayload.QueryPackMrns)
+	data.SpaceID = types.StringValue(space.ID())
+	data.Mrns, _ = types.ListValueFrom(ctx,
+		types.StringType,
+		setCustomPolicyPayload.QueryPackMrns,
+	)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 }
@@ -248,12 +256,34 @@ func (r *customQueryPackResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	if data.Crc32Checksum.ValueString() != checksum {
-		// update the policy
+		// ensure space id is not changed
+		var stateSpaceID string
+		req.State.GetAttribute(ctx, path.Root("space_id"), &stateSpaceID)
 
-		// call graphql api
-		setCustomPolicyPayload, err := r.client.SetCustomQueryPack(ctx, spacePrefix+data.SpaceId.ValueString(), data.Overwrite.ValueBoolPointer(), policyBundleData)
+		var planSpaceID string
+		req.Plan.GetAttribute(ctx, path.Root("space_id"), &planSpaceID)
+
+		providerSpaceID := r.client.Space().ID()
+
+		if stateSpaceID != planSpaceID || providerSpaceID != planSpaceID {
+			resp.Diagnostics.AddError(
+				"Space ID cannot be changed",
+				"Note that the Mondoo space can be configured at the resource or provider level.",
+			)
+			return
+		}
+
+		// Do GraphQL request to API to update the resource.
+		setCustomPolicyPayload, err := r.client.SetCustomQueryPack(ctx,
+			SpaceFrom(planSpaceID).MRN(),
+			data.Overwrite.ValueBoolPointer(),
+			policyBundleData,
+		)
 		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to store policy, got error: %s", err))
+			resp.Diagnostics.
+				AddError("Client Error",
+					fmt.Sprintf("Unable to store policy, got error: %s", err),
+				)
 			return
 		}
 
@@ -283,7 +313,10 @@ func (r *customQueryPackResource) Delete(ctx context.Context, req resource.Delet
 	for _, policyMrn := range queryPackMrns {
 		err := r.client.DeletePolicy(ctx, policyMrn)
 		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete query pack, got error: %s", err))
+			resp.Diagnostics.
+				AddError("Client Error",
+					fmt.Sprintf("Unable to delete query pack, got error: %s", err),
+				)
 			return
 		}
 	}
@@ -293,24 +326,42 @@ func (r *customQueryPackResource) ImportState(ctx context.Context, req resource.
 	mrn := req.ID
 	splitMrn := strings.Split(mrn, "/")
 	spaceMrn := spacePrefix + splitMrn[len(splitMrn)-3]
-	spaceId := splitMrn[len(splitMrn)-3]
+	spaceID := splitMrn[len(splitMrn)-3]
+
+	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
+		// The provider is configured to manage resources in a different space than the one the
+		// resource is currently configured, we won't allow that
+		resp.Diagnostics.AddError(
+			"Conflict Error",
+			fmt.Sprintf(
+				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+				r.client.Space().ID(), spaceID),
+		)
+		return
+	}
 
 	queryPack, err := r.client.GetPolicy(ctx, mrn, spaceMrn)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get policy, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to get policy, got error: %s", err),
+			)
 		return
 	}
 
 	content, err := r.client.DownloadBundle(ctx, string(queryPack.Mrn))
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to download bundle, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to download bundle, got error: %s", err),
+			)
 		return
 	}
 
 	mrns, _ := types.ListValueFrom(ctx, types.StringType, []string{mrn})
 
 	model := customQueryPackResourceModel{
-		SpaceId:       types.StringValue(spaceId),
+		SpaceID:       types.StringValue(spaceID),
 		Mrns:          mrns,
 		Overwrite:     types.BoolValue(false),
 		Source:        types.StringPointerValue(nil),
