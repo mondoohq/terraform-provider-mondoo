@@ -138,16 +138,19 @@ func (r *frameworkAssignmentResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
+	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
 	// ensure space id is not changed
-	var stateSpaceID string
-	req.State.GetAttribute(ctx, path.Root("id"), &stateSpaceID)
-
 	var planSpaceID string
-	req.Plan.GetAttribute(ctx, path.Root("id"), &planSpaceID)
+	req.Plan.GetAttribute(ctx, path.Root("space_id"), &planSpaceID)
 
-	providerSpaceID := r.client.Space().ID()
-
-	if stateSpaceID != planSpaceID || providerSpaceID != planSpaceID {
+	if space.ID() != planSpaceID {
 		resp.Diagnostics.AddError(
 			"Space ID cannot be changed",
 			"Note that the Mondoo space can be configured at the resource or provider level.",
@@ -156,7 +159,7 @@ func (r *frameworkAssignmentResource) Update(ctx context.Context, req resource.U
 	}
 
 	tflog.Debug(ctx, "Updating framework assignment")
-	err := r.client.BulkUpdateFramework(ctx,
+	err = r.client.BulkUpdateFramework(ctx,
 		data.FrameworkMrn,
 		planSpaceID,
 		data.Enabled.ValueBool())

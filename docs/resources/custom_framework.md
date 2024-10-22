@@ -14,13 +14,7 @@ Set custom Compliance Frameworks for a Mondoo Space.
 
 ```terraform
 provider "mondoo" {
-  region = "us"
-}
-
-variable "mondoo_org" {
-  description = "The Mondoo Organization ID"
-  type        = string
-  default     = "my-org-1234567"
+  space = "hungry-poet-123456"
 }
 
 variable "my_custom_framework" {
@@ -29,14 +23,7 @@ variable "my_custom_framework" {
   default     = "framework.mql.yaml"
 }
 
-# Create a new space
-resource "mondoo_space" "my_space" {
-  name   = "Custom Framework Space"
-  org_id = var.mondoo_org
-}
-
 resource "mondoo_custom_framework" "custom_framework" {
-  space_id = mondoo_space.my_space.id
   data_url = var.my_custom_framework
 }
 ```
@@ -47,7 +34,10 @@ resource "mondoo_custom_framework" "custom_framework" {
 ### Required
 
 - `data_url` (String) URL to the custom Compliance Framework data.
-- `space_id` (String) Mondoo Space Identifier.
+
+### Optional
+
+- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
 
 ### Read-Only
 
