@@ -177,7 +177,7 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	// The extended GraphQL client allows us to pass additional information to
 	// resources and data sources, things like the Mondoo space
-	extendedClient := &ExtendedGqlClient{client, space}
+	extendedClient := &ExtendedGqlClient{client, SpaceFrom(space)}
 	resp.DataSourceData = extendedClient
 	resp.ResourceData = extendedClient
 }

@@ -55,8 +55,8 @@ output "space_id" {
 ### Optional
 
 - `id` (String) Space ID
-- `mrn` (String) Space MRN
 
 ### Read-Only
 
+- `mrn` (String) Space MRN
 - `name` (String) Space name

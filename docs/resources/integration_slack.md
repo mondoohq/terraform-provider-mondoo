@@ -20,8 +20,7 @@ variable "slack_token" {
 }
 
 provider "mondoo" {
-  region = "us"
-  space  = "hungry-poet-123456"
+  space = "hungry-poet-123456"
 }
 
 # Setup the Slack integration

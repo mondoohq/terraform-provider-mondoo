@@ -7,12 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -47,23 +45,10 @@ func (d *SpaceDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 				MarkdownDescription: "Space ID",
 				Computed:            true,
 				Optional:            true,
-				Validators: []validator.String{
-					// Validate only this attribute or other_attr is configured.
-					stringvalidator.ExactlyOneOf(path.Expressions{
-						path.MatchRoot("mrn"),
-					}...),
-				},
 			},
 			"mrn": schema.StringAttribute{
 				MarkdownDescription: "Space MRN",
 				Computed:            true,
-				Optional:            true,
-				Validators: []validator.String{
-					// Validate only this attribute or other_attr is configured.
-					stringvalidator.ExactlyOneOf(path.Expressions{
-						path.MatchRoot("id"),
-					}...),
-				},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Space name",
@@ -103,22 +88,21 @@ func (d *SpaceDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	// we fetch the organization id from the service account
-	spaceMrn := ""
-	if data.SpaceMrn.ValueString() != "" {
-		spaceMrn = data.SpaceMrn.ValueString()
-	} else if data.SpaceID.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceID.ValueString()
-	}
-
-	if spaceMrn == "" {
-		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
+	// Compute and validate the space
+	space, err := d.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
 
-	payload, err := d.client.GetSpace(ctx, spaceMrn)
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
+	tflog.Debug(ctx, "Fetching space information")
+	payload, err := d.client.GetSpace(ctx, space.MRN())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch space, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error",
+			fmt.Sprintf("Unable to fetch space, got error: %s", err),
+		)
 		return
 	}
 

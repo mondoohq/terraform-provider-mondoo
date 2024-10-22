@@ -111,20 +111,19 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	// Load space configured at the provider level, if any
-	spaceID := r.client.SpaceID()
-	spaceMrn := r.client.SpaceMrn()
-	if data.SpaceID.ValueString() != "" {
-		spaceID = data.SpaceID.ValueString()
-		spaceMrn = spacePrefix + data.SpaceID.ValueString()
-		tflog.Debug(ctx, "space_id configured at the resource level")
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", spaceMrn)
+
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	// Do GraphQL request to API to create the resource.
 	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
-		spaceMrn,
+		space.MRN(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeHostedSlack,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -133,7 +132,9 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 			},
 		})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Slack integration, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error",
+			fmt.Sprintf("Unable to create Slack integration, got error: %s", err),
+		)
 		return
 	}
 
@@ -141,14 +142,16 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 	// NOTE: we ignore the error since the integration state does not depend on it
 	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunScan)
 	if err != nil {
-		resp.Diagnostics.AddWarning("Client Error", fmt.Sprintf("Unable to trigger integration, got error: %s", err))
+		resp.Diagnostics.AddWarning("Client Error",
+			fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+		)
 		return
 	}
 
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(spaceID)
+	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -225,14 +228,14 @@ func (r *integrationSlackResource) ImportState(ctx context.Context, req resource
 	}
 
 	spaceID := strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]
-	if r.client.SpaceID() != "" && r.client.SpaceID() != spaceID {
+	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
 		// The provider is configured to manage resources in a different space than the one the resource is
 		// currently configured, we won't allow that
 		resp.Diagnostics.AddError(
 			"Conflict Error",
 			fmt.Sprintf(
 				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
-				r.client.SpaceID(), spaceID),
+				r.client.Space().ID(), spaceID),
 		)
 		return
 	}

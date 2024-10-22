@@ -6,12 +6,16 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
+
+const orgPrefix = "//captain.api.mondoo.app/organizations/"
 
 // The extended GraphQL client allows us to pass additional information to
 // resources and data sources, things like the Mondoo space.
@@ -20,20 +24,24 @@ type ExtendedGqlClient struct {
 
 	// The default space configured at the provider level, if configured, all resources
 	// will be managed there unless the resource itself specifies a different space
-	space string
+	space Space
 }
 
-// SpaceID returns the space ID configured into the extended GraphQL client.
-func (c *ExtendedGqlClient) SpaceID() string {
+// Space returns the space configured into the extended GraphQL client.
+func (c *ExtendedGqlClient) Space() Space {
 	return c.space
 }
 
-// SpaceMrn returns the space MRN configured into the extended GraphQL client.
-func (c *ExtendedGqlClient) SpaceMrn() string {
-	if c.space != "" {
-		return spacePrefix + c.space
+// ComputeSpace receives an optional space ID, if it is empty, it tries to return the space
+// configured into the exptended client, but if both are empty, it throws an error
+func (c *ExtendedGqlClient) ComputeSpace(spaceID types.String) (Space, error) {
+	if spaceID.ValueString() != "" {
+		return Space(spaceID.ValueString()), nil
 	}
-	return ""
+	if c.space != "" {
+		return c.space, nil
+	}
+	return c.space, errors.New("no space configured on either resource or provider blocks")
 }
 
 // newDataUrl generates a https://tools.ietf.org/html/rfc2397 data url for a given content.

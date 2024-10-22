@@ -19,11 +19,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-const (
-	orgPrefix   = "//captain.api.mondoo.app/organizations/"
-	spacePrefix = "//captain.api.mondoo.app/spaces/"
-)
-
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &SpaceResource{}
 var _ resource.ResourceWithImportState = &SpaceResource{}
@@ -66,12 +61,8 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Id of the space. Must be globally unique.",
-				Computed:            true,
+				MarkdownDescription: "Id of the space. Must be globally unique. If the provider has a space configured and this field is not provided, the provider space is used.",
 				Optional:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
 						regexp.MustCompile(`^[a-z]([\d-_]|[a-z]){6,35}[a-z\d]$`),
@@ -128,10 +119,25 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	// Do GraphQL request to API to create the resource.
-	payload, err := r.client.CreateSpace(ctx, data.OrgID.ValueString(), data.SpaceID.ValueString(), data.Name.ValueString())
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create space, got error: %s", err))
+		// we do not fail if there the user doesn't specify an id
+		// because we are creating one, still log the error
+		tflog.Debug(ctx, err.Error())
+	}
+
+	// Do GraphQL request to API to create the resource.
+	payload, err := r.client.CreateSpace(ctx,
+		data.OrgID.ValueString(),
+		space.ID(),
+		data.Name.ValueString(),
+	)
+	if err != nil {
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create space, got error: %s", err),
+			)
 		return
 	}
 
@@ -141,12 +147,14 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 	id, ok := payload.Id.(string)
 	if ok {
 		data.SpaceID = types.StringValue(id)
+		ctx = tflog.SetField(ctx, "space_id", data.SpaceID)
 	}
 
 	data.SpaceMrn = types.StringValue(string(payload.Mrn))
+	ctx = tflog.SetField(ctx, "space_mrn", data.SpaceMrn)
 
 	// Write logs using the tflog package
-	tflog.Trace(ctx, "created a space resource")
+	tflog.Debug(ctx, "Created a space resource")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -183,10 +191,12 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	var planSpaceID string
 	req.Plan.GetAttribute(ctx, path.Root("id"), &planSpaceID)
 
-	if stateSpaceID != planSpaceID {
+	providerSpaceID := r.client.Space().ID()
+
+	if stateSpaceID != planSpaceID || providerSpaceID != planSpaceID {
 		resp.Diagnostics.AddError(
 			"Space ID cannot be changed",
-			"Space ID cannot be changed",
+			"Note that the Mondoo space can be configured at the resource or provider level.",
 		)
 		return
 	}
@@ -194,7 +204,8 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	// Do GraphQL request to API to update the resource.
 	err := r.client.UpdateSpace(ctx, data.SpaceID.ValueString(), data.Name.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update space, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error", fmt.Sprintf("Unable to update space, got error: %s", err))
 		return
 	}
 
@@ -215,7 +226,10 @@ func (r *SpaceResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	// Do GraphQL request to API to delete the resource.
 	err := r.client.DeleteSpace(ctx, data.SpaceID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete space, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to delete space, got error: %s", err),
+			)
 		return
 	}
 }
@@ -224,7 +238,10 @@ func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStat
 	mrn := spacePrefix + req.ID
 	spacePayload, err := r.client.GetSpace(ctx, mrn)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to retrieve space, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to retrieve space, got error: %s", err),
+			)
 		return
 	}
 
