@@ -13,24 +13,8 @@ Allows management of a Mondoo service account.
 ## Example Usage
 
 ```terraform
-# Variables
-# ----------------------------------------------
-
-variable "mondoo_org" {
-  description = "The Mondoo Organization ID"
-  type        = string
-}
-
-# Configure the Mondoo
-# ----------------------------------------------
-
 provider "mondoo" {
-  region = "us"
-}
-
-resource "mondoo_space" "my_space" {
-  name   = "My Terraform Space"
-  org_id = var.mondoo_org
+  space = "hungry-poet-123456"
 }
 
 resource "mondoo_service_account" "service_account" {
@@ -38,11 +22,6 @@ resource "mondoo_service_account" "service_account" {
   description = "Service Account for Terraform"
   roles = [
     "//iam.api.mondoo.app/roles/viewer",
-  ]
-  space_id = mondoo_space.my_space.id
-
-  depends_on = [
-    mondoo_space.my_space
   ]
 }
 

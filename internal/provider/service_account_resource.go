@@ -148,12 +148,13 @@ func (r *ServiceAccountResource) Configure(ctx context.Context, req resource.Con
 	r.client = client
 }
 
-func getScope(data ServiceAccountResourceModel) string {
+func (r *ServiceAccountResource) getScope(data ServiceAccountResourceModel) string {
 	scopeMrn := ""
-	if data.SpaceID.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceID.ValueString()
-	} else if data.OrgID.ValueString() != "" {
+	// Give presedence to the org id
+	if data.OrgID.ValueString() != "" {
 		scopeMrn = orgPrefix + data.OrgID.ValueString()
+	} else if space, err := r.client.ComputeSpace(data.SpaceID); err != nil {
+		scopeMrn = space.ID()
 	}
 	return scopeMrn
 }
@@ -192,7 +193,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 		rolesInput = append(rolesInput, mondoov1.RoleInput{Mrn: mondoov1.String(role)})
 	}
 
-	scopeMrn := getScope(data)
+	scopeMrn := r.getScope(data)
 	if scopeMrn == "" {
 		resp.Diagnostics.AddError(
 			"Either space_id or org_id needs to be set",
@@ -366,7 +367,7 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	scopeMrn := getScope(data)
+	scopeMrn := r.getScope(data)
 	if scopeMrn == "" {
 		resp.Diagnostics.AddError(
 			"Either space_id or org_id needs to be set",
