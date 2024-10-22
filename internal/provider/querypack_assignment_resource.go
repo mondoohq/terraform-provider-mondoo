@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -32,7 +33,7 @@ type queryPackAssignmentResource struct {
 
 type queryPackAssigmentsResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// assigned query packs
 	QueryPackMrns types.List `tfsdk:"querypacks"`
@@ -41,16 +42,16 @@ type queryPackAssigmentsResourceModel struct {
 	State types.String `tfsdk:"state"`
 }
 
-func (r *queryPackAssignmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *queryPackAssignmentResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_querypack_assignment"
 }
 
-func (r *queryPackAssignmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *queryPackAssignmentResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"querypacks": schema.ListAttribute{
 				MarkdownDescription: "QueryPacks to assign to the space.",
@@ -104,29 +105,26 @@ func (r *queryPackAssignmentResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	} else {
-		resp.Diagnostics.AddError(
-			"Either space_id needs to be set",
-			"Either space_id needs to be set",
-		)
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource
 	queryPackMrns := []string{}
 	data.QueryPackMrns.ElementsAs(ctx, &queryPackMrns, false)
 
 	state := data.State.ValueString()
-	var err error
+	tflog.Debug(ctx, "Creating query pack assignment")
 	// default action is active
 	if state == "" || state == "enabled" {
 		action := mondoov1.PolicyActionActive
-		err = r.client.AssignPolicy(ctx, scopeMrn, action, queryPackMrns)
+		err = r.client.AssignPolicy(ctx, space.MRN(), action, queryPackMrns)
 	} else if state == "disabled" {
-		err = r.client.UnassignPolicy(ctx, scopeMrn, queryPackMrns)
+		err = r.client.UnassignPolicy(ctx, space.MRN(), queryPackMrns)
 	} else {
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
@@ -138,7 +136,10 @@ func (r *queryPackAssignmentResource) Create(ctx context.Context, req resource.C
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating query pack assignment",
-			fmt.Sprintf("Error creating query pack assignment: %s\nSpace: %s\nQueryPacks: %s", err, scopeMrn, strings.Join(queryPackMrns, "\n")),
+			fmt.Sprintf(
+				"Error creating query pack assignment: %s\nSpace: %s\nQueryPacks: %s",
+				err, space.MRN(), strings.Join(queryPackMrns, "\n"),
+			),
 		)
 		return
 	}
@@ -173,29 +174,26 @@ func (r *queryPackAssignmentResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	} else {
-		resp.Diagnostics.AddError(
-			"Either space_id needs to be set",
-			"Either space_id needs to be set",
-		)
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource
 	queryPackMrns := []string{}
 	data.QueryPackMrns.ElementsAs(ctx, &queryPackMrns, false)
 
 	state := data.State.ValueString()
-	var err error
+	tflog.Debug(ctx, "Updating query pack assignment")
 	// default action is active
 	if state == "" || state == "enabled" {
 		action := mondoov1.PolicyActionActive
-		err = r.client.AssignPolicy(ctx, scopeMrn, action, queryPackMrns)
+		err = r.client.AssignPolicy(ctx, space.MRN(), action, queryPackMrns)
 	} else if state == "disabled" {
-		err = r.client.UnassignPolicy(ctx, scopeMrn, queryPackMrns)
+		err = r.client.UnassignPolicy(ctx, space.MRN(), queryPackMrns)
 	} else {
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
@@ -207,7 +205,10 @@ func (r *queryPackAssignmentResource) Update(ctx context.Context, req resource.U
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating query pack assignment",
-			fmt.Sprintf("Error creating query pack assignment: %s\nSpace: %s\nQueryPacks: %s", err, scopeMrn, strings.Join(queryPackMrns, "\n")),
+			fmt.Sprintf(
+				"Error creating query pack assignment: %s\nSpace: %s\nQueryPacks: %s",
+				err, space.MRN(), strings.Join(queryPackMrns, "\n"),
+			),
 		)
 		return
 	}
@@ -226,22 +227,20 @@ func (r *queryPackAssignmentResource) Delete(ctx context.Context, req resource.D
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	} else {
-		resp.Diagnostics.AddError(
-			"Either space_id needs to be set",
-			"Either space_id needs to be set",
-		)
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to delete the resource
 	queryPackMrns := []string{}
 	data.QueryPackMrns.ElementsAs(ctx, &queryPackMrns, false)
 
-	err := r.client.UnassignPolicy(ctx, scopeMrn, queryPackMrns)
+	tflog.Debug(ctx, "Deleting query pack assignment")
+	err = r.client.UnassignPolicy(ctx, space.MRN(), queryPackMrns)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating query pack assignment",
