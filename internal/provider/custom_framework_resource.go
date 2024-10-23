@@ -9,12 +9,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	mondoov1 "go.mondoo.com/mondoo-go"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"gopkg.in/yaml.v2"
 )
 
@@ -30,7 +31,7 @@ type customFrameworkResource struct {
 
 type customFrameworkResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// resource details
 	Mrn     types.String `tfsdk:"mrn"`
@@ -70,13 +71,13 @@ func (r *customFrameworkResource) getFrameworkContent(data customFrameworkResour
 	return frameworkData, config.Frameworks[0].UID, nil
 }
 
-func (r *customFrameworkResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *customFrameworkResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Set custom Compliance Frameworks for a Mondoo Space.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"mrn": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Resource Name.",
@@ -93,13 +94,13 @@ func (r *customFrameworkResource) Schema(ctx context.Context, req resource.Schem
 	}
 }
 
-func (r *customFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *customFrameworkResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -110,7 +111,7 @@ func (r *customFrameworkResource) Configure(ctx context.Context, req resource.Co
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *customFrameworkResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -123,27 +124,39 @@ func (r *customFrameworkResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	// Do GraphQL request to API to create the resource.
-	spaceMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceId.ValueString()
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	content, uid, err := r.getFrameworkContent(data)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Compliance Framework Content, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to get Compliance Framework Content, got error: %s", err),
+			)
 		return
 	}
 
-	err = r.client.UploadFramework(ctx, spaceMrn, content)
+	// Do GraphQL request to API to create the resource.
+	tflog.Debug(ctx, "Creating framework")
+	err = r.client.UploadFramework(ctx, space.MRN(), content)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to upload Compliance Framework, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to upload Compliance Framework, got error: %s", err),
+			)
 		return
 	}
 
-	framework, err := r.client.GetFramework(ctx, spaceMrn, data.SpaceId.ValueString(), uid)
+	framework, err := r.client.GetFramework(ctx, space.MRN(), data.SpaceID.ValueString(), uid)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Compliance Framework, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to get Compliance Framework, got error: %s", err),
+			)
 		return
 	}
 
@@ -179,21 +192,42 @@ func (r *customFrameworkResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	// Do GraphQL request to API to create the resource.
-	spaceMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceId.ValueString()
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
+	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
+	// ensure space id is not changed
+	var planSpaceID string
+	req.Plan.GetAttribute(ctx, path.Root("space_id"), &planSpaceID)
+
+	if space.ID() != planSpaceID {
+		resp.Diagnostics.AddError(
+			"Space ID cannot be changed",
+			"Note that the Mondoo space can be configured at the resource or provider level.",
+		)
+		return
 	}
 
 	content, _, err := r.getFrameworkContent(data)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Compliance Framework Content, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to get Compliance Framework Content, got error: %s", err),
+			)
 		return
 	}
 
-	err = r.client.UploadFramework(ctx, spaceMrn, content)
+	// Do GraphQL request to API to update the resource.
+	tflog.Debug(ctx, "Updating framework")
+	err = r.client.UploadFramework(ctx, space.MRN(), content)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to upload Compliance Framework, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to upload Compliance Framework, got error: %s", err),
+			)
 		return
 	}
 
@@ -214,7 +248,10 @@ func (r *customFrameworkResource) Delete(ctx context.Context, req resource.Delet
 	// Do GraphQL request to API to update the resource.
 	err := r.client.DeleteFramework(ctx, data.Mrn.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete Compliance Framework, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to delete Compliance Framework, got error: %s", err),
+			)
 		return
 	}
 }
@@ -224,19 +261,34 @@ func (r *customFrameworkResource) ImportState(ctx context.Context, req resource.
 	mrn := req.ID
 	splitMrn := strings.Split(mrn, "/")
 	spaceMrn := spacePrefix + splitMrn[len(splitMrn)-3]
-	spaceId := splitMrn[len(splitMrn)-3]
+	spaceID := splitMrn[len(splitMrn)-3]
 	uid := splitMrn[len(splitMrn)-1]
 
-	framework, err := r.client.GetFramework(ctx, spaceMrn, spaceId, uid)
+	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
+		// The provider is configured to manage resources in a different space than the one the
+		// resource is currently configured, we won't allow that
+		resp.Diagnostics.AddError(
+			"Conflict Error",
+			fmt.Sprintf(
+				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+				r.client.Space().ID(), spaceID),
+		)
+		return
+	}
+
+	framework, err := r.client.GetFramework(ctx, spaceMrn, spaceID, uid)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Compliance Framework, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to get Compliance Framework, got error: %s", err),
+			)
 		return
 	}
 
 	model := customFrameworkResourceModel{
 		Mrn:     types.StringValue(string(framework.Mrn)),
 		DataUrl: types.StringPointerValue(nil),
-		SpaceId: types.StringValue(spaceId),
+		SpaceID: types.StringValue(spaceID),
 	}
 
 	resp.State.Set(ctx, &model)

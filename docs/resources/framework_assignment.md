@@ -14,25 +14,14 @@ Set Compliance Frameworks for a Mondoo Space.
 
 ```terraform
 provider "mondoo" {
-  region = "us"
-}
-
-variable "mondoo_org" {
-  description = "The Mondoo Organization ID"
-  type        = string
-  default     = "my-org-1234567"
-}
-
-# Create a new space
-resource "mondoo_space" "my_space" {
-  name   = "Framework Space"
-  org_id = var.mondoo_org
+  space = "hungry-poet-123456"
 }
 
 resource "mondoo_framework_assignment" "framework_assignment" {
-  space_id = mondoo_space.my_space.id
-  framework_mrn = ["//policy.api.mondoo.app/frameworks/cis-controls-8",
-  "//policy.api.mondoo.app/frameworks/iso-27001-2022"]
+  framework_mrn = [
+    "//policy.api.mondoo.app/frameworks/cis-controls-8",
+    "//policy.api.mondoo.app/frameworks/iso-27001-2022"
+  ]
   enabled = true
 }
 ```
@@ -44,4 +33,7 @@ resource "mondoo_framework_assignment" "framework_assignment" {
 
 - `enabled` (Boolean) Enable or disable the Compliance Framework.
 - `framework_mrn` (List of String) Compliance Framework MRN.
-- `space_id` (String) Mondoo Space Identifier.
+
+### Optional
+
+- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.

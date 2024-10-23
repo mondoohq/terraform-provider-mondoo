@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -13,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -28,7 +28,7 @@ type integrationSlackResource struct {
 
 type integrationSlackResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
 	Mrn  types.String `tfsdk:"mrn"`
@@ -47,8 +47,8 @@ func (r *integrationSlackResource) Schema(ctx context.Context, req resource.Sche
 		MarkdownDescription: "Continuously scan your Slack Teams for security misconfigurations.",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
@@ -85,7 +85,7 @@ func (r *integrationSlackResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -96,7 +96,7 @@ func (r *integrationSlackResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *integrationSlackResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -109,14 +109,18 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	// Do GraphQL request to API to create the resource.
-	spaceMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceId.ValueString()
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource.
+	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
-		spaceMrn,
+		space.MRN(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeHostedSlack,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -125,7 +129,10 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 			},
 		})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Slack integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create Slack integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -133,14 +140,17 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 	// NOTE: we ignore the error since the integration state does not depend on it
 	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunScan)
 	if err != nil {
-		resp.Diagnostics.AddWarning("Client Error", fmt.Sprintf("Unable to trigger integration, got error: %s", err))
+		resp.Diagnostics.
+			AddWarning("Client Error",
+				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+			)
 		return
 	}
 
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceId = types.StringValue(data.SpaceId.ValueString())
+	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -180,9 +190,17 @@ func (r *integrationSlackResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Do GraphQL request to API to update the resource.
-	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString(), mondoov1.ClientIntegrationTypeHostedSlack, opts)
+	_, err := r.client.UpdateIntegration(ctx,
+		data.Mrn.ValueString(),
+		data.Name.ValueString(),
+		mondoov1.ClientIntegrationTypeHostedSlack,
+		opts,
+	)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update OCI tenant integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to update OCI tenant integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -203,24 +221,25 @@ func (r *integrationSlackResource) Delete(ctx context.Context, req resource.Dele
 	// Do GraphQL request to API to update the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete Slack integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to delete Slack integration, got error: %s", err),
+			)
 		return
 	}
 }
 
 func (r *integrationSlackResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	mrn := req.ID
-	integration, err := r.client.GetClientIntegration(ctx, mrn)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Slack integration, got error: %s", err))
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
 		return
 	}
 
 	model := integrationSlackResourceModel{
 		Mrn:        types.StringValue(integration.Mrn),
 		Name:       types.StringValue(integration.Name),
+		SpaceID:    types.StringValue(integration.SpaceID()),
 		SlackToken: types.StringPointerValue(nil),
-		SpaceId:    types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
 	}
 
 	resp.State.Set(ctx, &model)

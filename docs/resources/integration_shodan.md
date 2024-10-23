@@ -3,21 +3,16 @@
 page_title: "mondoo_integration_shodan Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously scan Internet-connected devices with Shodan.
+  Continuously assess external risk for domains and IP addresses.
 ---
 
 # mondoo_integration_shodan (Resource)
 
-Continuously scan Internet-connected devices with Shodan.
+Continuously assess external risk for domains and IP addresses.
 
 ## Example Usage
 
 ```terraform
-variable "mondoo_org" {
-  description = "The Mondoo Organization ID"
-  type        = string
-}
-
 variable "shodan_token" {
   description = "The Shodan Token"
   type        = string
@@ -25,21 +20,13 @@ variable "shodan_token" {
 }
 
 provider "mondoo" {
-  region = "us"
-}
-
-# Create a new space
-resource "mondoo_space" "shodan_space" {
-  name   = "My Shodan Space Name"
-  org_id = var.mondoo_org
+  space = "hungry-poet-123456"
 }
 
 # Setup the Shodan integration
 resource "mondoo_integration_shodan" "shodan_integration" {
-  space_id = mondoo_space.shodan_space.id
-  name     = "Shodan Integration"
-
-  targets = ["8.8.8.8", "mondoo.com"]
+  name    = "Shodan Integration"
+  targets = ["8.8.8.8", "mondoo.com", "63.192.236.0/24"]
 
   credentials = {
     token = var.shodan_token
@@ -54,8 +41,11 @@ resource "mondoo_integration_shodan" "shodan_integration" {
 
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
-- `space_id` (String) Mondoo Space Identifier.
 - `targets` (List of String) Shodan scan targets.
+
+### Optional
+
+- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
 
 ### Read-Only
 

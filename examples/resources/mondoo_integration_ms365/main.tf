@@ -10,7 +10,7 @@ terraform {
     }
     mondoo = {
       source  = "mondoohq/mondoo"
-      version = ">= 0.4.0"
+      version = ">= 0.19"
     }
     tls = {
       source  = "hashicorp/tls"

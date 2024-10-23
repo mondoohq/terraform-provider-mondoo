@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -29,7 +29,7 @@ type integrationAzureResource struct {
 
 type integrationAzureResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
 	Mrn                   types.String `tfsdk:"mrn"`
@@ -57,8 +57,8 @@ func (r *integrationAzureResource) Schema(ctx context.Context, req resource.Sche
 		MarkdownDescription: `Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities. See [Mondoo documentation](https://mondoo.com/docs/platform/infra/cloud/azure/azure-integration-scan-subscription/) for more details.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
@@ -128,7 +128,7 @@ func (r *integrationAzureResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -139,7 +139,7 @@ func (r *integrationAzureResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *integrationAzureResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -153,12 +153,14 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	// Do GraphQL request to API to create the resource.
-	spaceMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceId.ValueString()
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource.
 	var listAllow []mondoov1.String
 	allowlist, _ := data.SubscriptionAllowList.ToListValue(ctx)
 	allowlist.ElementsAs(ctx, &listAllow, true)
@@ -169,12 +171,16 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 
 	// Check if both whitelist and blacklist are provided
 	if len(listDeny) > 0 && len(listAllow) > 0 {
-		resp.Diagnostics.AddError("ConflictingAttributesError", "Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.")
+		resp.Diagnostics.
+			AddError("ConflictingAttributesError",
+				"Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.",
+			)
 		return
 	}
 
+	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
-		spaceMrn,
+		space.MRN(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeAzure,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -188,7 +194,10 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 			},
 		})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create Azure integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create Azure integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -196,14 +205,17 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 	// NOTE: we ignore the error since the integration state does not depend on it
 	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunScan)
 	if err != nil {
-		resp.Diagnostics.AddWarning("Client Error", fmt.Sprintf("Unable to trigger integration, got error: %s", err))
+		resp.Diagnostics.
+			AddWarning("Client Error",
+				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+			)
 		return
 	}
 
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceId = types.StringValue(data.SpaceId.ValueString())
+	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -246,7 +258,10 @@ func (r *integrationAzureResource) Update(ctx context.Context, req resource.Upda
 
 	// Check if both whitelist and blacklist are provided
 	if len(listDeny) > 0 && len(listAllow) > 0 {
-		resp.Diagnostics.AddError("ConflictingAttributesError", "Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.")
+		resp.Diagnostics.
+			AddError("ConflictingAttributesError",
+				"Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.",
+			)
 		return
 	}
 
@@ -261,9 +276,17 @@ func (r *integrationAzureResource) Update(ctx context.Context, req resource.Upda
 		},
 	}
 
-	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString(), mondoov1.ClientIntegrationTypeAzure, opts)
+	_, err := r.client.UpdateIntegration(ctx,
+		data.Mrn.ValueString(),
+		data.Name.ValueString(),
+		mondoov1.ClientIntegrationTypeAzure,
+		opts,
+	)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update Azure integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to update Azure integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -284,16 +307,17 @@ func (r *integrationAzureResource) Delete(ctx context.Context, req resource.Dele
 	// Do GraphQL request to API to update the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete Azure integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to delete Azure integration, got error: %s", err),
+			)
 		return
 	}
 }
 
 func (r *integrationAzureResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	mrn := req.ID
-	integration, err := r.client.GetClientIntegration(ctx, mrn)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import Azure integration, got error: %s", err))
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
 		return
 	}
 
@@ -301,7 +325,7 @@ func (r *integrationAzureResource) ImportState(ctx context.Context, req resource
 	denyList := ConvertListValue(integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsBlacklist)
 
 	model := integrationAzureResourceModel{
-		SpaceId:               types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		SpaceID:               types.StringValue(integration.SpaceID()),
 		Mrn:                   types.StringValue(integration.Mrn),
 		Name:                  types.StringValue(integration.Name),
 		ClientId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.ClientId),

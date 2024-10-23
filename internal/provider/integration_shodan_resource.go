@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -30,7 +31,7 @@ type integrationShodanResource struct {
 
 type integrationShodanResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
 	Mrn  types.String `tfsdk:"mrn"`
@@ -47,17 +48,18 @@ type integrationShodanCredentialModel struct {
 	Token types.String `tfsdk:"token"`
 }
 
-func (r *integrationShodanResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *integrationShodanResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_integration_shodan"
 }
 
-func (r *integrationShodanResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *integrationShodanResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously scan Internet-connected devices with Shodan.`,
+		MarkdownDescription: `Continuously assess external risk for domains and IP addresses.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
@@ -101,7 +103,7 @@ func (r *integrationShodanResource) Configure(ctx context.Context, req resource.
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.
@@ -115,7 +117,7 @@ func (r *integrationShodanResource) Configure(ctx context.Context, req resource.
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *integrationShodanResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -129,15 +131,21 @@ func (r *integrationShodanResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
-	// Do GraphQL request to API to create the resource.
-	spaceMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceId.ValueString()
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource.
 	targets := ConvertSliceStrings(data.Targets)
+	ctx = tflog.SetField(ctx, "targets", targets)
+
+	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
-		spaceMrn,
+		space.MRN(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeShodan,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -151,7 +159,7 @@ func (r *integrationShodanResource) Create(ctx context.Context, req resource.Cre
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to create Domain integration, got error: %s", err,
+					"Unable to create integration, got error: %s", err,
 				),
 			)
 		return
@@ -176,7 +184,7 @@ func (r *integrationShodanResource) Create(ctx context.Context, req resource.Cre
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(data.Name.ValueString())
-	data.SpaceId = types.StringValue(data.SpaceId.ValueString())
+	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -266,14 +274,30 @@ func (r *integrationShodanResource) ImportState(ctx context.Context, req resourc
 	mrn := req.ID
 	integration, err := r.client.GetClientIntegration(ctx, mrn)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get Shodan integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to get integration, got error: %s", err),
+			)
+		return
+	}
+
+	spaceID := strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]
+	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
+		// The provider is configured to manage resources in a different space than the one the
+		// resource is currently configured, we won't allow that
+		resp.Diagnostics.AddError(
+			"Conflict Error",
+			fmt.Sprintf(
+				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+				r.client.Space().ID(), spaceID),
+		)
 		return
 	}
 
 	model := integrationShodanResourceModel{
 		Mrn:     types.StringValue(mrn),
 		Name:    types.StringValue(integration.Name),
-		SpaceId: types.StringValue(strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]),
+		SpaceID: types.StringValue(spaceID),
 		Targets: ConvertListValue(
 			integration.ConfigurationOptions.ShodanConfigurationOptions.Targets,
 		),

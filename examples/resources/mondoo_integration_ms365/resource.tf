@@ -7,12 +7,6 @@ variable "tenant_id" {
   default     = "ffffffff-ffff-ffff-ffff-ffffffffffff"
 }
 
-variable "mondoo_org" {
-  description = "The Mondoo Organization ID"
-  type        = string
-  default     = "your-org-1234567"
-}
-
 locals {
   mondoo_security_integration_name = "Mondoo Security Integration"
 }
@@ -154,18 +148,11 @@ resource "azuread_directory_role_assignment" "global_reader" {
 # ----------------------------------------------
 
 provider "mondoo" {
-  region = "us"
-}
-
-# Create a new space
-resource "mondoo_space" "ms365_space" {
-  name   = "Ms365 Terraform Integration"
-  org_id = var.mondoo_org
+  space = "hungry-poet-123456"
 }
 
 # Setup the Azure integration
 resource "mondoo_integration_ms365" "ms365_integration" {
-  space_id  = mondoo_space.ms365_space.id
   name      = "Ms365 ${local.mondoo_security_integration_name}"
   tenant_id = var.tenant_id
   client_id = azuread_application.mondoo_security.client_id
@@ -174,7 +161,6 @@ resource "mondoo_integration_ms365" "ms365_integration" {
   }
   # wait for the permissions to provisioned
   depends_on = [
-    mondoo_space.ms365_space,
     azuread_application.mondoo_security,
     azuread_service_principal.mondoo_security,
     azuread_directory_role_assignment.global_reader,

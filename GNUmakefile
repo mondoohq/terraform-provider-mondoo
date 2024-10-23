@@ -24,7 +24,7 @@ fmt: ## Runs go formatter
 	gofmt -s -w -e .
 
 .PHONY: dev/enter
-dev/enter: write-terraform-rc ## Updates the terraformrc to point to the DEV_BIN_PATH. Installs the provider to the DEV_BIN_PATH
+dev/enter: write-terraform-rc cleanup-examples ## Updates the terraformrc to point to the DEV_BIN_PATH. Installs the provider to the DEV_BIN_PATH
 	mkdir -vp $(PLUGINS_DIR)
 	go build -o $(PLUGINS_DIR)/$(DEV_BIN_PATH)
 
@@ -39,6 +39,12 @@ write-terraform-rc: ## Write to terraformrc file to mirror mondoohq/mondoo to DE
 .PHONY: remove-terraform-rc
 remove-terraform-rc: ## Remove the terraformrc file
 	@rm -vf "$(HOME)/.terraformrc"
+
+.PHONY: cleanup-examples
+cleanup-examples: ## A quick way to clean up any left over Terraform files inside the examples/ folder
+	find . -name ".terraform*" -type f -exec rm -rf {} \;
+	find . -name "terraform.tfstate*" -type f -exec rm -rf {} \;
+	find . -name ".terraform.lock.hcl" -type f -exec rm -rf {} \;
 
 help: ## Show this help
 	@grep -E '^([a-zA-Z_/-]+):.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "%-20s %s\n", $$1, $$2}'

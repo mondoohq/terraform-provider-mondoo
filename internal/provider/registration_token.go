@@ -26,7 +26,7 @@ func NewRegistrationTokenResource() resource.Resource {
 
 // RegistrationTokenResource defines the resource implementation.
 type RegistrationTokenResource struct {
-	client *mondoov1.Client
+	client *ExtendedGqlClient
 }
 
 // RegistrationTokenResourceModel describes the resource data model.
@@ -34,7 +34,7 @@ type RegistrationTokenResourceModel struct {
 	Mrn types.String `tfsdk:"mrn"`
 
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// registration token details
 	Description  types.String `tfsdk:"description"`
@@ -57,8 +57,8 @@ func (r *RegistrationTokenResource) Schema(ctx context.Context, req resource.Sch
 
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier to create the token in.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier to create the token in. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
@@ -107,7 +107,7 @@ func (r *RegistrationTokenResource) Configure(ctx context.Context, req resource.
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -134,16 +134,13 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 	// Do GraphQL request to API to create the resource
 	description := data.Description.ValueString()
 
-	scopeMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		scopeMrn = spacePrefix + data.SpaceId.ValueString()
-	} else {
-		resp.Diagnostics.AddError(
-			"Either space_id needs to be set",
-			"Either space_id needs to be set",
-		)
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	var expires_in *mondoov1.Int
 	if !data.ExpiresIn.IsNull() {
@@ -173,7 +170,7 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 
 	registrationTokenInput := mondoov1.RegistrationTokenInput{
 		Description:  mondoov1.NewStringPtr(mondoov1.String(description)),
-		ScopeMrn:     mondoov1.NewStringPtr(mondoov1.String(scopeMrn)),
+		ScopeMrn:     mondoov1.NewStringPtr(mondoov1.String(space.MRN())),
 		ExpiresIn:    expires_in,
 		NoExpiration: noExpiration,
 	}
@@ -192,9 +189,12 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 		} `graphql:"generateRegistrationToken(input: $input)"`
 	}
 
-	err := r.client.Mutate(ctx, &generateRegistrationToken, registrationTokenInput, nil)
+	err = r.client.Mutate(ctx, &generateRegistrationToken, registrationTokenInput, nil)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create space, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create registration token, got error: %s", err),
+			)
 		return
 	}
 
@@ -264,15 +264,27 @@ func (r *RegistrationTokenResource) Delete(ctx context.Context, req resource.Del
 			} `graphql:"... on RevokeRegistrationTokenFailure"`
 		} `graphql:"revokeRegistrationToken(input: $input)"`
 	}
+
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
+	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
 	revokeInput := mondoov1.RevokeRegistrationTokenInput{
-		Mrn: mondoov1.String(spacePrefix + data.SpaceId.ValueString()),
+		Mrn: mondoov1.String(space.MRN()),
 	}
 	tflog.Trace(ctx, "RevokeRegistrationTokenInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", revokeInput),
 	})
-	err := r.client.Mutate(ctx, &revokeMutation, revokeInput, nil)
+	err = r.client.Mutate(ctx, &revokeMutation, revokeInput, nil)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to update service account, got error: %s", err),
+			)
 		return
 	}
 }

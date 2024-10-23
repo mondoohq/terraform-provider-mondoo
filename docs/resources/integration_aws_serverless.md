@@ -13,11 +13,6 @@ Continuously scan AWS organization and accounts for misconfigurations and vulner
 ## Example Usage
 
 ```terraform
-variable "mondoo_org" {
-  description = "Mondoo Organization"
-  type        = string
-}
-
 variable "origin_aws_account" {
   description = "Origin AWS Account"
   type        = string
@@ -42,7 +37,7 @@ variable "aws_account_id" {
 }
 
 provider "mondoo" {
-  region = "us"
+  space = "hungry-poet-123456"
 }
 
 provider "aws" {
@@ -51,15 +46,8 @@ provider "aws" {
 
 data "aws_region" "current" {}
 
-# Create a new space
-resource "mondoo_space" "my_space" {
-  name   = "AWS Terraform"
-  org_id = var.mondoo_org
-}
-
 # Setup the AWS integration
 resource "mondoo_integration_aws_serverless" "aws_serverless" {
-  space_id                      = mondoo_space.my_space.id
   name                          = "AWS Integration"
   region                        = data.aws_region.current.name
   is_organization               = false
@@ -96,7 +84,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
   }
 }
 
-# for organisation wide deploys use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instead of aws_cloudformation_stack
+# for organization wide deployments use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instead of aws_cloudformation_stack
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set_instance
 ```
@@ -109,7 +97,6 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 - `name` (String) Name of the integration.
 - `region` (String) AWS region.
 - `scan_configuration` (Attributes) (see [below for nested schema](#nestedatt--scan_configuration))
-- `space_id` (String) Mondoo Space Identifier.
 
 ### Optional
 
@@ -117,6 +104,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 - `console_sign_in_trigger` (Boolean) Enable console sign in trigger.
 - `instance_state_change_trigger` (Boolean) Enable instance state change trigger.
 - `is_organization` (Boolean) Is organization.
+- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
 
 ### Read-Only
 

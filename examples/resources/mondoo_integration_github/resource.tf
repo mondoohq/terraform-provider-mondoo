@@ -1,8 +1,3 @@
-variable "mondoo_org" {
-  description = "The Mondoo Organization ID"
-  type        = string
-}
-
 variable "github_token" {
   description = "The GitHub Token"
   type        = string
@@ -10,20 +5,12 @@ variable "github_token" {
 }
 
 provider "mondoo" {
-  region = "us"
-}
-
-# Create a new space
-resource "mondoo_space" "gh_space" {
-  name   = "My GitHub Space Name"
-  org_id = var.mondoo_org
+  space = "hungry-poet-123456"
 }
 
 # Setup the GitHub integration
 resource "mondoo_integration_github" "gh_integration" {
-  space_id = mondoo_space.gh_space.id
-  name     = "GitHub Integration"
-
+  name  = "GitHub Integration"
   owner = "lunalectric"
 
   # define a repository if you want to restrict scan to a single repository

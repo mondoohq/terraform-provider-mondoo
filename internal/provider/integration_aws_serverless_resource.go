@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -25,7 +25,7 @@ type integrationAwsServerlessResource struct {
 
 type integrationAwsServerlessResourceModel struct {
 	// scope
-	SpaceId types.String `tfsdk:"space_id"`
+	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
 	Mrn   types.String `tfsdk:"mrn"`
@@ -209,8 +209,8 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 		MarkdownDescription: `Continuously scan AWS organization and accounts for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier.",
-				Required:            true,
+				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				Optional:            true,
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
@@ -394,7 +394,7 @@ func (r *integrationAwsServerlessResource) Configure(ctx context.Context, req re
 		return
 	}
 
-	client, ok := req.ProviderData.(*mondoov1.Client)
+	client, ok := req.ProviderData.(*ExtendedGqlClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -405,7 +405,7 @@ func (r *integrationAwsServerlessResource) Configure(ctx context.Context, req re
 		return
 	}
 
-	r.client = &ExtendedGqlClient{client}
+	r.client = client
 }
 
 func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -418,39 +418,49 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	// Do GraphQL request to API to create the resource.
-	spaceMrn := ""
-	if data.SpaceId.ValueString() != "" {
-		spaceMrn = spacePrefix + data.SpaceId.ValueString()
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
+	// Do GraphQL request to API to create the resource.
 	var accountIDs []mondoov1.String
 	accountIds, _ := data.AccountIDs.ToListValue(context.Background())
 	accountIds.ElementsAs(context.Background(), &accountIDs, true)
 
 	// Check if both whitelist and blacklist are provided
 	if len(accountIDs) > 0 && data.IsOrganization.ValueBool() {
-		resp.Diagnostics.AddError("ConflictingAttributesError", "Cannot install CloudFormation Stack to both AWS organization and accounts.")
+		resp.Diagnostics.
+			AddError("ConflictingAttributesError",
+				"Cannot install CloudFormation Stack to both AWS organization and accounts.",
+			)
 		return
 	}
 
+	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
-		spaceMrn,
+		space.MRN(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeAws,
 		mondoov1.ClientIntegrationConfigurationInput{
 			AwsConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create AWS integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to create AWS integration, got error: %s", err),
+			)
 		return
 	}
 
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceId = types.StringValue(data.SpaceId.ValueString())
 	data.Token = types.StringValue(string(integration.Token))
+	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -484,7 +494,10 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 
 	// Check if both whitelist and blacklist are provided
 	if len(accountIDs) > 0 && data.IsOrganization.ValueBool() {
-		resp.Diagnostics.AddError("ConflictingAttributesError", "Cannot install CloudFormation Stack to both AWS organization and accounts.")
+		resp.Diagnostics.
+			AddError("ConflictingAttributesError",
+				"Cannot install CloudFormation Stack to both AWS organization and accounts.",
+			)
 		return
 	}
 
@@ -497,9 +510,17 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 		AwsConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
-	_, err := r.client.UpdateIntegration(ctx, data.Mrn.ValueString(), data.Name.ValueString(), mondoov1.ClientIntegrationTypeAws, opts)
+	_, err := r.client.UpdateIntegration(ctx,
+		data.Mrn.ValueString(),
+		data.Name.ValueString(),
+		mondoov1.ClientIntegrationTypeAws,
+		opts,
+	)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update AWS integration, got error: %s", err))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to update AWS integration, got error: %s", err),
+			)
 		return
 	}
 
@@ -519,11 +540,28 @@ func (r *integrationAwsServerlessResource) Delete(ctx context.Context, req resou
 
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete AWS serverless integration '%s', got error: %s", data.Mrn.ValueString(), err.Error()))
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf(
+					"Unable to delete AWS serverless integration '%s', got error: %s",
+					data.Mrn.ValueString(), err.Error(),
+				),
+			)
 		return
 	}
 }
 
 func (r *integrationAwsServerlessResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("mrn"), req, resp)
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
+		return
+	}
+
+	model := integrationAwsServerlessResourceModel{
+		Mrn:     types.StringValue(integration.Mrn),
+		Name:    types.StringValue(integration.Name),
+		SpaceID: types.StringValue(integration.SpaceID()),
+	}
+
+	resp.State.Set(ctx, &model)
 }

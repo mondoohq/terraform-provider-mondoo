@@ -6,15 +6,44 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
+const orgPrefix = "//captain.api.mondoo.app/organizations/"
+
+// The extended GraphQL client allows us to pass additional information to
+// resources and data sources, things like the Mondoo space.
 type ExtendedGqlClient struct {
 	*mondoov1.Client
+
+	// The default space configured at the provider level, if configured, all resources
+	// will be managed there unless the resource itself specifies a different space
+	space Space
+}
+
+// Space returns the space configured into the extended GraphQL client.
+func (c *ExtendedGqlClient) Space() Space {
+	return c.space
+}
+
+// ComputeSpace receives an optional space ID, if it is empty, it tries to return the space
+// configured into the exptended client, but if both are empty, it throws an error.
+func (c *ExtendedGqlClient) ComputeSpace(spaceID types.String) (Space, error) {
+	if spaceID.ValueString() != "" {
+		return Space(spaceID.ValueString()), nil
+	}
+	if c.space != "" {
+		return c.space, nil
+	}
+	return c.space, errors.New("no space configured on either resource or provider blocks")
 }
 
 // newDataUrl generates a https://tools.ietf.org/html/rfc2397 data url for a given content.
@@ -598,6 +627,18 @@ type Integration struct {
 	ConfigurationOptions ClientIntegrationConfigurationOptions `graphql:"configurationOptions"`
 }
 
+// SpaceID returns the space where the integration is configured (using the integration MRN).
+func (i Integration) SpaceID() string {
+	// we are expecting MRNs like:
+	// => "//captain.api.mondoo.app/spaces/{ID}/integrations/{ID}"
+	mrnSplit := strings.Split(i.Mrn, "/")
+	l := len(mrnSplit)
+	if l >= 3 { // check for safety
+		return mrnSplit[l-3]
+	}
+	return ""
+}
+
 type ClientIntegration struct {
 	Integration Integration
 }
@@ -861,4 +902,33 @@ func (c *ExtendedGqlClient) DeleteFramework(ctx context.Context, mrn string) err
 
 	// Execute the mutation
 	return c.Mutate(ctx, &deleteMutation, input, nil)
+}
+
+// ImportIntegration is a generic way to import an integration, this function fetches the integration from
+// the provided MRN and if it exists, it compares the space configured at the provider level (if any).
+func (c *ExtendedGqlClient) ImportIntegration(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) (*Integration, bool) {
+	mrn := req.ID
+	integration, err := c.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to get integration, got error: %s", err),
+			)
+		return nil, false
+	}
+
+	spaceID := integration.SpaceID()
+	if c.Space().ID() != "" && c.Space().ID() != spaceID {
+		// The provider is configured to manage resources in a different space than the one the
+		// resource is currently configured, we won't allow that
+		resp.Diagnostics.AddError(
+			"Conflict Error",
+			fmt.Sprintf(
+				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+				c.Space().ID(), spaceID),
+		)
+		return nil, false
+	}
+
+	return &integration, true
 }

@@ -13,11 +13,6 @@ Continuously scan Google AWS organization and accounts for misconfigurations and
 ## Example Usage
 
 ```terraform
-variable "mondoo_org" {
-  description = "Mondoo Organization"
-  type        = string
-}
-
 variable "aws_access_key" {
   description = "AWS access key"
   type        = string
@@ -30,18 +25,13 @@ variable "aws_secret_key" {
   sensitive   = true
 }
 
-provider "mondoo" {}
-
-# Create a new space
-resource "mondoo_space" "my_space" {
-  name   = "AWS Terraform"
-  org_id = var.mondoo_org
+provider "mondoo" {
+  space = "hungry-poet-123456"
 }
 
 # Setup the AWS integration
 resource "mondoo_integration_aws" "name" {
-  space_id = mondoo_space.my_space.id
-  name     = "AWS Integration"
+  name = "AWS Integration"
 
   credentials = {
     key = {
@@ -59,7 +49,10 @@ resource "mondoo_integration_aws" "name" {
 
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
-- `space_id` (String) Mondoo Space Identifier.
+
+### Optional
+
+- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
 
 ### Read-Only
 

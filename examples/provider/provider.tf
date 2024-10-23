@@ -2,11 +2,12 @@ terraform {
   required_providers {
     mondoo = {
       source  = "mondoohq/mondoo"
-      version = ">= 0.4.0"
+      version = ">= 0.19"
     }
   }
 }
 
 provider "mondoo" {
-  region = "us" # use "eu" for the European region
+  space  = "hungry-poet-1988"
+  region = "us"
 }

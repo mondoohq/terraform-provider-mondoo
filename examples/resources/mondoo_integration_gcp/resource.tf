@@ -6,11 +6,6 @@ variable "gcp_project" {
   type        = string
 }
 
-variable "mondoo_org" {
-  description = "Mondoo Organization"
-  type        = string
-}
-
 # Create GCP Service Account
 # ----------------------------------------------
 
@@ -45,18 +40,11 @@ output "google_service_account_key" {
 # ----------------------------------------------
 
 provider "mondoo" {
-  region = "us"
-}
-
-# Create a new space
-resource "mondoo_space" "my_space" {
-  name   = "GCP ${data.google_project.project.name}"
-  org_id = var.mondoo_org
+  space = "hungry-poet-123456"
 }
 
 # Setup the GCP integration
 resource "mondoo_integration_gcp" "name" {
-  space_id   = mondoo_space.my_space.id
   name       = "GCP ${data.google_project.project.name}"
   project_id = data.google_project.project.project_id
   credentials = {

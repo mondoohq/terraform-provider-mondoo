@@ -26,6 +26,7 @@ func TestAccSpaceResource(t *testing.T) {
 				Config: testAccSpaceResourceConfig(orgID, "one"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_space.test", "name", "one"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "org_id", orgID),
 				),
 			},
 			// ImportState testing
