@@ -4,6 +4,7 @@
 package provider
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -13,7 +14,25 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	mondoov1 "go.mondoo.com/mondoo-go"
+	"go.mondoo.com/mondoo-go/option"
 )
+
+// Global space for those resources that need an existing space.
+var accSpace Space
+
+func TestMain(m *testing.M) {
+	if err := createSpace(); err != nil {
+		panic(err)
+	}
+
+	code := m.Run()
+
+	if err := deleteSpace(); err != nil {
+		panic(err)
+	}
+	os.Exit(code)
+}
 
 type serviceAccountCredentials struct {
 	Mrn         string `json:"mrn,omitempty"`
@@ -33,6 +52,57 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 
 func testAccPreCheck(t *testing.T) {
 	// nothing to do here for now
+}
+
+func createSpace() error {
+	orgID, err := getOrgId()
+	if err != nil {
+		return err
+	}
+
+	client, err := mondooClient()
+	if err != nil {
+		return err
+	}
+	extendedC := ExtendedGqlClient{client, ""}
+
+	payload, err := extendedC.CreateSpace(context.Background(), orgID, "", "acceptance-test")
+	if err != nil {
+		return err
+	}
+
+	accSpace = SpaceFrom(string(payload.Mrn))
+	return nil
+}
+
+func deleteSpace() error {
+	client, err := mondooClient()
+	if err != nil {
+		return err
+	}
+	extendedC := ExtendedGqlClient{client, ""}
+
+	return extendedC.DeleteSpace(context.Background(), accSpace.ID())
+}
+
+func mondooClient() (*mondoov1.Client, error) {
+	if configBase64 := os.Getenv("MONDOO_CONFIG_BASE64"); configBase64 != "" {
+		// extract base 64 encoded string
+		data, err := base64.StdEncoding.DecodeString(configBase64)
+		if err != nil {
+			return nil, errors.New("MONDOO_CONFIG_BASE64 must be a valid service account")
+		}
+
+		return mondoov1.NewClient(option.WithServiceAccount(data))
+	}
+
+	if configPath := os.Getenv("MONDOO_CONFIG_PATH"); configPath != "" {
+
+		return mondoov1.NewClient(option.WithServiceAccountFile(configPath))
+	}
+	return nil, errors.New(
+		"MONDOO_CONFIG_PATH or MONDOO_CONFIG_BASE64 must be a valid organization service account",
+	)
 }
 
 func getOrgId() (string, error) {
@@ -72,6 +142,9 @@ func getOrgId() (string, error) {
 	if len(m) == 2 {
 		return m[1], nil
 	} else {
-		return "", errors.New("MONDOO_CONFIG_PATH or MONDOO_CONFIG_BASE64 must be a valid organization service account")
+		return "", errors.New(
+			"MONDOO_CONFIG_PATH or MONDOO_CONFIG_BASE64 must be a valid organization service account",
+		)
+
 	}
 }

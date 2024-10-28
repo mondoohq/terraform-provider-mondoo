@@ -59,6 +59,10 @@ func (r *RegistrationTokenResource) Schema(ctx context.Context, req resource.Sch
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier to create the token in. If it is not provided, the provider space is used.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,

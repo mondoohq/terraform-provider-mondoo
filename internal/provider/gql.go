@@ -908,6 +908,8 @@ func (c *ExtendedGqlClient) DeleteFramework(ctx context.Context, mrn string) err
 // the provided MRN and if it exists, it compares the space configured at the provider level (if any).
 func (c *ExtendedGqlClient) ImportIntegration(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) (*Integration, bool) {
 	mrn := req.ID
+	ctx = tflog.SetField(ctx, "mrn", mrn)
+	tflog.Debug(ctx, "importing integration")
 	integration, err := c.GetClientIntegration(ctx, mrn)
 	if err != nil {
 		resp.Diagnostics.

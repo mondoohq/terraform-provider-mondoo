@@ -102,6 +102,9 @@ func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.Schema
 			"space_id": schema.StringAttribute{ // TODO: add check that either space or org needs to be set
 				MarkdownDescription: "Mondoo Space Identifier to create the service account in.",
 				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"org_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Organization Identifier to create the service account in.",

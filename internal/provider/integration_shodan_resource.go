@@ -60,6 +60,9 @@ func (r *integrationShodanResource) Schema(_ context.Context, _ resource.SchemaR
 				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,

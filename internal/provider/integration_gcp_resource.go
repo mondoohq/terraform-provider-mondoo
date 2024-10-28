@@ -56,6 +56,10 @@ func (r *integrationGcpResource) Schema(ctx context.Context, req resource.Schema
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
