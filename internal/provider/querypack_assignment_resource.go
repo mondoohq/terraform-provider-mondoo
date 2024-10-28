@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -52,6 +53,10 @@ func (r *queryPackAssignmentResource) Schema(_ context.Context, req resource.Sch
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"querypacks": schema.ListAttribute{
 				MarkdownDescription: "QueryPacks to assign to the space.",
