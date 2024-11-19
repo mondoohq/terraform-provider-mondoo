@@ -1,5 +1,6 @@
 PLUGINS_DIR="$(HOME)/.terraform.d/plugins"
-DEV_BIN_PATH="registry.terraform.io/mondoohq/mondoo/99.0.0/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-mondoo_v99.0.0"
+MONDOO_PLUGIN_DIR="registry.terraform.io/mondoohq/mondoo"
+DEV_BIN_PATH="99.0.0/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-mondoo_v99.0.0"
 
 default: testacc
 
@@ -26,11 +27,11 @@ fmt: ## Runs go formatter
 .PHONY: dev/enter
 dev/enter: write-terraform-rc cleanup-examples ## Updates the terraformrc to point to the DEV_BIN_PATH. Installs the provider to the DEV_BIN_PATH
 	mkdir -vp $(PLUGINS_DIR)
-	go build -o $(PLUGINS_DIR)/$(DEV_BIN_PATH)
+	go build -o $(PLUGINS_DIR)/$(MONDOO_PLUGIN_DIR)/$(DEV_BIN_PATH)
 
 .PHONY: dev/exit
 dev/exit: remove-terraform-rc ## Removes development provider package from DEV_BIN_PATH
-	@rm -rvf "$(PLUGINS_DIR)/$(DEV_BIN_PATH)"
+	@rm -rvf "$(PLUGINS_DIR)/$(MONDOO_PLUGIN_DIR)"
 
 .PHONY: write-terraform-rc
 write-terraform-rc: ## Write to terraformrc file to mirror mondoohq/mondoo to DEV_BIN_PATH

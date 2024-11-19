@@ -233,7 +233,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create service sccount, got error: %s", err),
+				fmt.Sprintf("Unable to create service account, got error: %s", err),
 			)
 		return
 	}
