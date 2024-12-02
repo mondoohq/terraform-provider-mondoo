@@ -134,17 +134,11 @@ func (r *exceptionResource) Create(ctx context.Context, req resource.CreateReque
 	}
 	ctx = tflog.SetField(ctx, "scope_mrn", scope.MRN())
 
-	checks := make([]string, 0)
-	checkMrns := data.CheckMrns.Elements()
-	for _, check := range checkMrns {
-		checks = append(checks, check.(types.String).ValueString())
-	}
+	checks := []string{}
+	data.CheckMrns.ElementsAs(ctx, &checks, false)
 
-	vulnerabilities := make([]string, 0)
-	vulnerabilityMrns := data.VulnerabilityMrns.Elements()
-	for _, vulnerability := range vulnerabilityMrns {
-		vulnerabilities = append(vulnerabilities, vulnerability.(types.String).ValueString())
-	}
+	vulnerabilities := []string{}
+	data.VulnerabilityMrns.ElementsAs(ctx, &vulnerabilities, false)
 
 	// Format ValidUntil to RFC3339 if provided
 	var validUntilStr string

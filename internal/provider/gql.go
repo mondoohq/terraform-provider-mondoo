@@ -1021,3 +1021,20 @@ func (c *ExtendedGqlClient) ApplyException(
 
 	return c.Mutate(ctx, &applyException, input, nil)
 }
+
+// ListExceptionGroup
+func (c *ExtendedGqlClient) ListExceptionGroup(ctx context.Context, scopeMrn string) ([]mondoov1.ExceptionGroupsInput, error) {
+	var q struct {
+		ExceptionGroups []mondoov1.ExceptionGroupsInput `graphql:"exceptionGroups(scopeMrn: $scopeMrn)"`
+	}
+	variables := map[string]interface{}{
+		"scopeMrn": mondoov1.String(scopeMrn),
+	}
+
+	err := c.Query(ctx, &q, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	return q.ExceptionGroups, nil
+}
