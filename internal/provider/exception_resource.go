@@ -126,14 +126,6 @@ func (r *exceptionResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	// Compute and validate the space
-	scope, err := r.client.ComputeSpace(data.ScopeMrn)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
-	}
-	ctx = tflog.SetField(ctx, "scope_mrn", scope.MRN())
-
 	checks := []string{}
 	data.CheckMrns.ElementsAs(ctx, &checks, false)
 
@@ -153,14 +145,18 @@ func (r *exceptionResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	// Create API call logic
-	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", scope.MRN()))
-	err = r.client.ApplyException(ctx, scope.MRN(), mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
+	// mondoov1.ExceptionMutationAction(data.Action.ValueString())
+	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
+	err := r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
+	fmt.Println("====================================")
+	fmt.Println("Error:", err)
+	fmt.Println("====================================")
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create exception", err.Error())
 		return
 	}
 
-	data.ScopeMrn = types.StringValue(scope.MRN())
+	data.ScopeMrn = types.StringValue(data.ScopeMrn.ValueString())
 	data.ValidUntil = types.StringValue(validUntilStr)
 
 	// Save data into Terraform state
