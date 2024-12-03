@@ -8,12 +8,12 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the jira integration
+# Setup the Jira integration
 resource "mondoo_integration_jira" "jira_integration" {
   name  = "My Jira Integration"
   host  = "https://your-instance.atlassian.net"
-  email = "jiraowner@email.com"
-  # default_project = "GTMS"
+  email = "jira.owner@email.com"
+  # default_project = "MONDOO"
   api_token = var.jira_token
 
   auto_create = true
