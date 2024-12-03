@@ -1008,33 +1008,115 @@ func (c *ExtendedGqlClient) ApplyException(
 
 	// Prepare input fields
 	input := mondoov1.ExceptionMutationInput{
-		ScopeMrn:      mondoov1.String(scopeMrn),
-		Action:        action,
-		QueryMrns:     convertToGraphQLList(checkMrns),
-		ControlMrns:   convertToGraphQLList(controlMrns),
-		CveMrns:       convertToGraphQLList(cveMrns),
+		ScopeMrn:  mondoov1.String(scopeMrn),
+		Action:    action,
+		QueryMrns: convertToGraphQLList(checkMrns),
+		// ControlMrns:   convertToGraphQLList(controlMrns),
+		// CveMrns:       convertToGraphQLList(cveMrns),
 		AdvisoryMrns:  convertToGraphQLList(vulnerabilityMrns),
 		Justification: (*mondoov1.String)(justification),
-		ValidUntil:    (*mondoov1.String)(validUntil),
-		ApplyToCves:   mondoov1.NewBooleanPtr(mondoov1.Boolean(*applyToCves)),
+		// ValidUntil:    (*mondoov1.String)(validUntil),
+		ApplyToCves: mondoov1.NewBooleanPtr(mondoov1.Boolean(*applyToCves)),
 	}
+	fmt.Println("====================================")
+	fmt.Println("Scope:", input.ScopeMrn)
+	fmt.Println("Action:", input.Action)
+	fmt.Println("CheckMrns:", *input.QueryMrns)
+	// fmt.Println("ControlMrns:", *input.ControlMrns)
+	// fmt.Println("CveMrns:", *input.CveMrns)
+	// fmt.Println("VulnerabilityMrns:", *input.AdvisoryMrns)
+	// fmt.Println("Justification:", *input.Justification)
+	// fmt.Println("ValidUntil:", *input.ValidUntil)
+	fmt.Println("ApplyToCves:", *input.ApplyToCves)
+	fmt.Println("====================================")
 
 	return c.Mutate(ctx, &applyException, input, nil)
 }
 
-// ListExceptionGroup
-func (c *ExtendedGqlClient) ListExceptionGroup(ctx context.Context, scopeMrn string) ([]mondoov1.ExceptionGroupsInput, error) {
-	var q struct {
-		ExceptionGroups []mondoov1.ExceptionGroupsInput `graphql:"exceptionGroups(scopeMrn: $scopeMrn)"`
+// ListExceptionGroupsInput defines the input for the ListExceptionGroups query
+type ListExceptionGroupsInput struct {
+	ScopeMrn string   `json:"scopeMrn"`
+	Types    []string `json:"types"`
+}
+
+// Reviewer represents the reviewer of the exception group
+type Reviewer struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+type ExceptionGroup struct {
+	Action        string   `json:"action"`
+	CreatedAt     string   `json:"createdAt"`
+	ID            string   `json:"id"`
+	Justification string   `json:"justification"`
+	ModifiedAt    string   `json:"modifiedAt"`
+	ReviewStatus  string   `json:"reviewStatus"`
+	ScopeMrn      string   `json:"scopeMrn"`
+	Title         string   `json:"title"`
+	Author        Author   `json:"author"`
+	Reviewer      Reviewer `json:"reviewer"`
+}
+
+// ListExceptionGroupsResponse represents the GraphQL response structure
+type ListExceptionGroupsResponse struct {
+	ExceptionGroups []ExceptionGroup `json:"exceptionGroups"`
+}
+
+// ExtendedGqlClient represents a client to communicate with the GraphQL API
+
+func (c *ExtendedGqlClient) ListExceptionGroups(
+	ctx context.Context,
+	scopeMrn string,
+	types []string,
+) ([]ExceptionGroup, error) {
+	// Struct to hold the query response
+	var listExceptionGroups struct {
+		ExceptionGroups []ExceptionGroup `graphql:"exceptionGroups(input: $input)"`
+	}
+
+	// Helper function to convert string slices to *[]mondoov1.String
+	convertToGraphQLList := func(values []string) *[]mondoov1.ExceptionType {
+		if len(values) == 0 {
+			return nil
+		}
+		entries := []mondoov1.ExceptionType{}
+		for _, value := range values {
+			entries = append(entries, mondoov1.ExceptionType(value))
+		}
+		return &entries
+	}
+
+	// Prepare input for the query
+	input := mondoov1.ExceptionGroupsInput{
+		ScopeMrn: mondoov1.String(scopeMrn),
+		Types:    convertToGraphQLList(types),
 	}
 	variables := map[string]interface{}{
-		"scopeMrn": mondoov1.String(scopeMrn),
+		"input": input,
 	}
 
-	err := c.Query(ctx, &q, variables)
-	if err != nil {
-		return nil, err
+	// Execute the query
+	if err := c.Query(ctx, &listExceptionGroups, variables); err != nil {
+		return nil, fmt.Errorf("failed to list exception groups: %w", err)
 	}
 
-	return q.ExceptionGroups, nil
+	return listExceptionGroups.ExceptionGroups, nil
 }
+
+// ListExceptionGroup
+// func (c *ExtendedGqlClient) ListExceptionGroup(ctx context.Context, scopeMrn string) ([]mondoov1.ExceptionGroupsInput, error) {
+// 	var q struct {
+// 		ExceptionGroups []mondoov1.ExceptionGroupsInput `graphql:"exceptionGroups(scopeMrn: $scopeMrn)"`
+// 	}
+// 	variables := map[string]interface{}{
+// 		"scopeMrn": mondoov1.String(scopeMrn),
+// 	}
+
+// 	err := c.Query(ctx, &q, variables)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return q.ExceptionGroups, nil
+// }
