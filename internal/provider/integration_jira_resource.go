@@ -95,6 +95,7 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 			"api_token": schema.StringAttribute{
 				MarkdownDescription: "Jira API token",
 				Required:            true,
+				Sensitive:           true,
 			},
 			"default_project": schema.StringAttribute{
 				MarkdownDescription: "Default Jira project (is represented by the project key e.g. `GTMS` for `Go to market sample`)",
@@ -155,24 +156,29 @@ func (r *integrationJiraResource) Create(ctx context.Context, req resource.Creat
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeMs365,
+		mondoov1.ClientIntegrationTypeTicketSystemJira,
 		mondoov1.ClientIntegrationConfigurationInput{
-			Ms365ConfigurationOptions: &mondoov1.Ms365ConfigurationOptionsInput{
-				TenantID:    mondoov1.String(data.TenantId.ValueString()),
-				ClientID:    mondoov1.String(data.ClientId.ValueString()),
-				Certificate: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
+			JiraConfigurationOptions: &mondoov1.JiraConfigurationOptionsInput{
+				Host:             mondoov1.String(data.Host.ValueString()),
+				Email:            mondoov1.String(data.Email.ValueString()),
+				APIToken:         mondoov1.String(data.ApiToken.ValueString()),
+				DefaultProject:   mondoov1.String(data.DefaultProject.ValueString()),
+				AutoCreateCases:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoCreate.ValueBool())),
+				AutoCloseTickets: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoClose.ValueBool())),
 			},
 		})
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create MS365 integration, got error: %s", err),
+				fmt.Sprintf("Unable to create Jira integration, got error: %s", err),
 			)
 		return
 	}
 
-	// Example data value setting
-	data.Id = types.StringValue("example-id")
+	// Save space mrn into the Terraform state.
+	data.Mrn = types.StringValue(string(integration.Mrn))
+	data.Name = types.StringValue(string(integration.Name))
+	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -204,7 +210,31 @@ func (r *integrationJiraResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	// Update API call logic
+	// Do GraphQL request to API to update the resource.
+	opts := mondoov1.ClientIntegrationConfigurationInput{
+		JiraConfigurationOptions: &mondoov1.JiraConfigurationOptionsInput{
+			Host:             mondoov1.String(data.Host.ValueString()),
+			Email:            mondoov1.String(data.Email.ValueString()),
+			APIToken:         mondoov1.String(data.ApiToken.ValueString()),
+			DefaultProject:   mondoov1.String(data.DefaultProject.ValueString()),
+			AutoCreateCases:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoCreate.ValueBool())),
+			AutoCloseTickets: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoClose.ValueBool())),
+		},
+	}
+
+	_, err := r.client.UpdateIntegration(ctx,
+		data.Mrn.ValueString(),
+		data.Name.ValueString(),
+		mondoov1.ClientIntegrationTypeTicketSystemJira,
+		opts,
+	)
+	if err != nil {
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to update Jira integration, got error: %s", err),
+			)
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -220,5 +250,13 @@ func (r *integrationJiraResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	// Delete API call logic
+	// Do GraphQL request to API to update the resource.
+	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
+	if err != nil {
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to delete Jira integration, got error: %s", err),
+			)
+		return
+	}
 }
