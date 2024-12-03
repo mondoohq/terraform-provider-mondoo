@@ -204,6 +204,7 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewIntegrationShodanResource,
 		NewFrameworkAssignmentResource,
 		NewCustomFrameworkResource,
+		NewIntegrationGitlabResource,
 	}
 }
 
