@@ -27,7 +27,7 @@ provider "mondoo" {
 resource "mondoo_integration_jira" "jira_integration" {
   name  = "My Jira Integration"
   host  = "https://your-instance.atlassian.net"
-  email = "jira.owner@email.com"
+  email = "your.owner@email.com"
   # default_project = "MONDOO"
   api_token = var.jira_token
 
@@ -50,7 +50,7 @@ resource "mondoo_integration_jira" "jira_integration" {
 
 - `auto_close` (Boolean) Automatically close Jira issues for resolved Mondoo findings
 - `auto_create` (Boolean) Automatically create Jira issues for Mondoo findings
-- `default_project` (String) Default Jira project (is represented by the project key e.g. `GTMS` for `Go to market sample`)
+- `default_project` (String) Default Jira project (is represented by the project key e.g. `MONDOO`)
 - `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
 
 ### Read-Only

@@ -98,7 +98,7 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 				Sensitive:           true,
 			},
 			"default_project": schema.StringAttribute{
-				MarkdownDescription: "Default Jira project (is represented by the project key e.g. `GTMS` for `Go to market sample`)",
+				MarkdownDescription: "Default Jira project (is represented by the project key e.g. `MONDOO`)",
 				Optional:            true,
 			},
 			"auto_create": schema.BoolAttribute{

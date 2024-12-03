@@ -12,7 +12,7 @@ provider "mondoo" {
 resource "mondoo_integration_jira" "jira_integration" {
   name  = "My Jira Integration"
   host  = "https://your-instance.atlassian.net"
-  email = "jira.owner@email.com"
+  email = "your.owner@email.com"
   # default_project = "MONDOO"
   api_token = var.jira_token
 
