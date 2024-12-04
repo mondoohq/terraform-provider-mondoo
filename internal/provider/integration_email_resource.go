@@ -85,17 +85,17 @@ func (d defaultRecipientValidator) ValidateList(ctx context.Context, req validat
 		}
 
 		// Check if the value is true
-		switch isDefault := isDefaultAttr.(type) {
-		case types.Bool:
-			if isDefault.ValueBool() {
-				defaultCount++
-			}
-		default:
+		isDefault, ok := isDefaultAttr.(types.Bool)
+		if !ok {
 			resp.Diagnostics.AddError(
 				"Invalid Attribute Type",
 				"The 'is_default' attribute must be a boolean.",
 			)
 			return
+		}
+
+		if isDefault.ValueBool() {
+			defaultCount++
 		}
 	}
 
@@ -153,7 +153,14 @@ func (v AutoCreateValidator) ValidateBool(ctx context.Context, req validator.Boo
 
 		isDefaultAttr, exists := attrs["is_default"]
 		if exists {
-			isDefault := isDefaultAttr.(types.Bool)
+			isDefault, ok := isDefaultAttr.(types.Bool)
+			if !ok {
+				resp.Diagnostics.AddError(
+					"Invalid Attribute Type",
+					"The 'is_default' attribute must be a boolean.",
+				)
+				return
+			}
 			if isDefault.ValueBool() {
 				defaultFound = true
 				break
