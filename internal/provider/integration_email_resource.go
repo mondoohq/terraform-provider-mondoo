@@ -85,17 +85,17 @@ func (d defaultRecipientValidator) ValidateList(ctx context.Context, req validat
 		}
 
 		// Check if the value is true
-		isDefault, ok := isDefaultAttr.(types.Bool)
-		if !ok {
+		switch isDefault := isDefaultAttr.(type) {
+		case types.Bool:
+			if isDefault.ValueBool() {
+				defaultCount++
+			}
+		default:
 			resp.Diagnostics.AddError(
 				"Invalid Attribute Type",
 				"The 'is_default' attribute must be a boolean.",
 			)
 			return
-		}
-
-		if isDefault.ValueBool() {
-			defaultCount++
 		}
 	}
 
@@ -116,7 +116,6 @@ func (d defaultRecipientValidator) MarkdownDescription(ctx context.Context) stri
 	return "Ensures that only one recipient is marked as `default`."
 }
 
-// NewDefaultRecipientValidator creates a new instance of the validator
 func NewDefaultRecipientValidator() validator.List {
 	return defaultRecipientValidator{}
 }
