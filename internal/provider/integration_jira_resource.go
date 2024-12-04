@@ -88,7 +88,7 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
 						regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`),
-						"must be a valid URL",
+						"must be a valid email",
 					),
 				},
 			},
