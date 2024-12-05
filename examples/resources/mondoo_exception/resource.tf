@@ -1,5 +1,5 @@
 variable "spaceId" {
-  type = string 
+  type = string
 }
 
 provider "mondoo" {
@@ -19,7 +19,7 @@ locals {
 
 resource "mondoo_exception" "exception" {
   scope_mrn = "//assets.api.mondoo.app/spaces/${var.spaceId}/assets/${local.assetId}"
-  valid_until = "2024-12-12T09:33:46.206Z"
+  valid_until = "2024-12-11" # will be formatted to 2024-12-12T09:33:46.206Z
   justification = "testing"
   action ="SNOOZE"
   // check_mrns = ["//policy.api.mondoo.app/queries/mondoo-tls-security-no-weak-block-cipher-modes"]
