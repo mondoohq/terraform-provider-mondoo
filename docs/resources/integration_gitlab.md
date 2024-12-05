@@ -27,8 +27,8 @@ provider "mondoo" {
 resource "mondoo_integration_gitlab" "gitlab_integration" {
   name = "GitLab Integration"
 
-  # base_url = "" # optional, otherwise gitlab.com
-  # group = "" # optional, otherwise all groups are discovered
+  # base_url = "https://my-self-hosted-gitlab.com"
+  # group    = "my-group"
 
   # configure discovery options  
   discovery = {
@@ -56,7 +56,7 @@ resource "mondoo_integration_gitlab" "gitlab_integration" {
 
 - `base_url` (String) Base URL of the GitLab instance (only set this if your instance is self-hosted).
 - `discovery` (Attributes) (see [below for nested schema](#nestedatt--discovery))
-- `group` (String) Group to assign the integration to.
+- `group` (String) Group to assign the integration to (by default all groups are discovered).
 - `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
 
 ### Read-Only

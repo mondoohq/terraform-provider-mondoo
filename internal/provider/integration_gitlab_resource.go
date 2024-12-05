@@ -55,6 +55,34 @@ func (r *integrationGitlabResource) Metadata(ctx context.Context, req resource.M
 	resp.TypeName = req.ProviderTypeName + "_integration_gitlab"
 }
 
+func (m integrationGitlabResourceModel) GetConfigurationOptions() *mondoov1.GitlabConfigurationOptionsInput {
+	opts := &mondoov1.GitlabConfigurationOptionsInput{
+		Group:   mondoov1.NewStringPtr(mondoov1.String(m.Group.ValueString())),
+		BaseURL: mondoov1.NewStringPtr(mondoov1.String(m.BaseURL.ValueString())),
+	}
+
+	gitlabType := mondoov1.GitlabIntegrationTypeNone
+	if *opts.Group != "" {
+		gitlabType = mondoov1.GitlabIntegrationTypeGroup
+	}
+
+	opts.Type = gitlabType
+
+	if m.Discovery != nil {
+		opts.DiscoverGroups = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.Discovery.Groups.ValueBool()))
+		opts.DiscoverProjects = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.Discovery.Projects.ValueBool()))
+		opts.DiscoverTerraform = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.Discovery.Terraform.ValueBool()))
+		opts.DiscoverK8sManifests = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.Discovery.K8sManifests.ValueBool()))
+	}
+
+	token := m.Credential.Token.ValueString()
+	if token != "" {
+		opts.Token = mondoov1.NewStringPtr(mondoov1.String(token))
+	}
+
+	return opts
+}
+
 func (r *integrationGitlabResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Continuously scan GitLab for misconfigurations.`,
@@ -82,7 +110,7 @@ func (r *integrationGitlabResource) Schema(ctx context.Context, req resource.Sch
 				},
 			},
 			"group": schema.StringAttribute{
-				MarkdownDescription: "Group to assign the integration to.",
+				MarkdownDescription: "Group to assign the integration to (by default all groups are discovered).",
 				Optional:            true,
 			},
 			"base_url": schema.StringAttribute{
@@ -168,10 +196,6 @@ func (r *integrationGitlabResource) Create(ctx context.Context, req resource.Cre
 	}
 	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
-	gitlabType := mondoov1.GitlabIntegrationType("NONE")
-	if data.Group.ValueString() != "" {
-		gitlabType = mondoov1.GitlabIntegrationType("GROUP")
-	}
 	// Create API call logic
 	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
@@ -179,16 +203,7 @@ func (r *integrationGitlabResource) Create(ctx context.Context, req resource.Cre
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeGitLab,
 		mondoov1.ClientIntegrationConfigurationInput{
-			GitLabConfigurationOptions: &mondoov1.GitlabConfigurationOptionsInput{
-				Type:                 gitlabType,
-				Group:                mondoov1.NewStringPtr(mondoov1.String(data.Group.ValueString())),
-				BaseURL:              mondoov1.NewStringPtr(mondoov1.String(data.BaseURL.ValueString())),
-				DiscoverGroups:       mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Discovery.Groups.ValueBool())),
-				DiscoverProjects:     mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Discovery.Projects.ValueBool())),
-				DiscoverTerraform:    mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Discovery.Terraform.ValueBool())),
-				DiscoverK8sManifests: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Discovery.K8sManifests.ValueBool())),
-				Token:                mondoov1.NewStringPtr(mondoov1.String(data.Credential.Token.ValueString())),
-			},
+			GitLabConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -244,22 +259,8 @@ func (r *integrationGitlabResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	gitlabType := mondoov1.GitlabIntegrationType("NONE")
-	if data.Group.ValueString() != "" {
-		gitlabType = mondoov1.GitlabIntegrationType("GROUP")
-	}
-
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		GitLabConfigurationOptions: &mondoov1.GitlabConfigurationOptionsInput{
-			Type:                 gitlabType,
-			Group:                mondoov1.NewStringPtr(mondoov1.String(data.Group.ValueString())),
-			BaseURL:              mondoov1.NewStringPtr(mondoov1.String(data.BaseURL.ValueString())),
-			DiscoverGroups:       mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Discovery.Groups.ValueBool())),
-			DiscoverProjects:     mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Discovery.Projects.ValueBool())),
-			DiscoverTerraform:    mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Discovery.Terraform.ValueBool())),
-			DiscoverK8sManifests: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Discovery.K8sManifests.ValueBool())),
-			Token:                mondoov1.NewStringPtr(mondoov1.String(data.Credential.Token.ValueString())),
-		},
+		GitLabConfigurationOptions: data.GetConfigurationOptions(),
 	}
 	// Update API call logic
 	_, err := r.client.UpdateIntegration(ctx,
@@ -299,4 +300,30 @@ func (r *integrationGitlabResource) Delete(ctx context.Context, req resource.Del
 			)
 		return
 	}
+}
+
+func (r *integrationGitlabResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
+		return
+	}
+
+	model := integrationGitlabResourceModel{
+		Mrn:     types.StringValue(integration.Mrn),
+		Name:    types.StringValue(integration.Name),
+		SpaceID: types.StringValue(integration.SpaceID()),
+		Group:   types.StringValue(integration.ConfigurationOptions.GitlabConfigurationOptions.Group),
+		BaseURL: types.StringValue(integration.ConfigurationOptions.GitlabConfigurationOptions.BaseURL),
+		Discovery: &integrationGitlabDiscoveryModel{
+			Groups:       types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverGroups),
+			Projects:     types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverProjects),
+			Terraform:    types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverTerraform),
+			K8sManifests: types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverK8sManifests),
+		},
+		Credential: &integrationGitlabCredentialModel{
+			Token: types.StringPointerValue(nil),
+		},
+	}
+
+	resp.State.Set(ctx, &model)
 }

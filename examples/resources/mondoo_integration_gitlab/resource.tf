@@ -12,8 +12,8 @@ provider "mondoo" {
 resource "mondoo_integration_gitlab" "gitlab_integration" {
   name = "GitLab Integration"
 
-  # base_url = "" # optional, otherwise gitlab.com
-  # group = "" # optional, otherwise all groups are discovered
+  # base_url = "https://my-self-hosted-gitlab.com"
+  # group    = "my-group"
 
   # configure discovery options  
   discovery = {
