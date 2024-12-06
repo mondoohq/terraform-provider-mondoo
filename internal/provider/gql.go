@@ -585,9 +585,17 @@ type GithubConfigurationOptions struct {
 	Owner          string
 	Repository     string
 	Organization   string
-	Type           string
 	ReposAllowList []string
 	ReposDenyList  []string
+}
+
+type GitlabConfigurationOptions struct {
+	Group                string
+	DiscoverGroups       bool
+	DiscoverProjects     bool
+	DiscoverTerraform    bool
+	DiscoverK8sManifests bool
+	BaseURL              string
 }
 
 type Ms365ConfigurationOptions struct {
@@ -618,6 +626,7 @@ type ClientIntegrationConfigurationOptions struct {
 	GithubConfigurationOptions    GithubConfigurationOptions    `graphql:"... on GithubConfigurationOptions"`
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
 	ShodanConfigurationOptions    ShodanConfigurationOptions    `graphql:"... on ShodanConfigurationOptions"`
+	GitlabConfigurationOptions    GitlabConfigurationOptions    `graphql:"... on GitlabConfigurationOptions"`
 	// Add other configuration options here
 }
 
