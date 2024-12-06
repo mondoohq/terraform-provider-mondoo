@@ -29,10 +29,13 @@ resource "mondoo_integration_jira" "jira_integration" {
   host  = "https://your-instance.atlassian.net"
   email = "jira.owner@email.com"
   # default_project = "MONDOO"
-  api_token = var.jira_token
 
   auto_create = true
   auto_close  = true
+
+  credentials = {
+    token = var.jira_token
+  }
 }
 ```
 
@@ -41,18 +44,25 @@ resource "mondoo_integration_jira" "jira_integration" {
 
 ### Required
 
-- `api_token` (String, Sensitive) Jira API token
-- `email` (String) Jira user email
-- `host` (String) Jira host URL
+- `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
+- `email` (String) Jira user email.
+- `host` (String) Jira host URL.
 - `name` (String) Name of the integration.
 
 ### Optional
 
 - `auto_close` (Boolean) Automatically close Jira issues for resolved Mondoo findings
-- `auto_create` (Boolean) Automatically create Jira issues for Mondoo findings
-- `default_project` (String) Default Jira project (is represented by the project key e.g. `MONDOO`)
+- `auto_create` (Boolean) Automatically create Jira issues for Mondoo findings.
+- `default_project` (String) Default Jira project (is represented by the project key e.g. `MONDOO`).
 - `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
+
+<a id="nestedatt--credentials"></a>
+### Nested Schema for `credentials`
+
+Required:
+
+- `token` (String, Sensitive) Jira API token.

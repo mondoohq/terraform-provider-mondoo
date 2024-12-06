@@ -30,20 +30,39 @@ type integrationJiraResourceModel struct {
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
-	Mrn      types.String `tfsdk:"mrn"`
-	Name     types.String `tfsdk:"name"`
-	Host     types.String `tfsdk:"host"`
-	Email    types.String `tfsdk:"email"`
-	ApiToken types.String `tfsdk:"api_token"`
+	Mrn   types.String `tfsdk:"mrn"`
+	Name  types.String `tfsdk:"name"`
+	Host  types.String `tfsdk:"host"`
+	Email types.String `tfsdk:"email"`
 
 	// Optional settings
 	DefaultProject types.String `tfsdk:"default_project"`
 	AutoCreate     types.Bool   `tfsdk:"auto_create"`
 	AutoClose      types.Bool   `tfsdk:"auto_close"`
+
+	// credentials
+	Credential *integrationJiraCredentialModel `tfsdk:"credentials"`
+}
+
+type integrationJiraCredentialModel struct {
+	Token types.String `tfsdk:"token"`
 }
 
 func (r *integrationJiraResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_integration_jira"
+}
+
+func (m integrationJiraResourceModel) GetConfigurationOptions() *mondoov1.JiraConfigurationOptionsInput {
+	opts := &mondoov1.JiraConfigurationOptionsInput{
+		Host:             mondoov1.String(m.Host.ValueString()),
+		Email:            mondoov1.String(m.Email.ValueString()),
+		APIToken:         mondoov1.String(m.Credential.Token.ValueString()),
+		DefaultProject:   mondoov1.String(m.DefaultProject.ValueString()),
+		AutoCreateCases:  mondoov1.NewBooleanPtr(mondoov1.Boolean(m.AutoCreate.ValueBool())),
+		AutoCloseTickets: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.AutoClose.ValueBool())),
+	}
+
+	return opts
 }
 
 func (r *integrationJiraResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -60,7 +79,7 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration identifier",
+				MarkdownDescription: "Integration identifier.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -73,7 +92,7 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 			"host": schema.StringAttribute{
-				MarkdownDescription: "Jira host URL",
+				MarkdownDescription: "Jira host URL.",
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
@@ -83,7 +102,7 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 			"email": schema.StringAttribute{
-				MarkdownDescription: "Jira user email",
+				MarkdownDescription: "Jira user email.",
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
@@ -92,22 +111,27 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 					),
 				},
 			},
-			"api_token": schema.StringAttribute{
-				MarkdownDescription: "Jira API token",
-				Required:            true,
-				Sensitive:           true,
-			},
 			"default_project": schema.StringAttribute{
-				MarkdownDescription: "Default Jira project (is represented by the project key e.g. `MONDOO`)",
+				MarkdownDescription: "Default Jira project (is represented by the project key e.g. `MONDOO`).",
 				Optional:            true,
 			},
 			"auto_create": schema.BoolAttribute{
-				MarkdownDescription: "Automatically create Jira issues for Mondoo findings",
+				MarkdownDescription: "Automatically create Jira issues for Mondoo findings.",
 				Optional:            true,
 			},
 			"auto_close": schema.BoolAttribute{
 				MarkdownDescription: "Automatically close Jira issues for resolved Mondoo findings",
 				Optional:            true,
+			},
+			"credentials": schema.SingleNestedAttribute{
+				Required: true,
+				Attributes: map[string]schema.Attribute{
+					"token": schema.StringAttribute{
+						MarkdownDescription: "Jira API token.",
+						Required:            true,
+						Sensitive:           true,
+					},
+				},
 			},
 		},
 	}
@@ -158,14 +182,7 @@ func (r *integrationJiraResource) Create(ctx context.Context, req resource.Creat
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeTicketSystemJira,
 		mondoov1.ClientIntegrationConfigurationInput{
-			JiraConfigurationOptions: &mondoov1.JiraConfigurationOptionsInput{
-				Host:             mondoov1.String(data.Host.ValueString()),
-				Email:            mondoov1.String(data.Email.ValueString()),
-				APIToken:         mondoov1.String(data.ApiToken.ValueString()),
-				DefaultProject:   mondoov1.String(data.DefaultProject.ValueString()),
-				AutoCreateCases:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoCreate.ValueBool())),
-				AutoCloseTickets: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoClose.ValueBool())),
-			},
+			JiraConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -212,14 +229,7 @@ func (r *integrationJiraResource) Update(ctx context.Context, req resource.Updat
 
 	// Do GraphQL request to API to update the resource.
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		JiraConfigurationOptions: &mondoov1.JiraConfigurationOptionsInput{
-			Host:             mondoov1.String(data.Host.ValueString()),
-			Email:            mondoov1.String(data.Email.ValueString()),
-			APIToken:         mondoov1.String(data.ApiToken.ValueString()),
-			DefaultProject:   mondoov1.String(data.DefaultProject.ValueString()),
-			AutoCreateCases:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoCreate.ValueBool())),
-			AutoCloseTickets: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoClose.ValueBool())),
-		},
+		JiraConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	_, err := r.client.UpdateIntegration(ctx,
@@ -259,4 +269,27 @@ func (r *integrationJiraResource) Delete(ctx context.Context, req resource.Delet
 			)
 		return
 	}
+}
+
+func (r *integrationJiraResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
+		return
+	}
+
+	model := integrationJiraResourceModel{
+		Mrn:            types.StringValue(integration.Mrn),
+		Name:           types.StringValue(integration.Name),
+		SpaceID:        types.StringValue(integration.SpaceID()),
+		Host:           types.StringValue(integration.ConfigurationOptions.JiraConfigurationOptions.Host),
+		Email:          types.StringValue(integration.ConfigurationOptions.JiraConfigurationOptions.Email),
+		DefaultProject: types.StringValue(integration.ConfigurationOptions.JiraConfigurationOptions.DefaultProject),
+		AutoCreate:     types.BoolValue(integration.ConfigurationOptions.JiraConfigurationOptions.AutoCreateCases),
+		AutoClose:      types.BoolValue(integration.ConfigurationOptions.JiraConfigurationOptions.AutoCloseTickets),
+		Credential: &integrationJiraCredentialModel{
+			Token: types.StringPointerValue(nil),
+		},
+	}
+
+	resp.State.Set(ctx, &model)
 }

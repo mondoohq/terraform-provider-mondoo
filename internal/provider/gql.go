@@ -609,6 +609,14 @@ type ShodanConfigurationOptions struct {
 	Targets []string
 }
 
+type JiraConfigurationOptions struct {
+	Host             string
+	Email            string
+	DefaultProject   string
+	AutoCloseTickets bool
+	AutoCreateCases  bool
+}
+
 type ClientIntegrationConfigurationOptions struct {
 	AzureConfigurationOptions     AzureConfigurationOptions     `graphql:"... on AzureConfigurationOptions"`
 	HostConfigurationOptions      HostConfigurationOptions      `graphql:"... on HostConfigurationOptions"`
@@ -618,6 +626,7 @@ type ClientIntegrationConfigurationOptions struct {
 	GithubConfigurationOptions    GithubConfigurationOptions    `graphql:"... on GithubConfigurationOptions"`
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
 	ShodanConfigurationOptions    ShodanConfigurationOptions    `graphql:"... on ShodanConfigurationOptions"`
+	JiraConfigurationOptions      JiraConfigurationOptions      `graphql:"... on JiraConfigurationOptions"`
 	// Add other configuration options here
 }
 

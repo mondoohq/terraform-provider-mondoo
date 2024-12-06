@@ -14,8 +14,11 @@ resource "mondoo_integration_jira" "jira_integration" {
   host  = "https://your-instance.atlassian.net"
   email = "jira.owner@email.com"
   # default_project = "MONDOO"
-  api_token = var.jira_token
 
   auto_create = true
   auto_close  = true
+
+  credentials = {
+    token = var.jira_token
+  }
 }
