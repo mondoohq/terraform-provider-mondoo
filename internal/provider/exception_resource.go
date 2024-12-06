@@ -50,6 +50,43 @@ func (r *exceptionResource) Metadata(ctx context.Context, req resource.MetadataR
 	resp.TypeName = req.ProviderTypeName + "_exception"
 }
 
+func (r *exceptionResource) GetConfigurationOptions(ctx context.Context, data *exceptionResourceModel) (scopeMrn string, checks []string, vulnerabilities []string, validUntilStr string, err error) {
+	// Extract ScopeMrn
+	scopeMrn = data.ScopeMrn.ValueString()
+	if scopeMrn == "" {
+		scopeMrn = r.client.space.MRN()
+	}
+
+	// Extract Checks and Vulnerabilities
+	checks = []string{}
+	data.CheckMrns.ElementsAs(ctx, &checks, false)
+
+	vulnerabilities = []string{}
+	data.VulnerabilityMrns.ElementsAs(ctx, &vulnerabilities, false)
+
+	// Format ValidUntil to RFC3339 if provided
+	validUntil := data.ValidUntil.ValueString()
+	if validUntil != "" {
+		year, month, day, parseErr := parseDate(validUntil)
+		if parseErr != nil {
+			return "", nil, nil, "", parseErr
+		}
+		now := time.Now().UTC() // Use UTC directly
+		validUntilStr = time.Date(
+			year,
+			month,
+			day,
+			now.Hour(),
+			now.Minute(),
+			now.Second(),
+			now.Nanosecond(),
+			time.UTC,
+		).Format(time.RFC3339Nano) // Use RFC3339Nano to include nanoseconds
+	}
+
+	return scopeMrn, checks, vulnerabilities, validUntilStr, nil
+}
+
 func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Set custom exceptions fot a Scope.`,
@@ -126,42 +163,15 @@ func (r *exceptionResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	scopeMrn := data.ScopeMrn.ValueString()
-	if scopeMrn == "" {
-		scopeMrn = r.client.space.MRN()
-	}
-
-	checks := []string{}
-	data.CheckMrns.ElementsAs(ctx, &checks, false)
-
-	vulnerabilities := []string{}
-	data.VulnerabilityMrns.ElementsAs(ctx, &vulnerabilities, false)
-
-	// Format ValidUntil to RFC3339 if provided
-	var validUntilStr string
-	validUntil := data.ValidUntil.ValueString()
-	if validUntil != "" {
-		year, month, day, err := parseDate(validUntil)
-		if err != nil {
-			resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-			return
-		}
-		now := time.Now().UTC() // Use UTC directly
-		validUntilStr = time.Date(
-			year,
-			time.Month(month),
-			day,
-			now.Hour(),
-			now.Minute(),
-			now.Second(),
-			now.Nanosecond(),
-			time.UTC,
-		).Format(time.RFC3339Nano) // Use RFC3339Nano to include nanoseconds
+	scopeMrn, checks, vulnerabilities, validUntilStr, err := r.GetConfigurationOptions(ctx, &data)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	}
 
 	// disable existing exceptions
 	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
-	err := r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
+	err = r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
 		return
@@ -207,36 +217,14 @@ func (r *exceptionResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	checks := []string{}
-	data.CheckMrns.ElementsAs(ctx, &checks, false)
-
-	vulnerabilities := []string{}
-	data.VulnerabilityMrns.ElementsAs(ctx, &vulnerabilities, false)
-
-	// Format ValidUntil to RFC3339 if provided
-	var validUntilStr string
-	validUntil := data.ValidUntil.ValueString()
-	if validUntil != "" {
-		year, month, day, err := parseDate(validUntil)
-		if err != nil {
-			resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-			return
-		}
-		now := time.Now().UTC() // Use UTC directly
-		validUntilStr = time.Date(
-			year,
-			time.Month(month),
-			day,
-			now.Hour(),
-			now.Minute(),
-			now.Second(),
-			now.Nanosecond(),
-			time.UTC,
-		).Format(time.RFC3339Nano) // Use RFC3339Nano to include nanoseconds
+	_, checks, vulnerabilities, validUntilStr, err := r.GetConfigurationOptions(ctx, &data)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Deleting exception for scope %s", data.ScopeMrn.ValueString()))
-	err := r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
+	err = r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
 		return
@@ -264,15 +252,15 @@ func (r *exceptionResource) Delete(ctx context.Context, req resource.DeleteReque
 		return
 	}
 
-	checks := []string{}
-	data.CheckMrns.ElementsAs(ctx, &checks, false)
-
-	vulnerabilities := []string{}
-	data.VulnerabilityMrns.ElementsAs(ctx, &vulnerabilities, false)
+	_, checks, vulnerabilities, _, err := r.GetConfigurationOptions(ctx, &data)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
+	}
 
 	// Delete API call logic
 	tflog.Debug(ctx, fmt.Sprintf("Deleting exception for scope %s", data.ScopeMrn.ValueString()))
-	err := r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
+	err = r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to delete exception", err.Error())
 		return
