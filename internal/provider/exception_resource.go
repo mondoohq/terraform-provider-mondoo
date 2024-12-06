@@ -159,53 +159,23 @@ func (r *exceptionResource) Create(ctx context.Context, req resource.CreateReque
 		).Format(time.RFC3339Nano) // Use RFC3339Nano to include nanoseconds
 	}
 
-	// Disable existing exceptions
-	checksToDisable := []string{}
-	for _, mrn := range checks {
-		exceptionGroups, err := r.client.ListExceptionGroups(ctx, scopeMrn, mrn, []string{}, []mondoov1.ExceptionMutationAction{})
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to list existing exceptions", err.Error())
-			return
-		}
-		if len(exceptionGroups) > 0 {
-			for _, group := range exceptionGroups {
-				checksToDisable = append(checksToDisable, group.Exceptions[0].AssetCheckException.Mrn)
-			}
-		}
-	}
-	vulnerabilitiesToDisable := []string{}
-	for _, mrn := range vulnerabilities {
-		exceptionGroups, err := r.client.ListExceptionGroups(ctx, scopeMrn, mrn, []string{}, []mondoov1.ExceptionMutationAction{})
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to list existing exceptions", err.Error())
-			return
-		}
-		if len(exceptionGroups) > 0 {
-			for _, group := range exceptionGroups {
-				vulnerabilitiesToDisable = append(vulnerabilitiesToDisable, group.Exceptions[0].AssetAdvisoryException.Mrn)
-			}
-		}
-	}
-	if len(checksToDisable) > 0 || len(vulnerabilitiesToDisable) > 0 {
-
-		tflog.Debug((ctx), fmt.Sprintf("Disabling existing exceptions for scope %s", data.ScopeMrn.ValueString()))
-		err := r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationAction("ENABLE"), checksToDisable, []string{}, []string{}, vulnerabilitiesToDisable, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to disable existing exceptions", err.Error())
-			return
-		}
+	// disable existing exceptions
+	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
+	err := r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
+		return
 	}
 
 	// Create API call logic
 	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
-	err := r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
+	err = r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create exception", err.Error())
 		return
 	}
 
 	data.ScopeMrn = types.StringValue(scopeMrn)
-	data.ValidUntil = types.StringValue(validUntilStr)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -265,23 +235,20 @@ func (r *exceptionResource) Update(ctx context.Context, req resource.UpdateReque
 		).Format(time.RFC3339Nano) // Use RFC3339Nano to include nanoseconds
 	}
 
-	tflog.Debug((ctx), fmt.Sprintf("Disabling existing exceptions for scope %s", data.ScopeMrn.ValueString()))
-	err := r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationAction("ENABLE"), checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
+	tflog.Debug(ctx, fmt.Sprintf("Deleting exception for scope %s", data.ScopeMrn.ValueString()))
+	err := r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to disable existing exceptions", err.Error())
+		resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
 		return
 	}
 
-	// Create API call logic
+	// Update API call logic
 	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
-	err = r.client.ApplyException(ctx, data.ScopeMrn.String(), mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
+	err = r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to create exception", err.Error())
+		resp.Diagnostics.AddError("Failed to update exception", err.Error())
 		return
 	}
-
-	data.ScopeMrn = types.StringValue(data.ScopeMrn.ValueString())
-	data.ValidUntil = types.StringValue(validUntilStr)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -305,7 +272,7 @@ func (r *exceptionResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	// Delete API call logic
 	tflog.Debug(ctx, fmt.Sprintf("Deleting exception for scope %s", data.ScopeMrn.ValueString()))
-	err := r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationAction("ENABLE"), checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
+	err := r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to delete exception", err.Error())
 		return
