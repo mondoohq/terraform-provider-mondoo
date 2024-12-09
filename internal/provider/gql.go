@@ -617,16 +617,26 @@ type ShodanConfigurationOptions struct {
 	Targets []string
 }
 
+type MicrosoftDefenderConfigurationOptionsInput struct {
+	TenantId               string
+	ClientId               string
+	SubscriptionsAllowlist []string
+	SubscriptionsDenylist  []string
+	Certificate            string
+	ClientSecret           string
+}
+
 type ClientIntegrationConfigurationOptions struct {
-	AzureConfigurationOptions     AzureConfigurationOptions     `graphql:"... on AzureConfigurationOptions"`
-	HostConfigurationOptions      HostConfigurationOptions      `graphql:"... on HostConfigurationOptions"`
-	Ms365ConfigurationOptions     Ms365ConfigurationOptions     `graphql:"... on Ms365ConfigurationOptions"`
-	GcpConfigurationOptions       GcpConfigurationOptions       `graphql:"... on GcpConfigurationOptions"`
-	SlackConfigurationOptions     SlackConfigurationOptions     `graphql:"... on SlackConfigurationOptions"`
-	GithubConfigurationOptions    GithubConfigurationOptions    `graphql:"... on GithubConfigurationOptions"`
-	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
-	ShodanConfigurationOptions    ShodanConfigurationOptions    `graphql:"... on ShodanConfigurationOptions"`
-	GitlabConfigurationOptions    GitlabConfigurationOptions    `graphql:"... on GitlabConfigurationOptions"`
+	AzureConfigurationOptions                  AzureConfigurationOptions                  `graphql:"... on AzureConfigurationOptions"`
+	HostConfigurationOptions                   HostConfigurationOptions                   `graphql:"... on HostConfigurationOptions"`
+	Ms365ConfigurationOptions                  Ms365ConfigurationOptions                  `graphql:"... on Ms365ConfigurationOptions"`
+	GcpConfigurationOptions                    GcpConfigurationOptions                    `graphql:"... on GcpConfigurationOptions"`
+	SlackConfigurationOptions                  SlackConfigurationOptions                  `graphql:"... on SlackConfigurationOptions"`
+	GithubConfigurationOptions                 GithubConfigurationOptions                 `graphql:"... on GithubConfigurationOptions"`
+	HostedAwsConfigurationOptions              HostedAwsConfigurationOptions              `graphql:"... on HostedAwsConfigurationOptions"`
+	ShodanConfigurationOptions                 ShodanConfigurationOptions                 `graphql:"... on ShodanConfigurationOptions"`
+	MicrosoftDefenderConfigurationOptionsInput MicrosoftDefenderConfigurationOptionsInput `graphql:"... on MicrosoftDefenderConfigurationOptionsInput"`
+	GitlabConfigurationOptions                 GitlabConfigurationOptions                 `graphql:"... on GitlabConfigurationOptions"`
 	// Add other configuration options here
 }
 
