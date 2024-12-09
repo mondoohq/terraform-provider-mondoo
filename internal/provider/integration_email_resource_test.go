@@ -24,6 +24,7 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "recipients.0.name", "John Doe"),
 				),
 			},
 			{
@@ -31,6 +32,8 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "auto_create", "true"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "auto_close", "true"),
 				),
 			},
 			// Update and Read testing
@@ -42,6 +45,7 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "name", "three"),
 					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "recipients.0.reference_url", "https://newurl.com"),
 				),
 			},
 			{
@@ -49,6 +53,8 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "name", "four"),
 					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "auto_create", "false"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "auto_close", "false"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
