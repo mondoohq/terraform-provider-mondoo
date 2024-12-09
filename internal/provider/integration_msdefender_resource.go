@@ -47,6 +47,28 @@ type integrationMsDefenderCredentialModel struct {
 	PEMFile types.String `tfsdk:"pem_file"`
 }
 
+func (m integrationMsDefenderResourceModel) GetConfigurationOptions() *mondoov1.MicrosoftDefenderConfigurationOptionsInput {
+	opts := &mondoov1.MicrosoftDefenderConfigurationOptionsInput{
+		TenantID:    mondoov1.String(m.TenantId.ValueString()),
+		ClientID:    mondoov1.String(m.ClientId.ValueString()),
+		Certificate: mondoov1.NewStringPtr(mondoov1.String(m.Credential.PEMFile.ValueString())),
+	}
+
+	ctx := context.Background()
+	var listAllow []mondoov1.String
+	allowlist, _ := m.SubscriptionAllowList.ToListValue(ctx)
+	allowlist.ElementsAs(ctx, &listAllow, true)
+
+	var listDeny []mondoov1.String
+	denylist, _ := m.SubscriptionDenyList.ToListValue(ctx)
+	denylist.ElementsAs(ctx, &listDeny, true)
+
+	opts.SubscriptionsAllowlist = &listAllow
+	opts.SubscriptionsDenylist = &listDeny
+
+	return opts
+}
+
 func (r *integrationMsDefenderResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_integration_msdefender"
 }
@@ -159,36 +181,13 @@ func (r *integrationMsDefenderResource) Create(ctx context.Context, req resource
 	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	// Do GraphQL request to API to create the resource.
-	var listAllow []mondoov1.String
-	allowlist, _ := data.SubscriptionAllowList.ToListValue(ctx)
-	allowlist.ElementsAs(ctx, &listAllow, true)
-
-	var listDeny []mondoov1.String
-	denylist, _ := data.SubscriptionDenyList.ToListValue(ctx)
-	denylist.ElementsAs(ctx, &listDeny, true)
-
-	// Check if both whitelist and blacklist are provided
-	if len(listDeny) > 0 && len(listAllow) > 0 {
-		resp.Diagnostics.
-			AddError("ConflictingAttributesError",
-				"Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.",
-			)
-		return
-	}
-
 	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeMicrosoftDefender,
 		mondoov1.ClientIntegrationConfigurationInput{
-			MicrosoftDefenderConfigurationOptions: &mondoov1.MicrosoftDefenderConfigurationOptionsInput{
-				TenantID:               mondoov1.String(data.TenantId.ValueString()),
-				ClientID:               mondoov1.String(data.ClientId.ValueString()),
-				SubscriptionsAllowlist: &listAllow,
-				SubscriptionsDenylist:  &listDeny,
-				Certificate:            mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
-			},
+			MicrosoftDefenderConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -245,31 +244,8 @@ func (r *integrationMsDefenderResource) Update(ctx context.Context, req resource
 	}
 
 	// Do GraphQL request to API to update the resource.
-	var listAllow []mondoov1.String
-	allowlist, _ := data.SubscriptionAllowList.ToListValue(ctx)
-	allowlist.ElementsAs(ctx, &listAllow, true)
-
-	var listDeny []mondoov1.String
-	denylist, _ := data.SubscriptionDenyList.ToListValue(ctx)
-	denylist.ElementsAs(ctx, &listDeny, true)
-
-	// Check if both whitelist and blacklist are provided
-	if len(listDeny) > 0 && len(listAllow) > 0 {
-		resp.Diagnostics.
-			AddError("ConflictingAttributesError",
-				"Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.",
-			)
-		return
-	}
-
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		MicrosoftDefenderConfigurationOptions: &mondoov1.MicrosoftDefenderConfigurationOptionsInput{
-			TenantID:               mondoov1.String(data.TenantId.ValueString()),
-			ClientID:               mondoov1.String(data.ClientId.ValueString()),
-			SubscriptionsAllowlist: &listAllow,
-			SubscriptionsDenylist:  &listDeny,
-			Certificate:            mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
-		},
+		MicrosoftDefenderConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	_, err := r.client.UpdateIntegration(ctx,
@@ -309,4 +285,29 @@ func (r *integrationMsDefenderResource) Delete(ctx context.Context, req resource
 			)
 		return
 	}
+}
+
+func (r *integrationMsDefenderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
+		return
+	}
+
+	allowList := ConvertListValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.SubscriptionsAllowlist)
+	denyList := ConvertListValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.SubscriptionsDenylist)
+
+	model := integrationMsDefenderResourceModel{
+		Mrn:                   types.StringValue(integration.Mrn),
+		Name:                  types.StringValue(integration.Name),
+		SpaceID:               types.StringValue(integration.SpaceID()),
+		ClientId:              types.StringValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.ClientId),
+		TenantId:              types.StringValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.TenantId),
+		SubscriptionAllowList: allowList,
+		SubscriptionDenyList:  denyList,
+		Credential: integrationMsDefenderCredentialModel{
+			PEMFile: types.StringValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.Certificate),
+		},
+	}
+
+	resp.State.Set(ctx, &model)
 }
