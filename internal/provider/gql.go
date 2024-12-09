@@ -617,6 +617,19 @@ type ShodanConfigurationOptions struct {
 	Targets []string
 }
 
+type ZendeskConfigurationOptions struct {
+	Subdomain         string
+	Email             string
+	AutoCloseTickets  bool
+	AutoCreateTickets bool
+	CustomFields      []ZendeskCustomField
+}
+
+type ZendeskCustomField struct {
+	ID    int64
+	Value string
+}
+
 type ClientIntegrationConfigurationOptions struct {
 	AzureConfigurationOptions     AzureConfigurationOptions     `graphql:"... on AzureConfigurationOptions"`
 	HostConfigurationOptions      HostConfigurationOptions      `graphql:"... on HostConfigurationOptions"`
@@ -626,6 +639,7 @@ type ClientIntegrationConfigurationOptions struct {
 	GithubConfigurationOptions    GithubConfigurationOptions    `graphql:"... on GithubConfigurationOptions"`
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
 	ShodanConfigurationOptions    ShodanConfigurationOptions    `graphql:"... on ShodanConfigurationOptions"`
+	ZendeskConfigurationOptions   ZendeskConfigurationOptions   `graphql:"... on ZendeskConfigurationOptions"`
 	GitlabConfigurationOptions    GitlabConfigurationOptions    `graphql:"... on GitlabConfigurationOptions"`
 	// Add other configuration options here
 }
