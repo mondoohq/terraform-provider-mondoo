@@ -47,6 +47,16 @@ type integrationEmailRecipientInput struct {
 	ReferenceURL types.String `tfsdk:"reference_url"`
 }
 
+func (m integrationEmailResourceModel) GetConfigurationOptions() *mondoov1.EmailConfigurationOptionsInput {
+	opts := &mondoov1.EmailConfigurationOptionsInput{
+		Recipients:        convertRecipients(m.Recipients),
+		AutoCreateTickets: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.AutoCreateTickets.ValueBool())),
+		AutoCloseTickets:  mondoov1.NewBooleanPtr(mondoov1.Boolean(m.AutoCloseTickets.ValueBool())),
+	}
+
+	return opts
+}
+
 func (r *integrationEmailResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_integration_email"
 }
@@ -190,7 +200,7 @@ func NewAutoCreateValidator() validator.Bool {
 
 func (r *integrationEmailResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Send an email message to your ticket system (or any destination).",
+		MarkdownDescription: "Send an email to your ticket system, or any recipient.",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
@@ -248,14 +258,14 @@ func (r *integrationEmailResource) Schema(ctx context.Context, req resource.Sche
 				},
 			},
 			"auto_create": schema.BoolAttribute{
-				MarkdownDescription: "Auto create tickets.",
+				MarkdownDescription: "Auto create tickets (defaults to false).",
 				Optional:            true,
 				Validators: []validator.Bool{
 					NewAutoCreateValidator(),
 				},
 			},
 			"auto_close": schema.BoolAttribute{
-				MarkdownDescription: "Auto close tickets.",
+				MarkdownDescription: "Auto close tickets (defaults to false).",
 				Optional:            true,
 			},
 		},
@@ -322,11 +332,7 @@ func (r *integrationEmailResource) Create(ctx context.Context, req resource.Crea
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeTicketSystemEmail,
 		mondoov1.ClientIntegrationConfigurationInput{
-			EmailConfigurationOptions: &mondoov1.EmailConfigurationOptionsInput{
-				Recipients:        convertRecipients(data.Recipients),
-				AutoCreateTickets: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoCreateTickets.ValueBool())),
-				AutoCloseTickets:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoCloseTickets.ValueBool())),
-			},
+			EmailConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -373,11 +379,7 @@ func (r *integrationEmailResource) Update(ctx context.Context, req resource.Upda
 
 	// Do GraphQL request to API to update the resource.
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		EmailConfigurationOptions: &mondoov1.EmailConfigurationOptionsInput{
-			Recipients:        convertRecipients(data.Recipients),
-			AutoCreateTickets: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoCreateTickets.ValueBool())),
-			AutoCloseTickets:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.AutoCloseTickets.ValueBool())),
-		},
+		EmailConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	_, err := r.client.UpdateIntegration(ctx,
@@ -417,4 +419,32 @@ func (r *integrationEmailResource) Delete(ctx context.Context, req resource.Dele
 			)
 		return
 	}
+}
+
+func (r *integrationEmailResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
+		return
+	}
+
+	var recipients []integrationEmailRecipientInput
+	for _, recipient := range integration.ConfigurationOptions.EmailConfigurationOptions.Recipients {
+		recipients = append(recipients, integrationEmailRecipientInput{
+			Name:         types.StringValue(recipient.Name),
+			Email:        types.StringValue(recipient.Email),
+			IsDefault:    types.BoolValue(recipient.IsDefault),
+			ReferenceURL: types.StringValue(recipient.ReferenceURL),
+		})
+	}
+
+	model := integrationEmailResourceModel{
+		Mrn:               types.StringValue(integration.Mrn),
+		Name:              types.StringValue(integration.Name),
+		SpaceID:           types.StringValue(integration.SpaceID()),
+		AutoCreateTickets: types.BoolValue(integration.ConfigurationOptions.EmailConfigurationOptions.AutoCreateTickets),
+		AutoCloseTickets:  types.BoolValue(integration.ConfigurationOptions.EmailConfigurationOptions.AutoCloseTickets),
+		Recipients:        &recipients,
+	}
+
+	resp.State.Set(ctx, &model)
 }
