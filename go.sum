@@ -605,8 +605,8 @@ go.abhg.dev/goldmark/frontmatter v0.2.0/go.mod h1:XqrEkZuM57djk7zrlRUB02x8I5J0px
 go.etcd.io/etcd/api/v3 v3.5.4/go.mod h1:5GB2vv4A4AOn3yk7MftYGHkUfGtDHnEraIjym4dYz5A=
 go.etcd.io/etcd/client/pkg/v3 v3.5.4/go.mod h1:IJHfcCEKxYu1Os13ZdwCwIUTUVGYTSAM3YSwc9/Ac1g=
 go.etcd.io/etcd/client/v3 v3.5.4/go.mod h1:ZaRkVgBZC+L+dLCjTcF1hRXpgZXQPOvnA/Ak/gq3kiY=
-go.mondoo.com/cnquery/v11 v11.33.0 h1:lXLEPwt+7D3GW2hKMNmHlQlD6YhEd3izGnmHIo2a3Kg=
-go.mondoo.com/cnquery/v11 v11.33.0/go.mod h1:ynuOojMFVuwUAq7nC0Dk6Ut/2MS9T/R+hHmWQdP491Q=
+go.mondoo.com/cnquery/v11 v11.33.1 h1:ppAKcz3PG80AXKclDYOR3w89B7HgszDw3OSStJj4CcI=
+go.mondoo.com/cnquery/v11 v11.33.1/go.mod h1:ynuOojMFVuwUAq7nC0Dk6Ut/2MS9T/R+hHmWQdP491Q=
 go.mondoo.com/mondoo-go v0.0.0-20241118222255-5299c9adc97c h1:0u12icLFjeTLzNQHjPs8Mw65VG1Wl8LxHoGRihwaSmg=
 go.mondoo.com/mondoo-go v0.0.0-20241118222255-5299c9adc97c/go.mod h1:VTTbqYTjin1hKSnwKHVYeOTEyJrAZarNlf1I8M2rlpM=
 go.mondoo.com/ranger-rpc v0.6.4 h1:q01kjESvF2HSnbFO+TjpUQSiI2IM8JWGJLH3u0vNxZA=
