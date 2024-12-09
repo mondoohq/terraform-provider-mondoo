@@ -22,18 +22,18 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 					{"name": "Alice Doe", "email": "alice@example.com", "is_default": false, "reference_url": "https://example.com"},
 				}),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "name", "one"),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "recipients.0.name", "John Doe"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "name", "one"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "recipients.0.name", "John Doe"),
 				),
 			},
 			{
 				Config: testAccEmailIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", true, true),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "name", "two"),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "auto_create", "true"),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "auto_close", "true"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "name", "two"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "auto_create", "true"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "auto_close", "true"),
 				),
 			},
 			// Update and Read testing
@@ -43,18 +43,18 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 					{"name": "Alice Doe", "email": "alice.doe@example.com", "is_default": false, "reference_url": "https://newurl.com"},
 				}),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "name", "three"),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "recipients.0.reference_url", "https://newurl.com"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "name", "three"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "recipients.0.reference_url", "https://newurl.com"),
 				),
 			},
 			{
 				Config: testAccEmailIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", false, false),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "name", "four"),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "auto_create", "false"),
-					resource.TestCheckResourceAttr("mondoo_integration_email.email_integration", "auto_close", "false"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "name", "four"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "auto_create", "false"),
+					resource.TestCheckResourceAttr("mondoo_integration_email.test", "auto_close", "false"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -64,7 +64,7 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 
 func testAccEmailIntegrationResourceConfig(spaceID, intName string, recipients []map[string]interface{}) string {
 	return fmt.Sprintf(`
-resource "mondoo_integration_email" "email_integration" {
+resource "mondoo_integration_email" "test" {
   space_id = %[1]q
   name = %[2]q
   recipients = %[3]q
