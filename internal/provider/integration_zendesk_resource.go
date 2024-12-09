@@ -35,17 +35,36 @@ type integrationZendeskResourceModel struct {
 	Name      types.String `tfsdk:"name"`
 	Subdomain types.String `tfsdk:"subdomain"`
 	Email     types.String `tfsdk:"email"`
-	APIToken  types.String `tfsdk:"api_token"`
 
 	// (Optional.)
 	AutoClose    types.Bool                            `tfsdk:"auto_close"`
 	AutoCreate   types.Bool                            `tfsdk:"auto_create"`
 	CustomFields *[]integrationZendeskCustomFieldModel `tfsdk:"custom_fields"`
+
+	// credentials
+	Credential *integrationZendeskCredentialModel `tfsdk:"credentials"`
 }
 
 type integrationZendeskCustomFieldModel struct {
 	ID    types.Int64  `tfsdk:"id"`
 	Value types.String `tfsdk:"value"`
+}
+
+type integrationZendeskCredentialModel struct {
+	Token types.String `tfsdk:"token"`
+}
+
+func (m integrationZendeskResourceModel) GetConfigurationOptions() *mondoov1.ZendeskConfigurationOptionsInput {
+	opts := &mondoov1.ZendeskConfigurationOptionsInput{
+		Subdomain:         mondoov1.String(m.Subdomain.ValueString()),
+		Email:             mondoov1.String(m.Email.ValueString()),
+		AutoCloseTickets:  mondoov1.Boolean(m.AutoClose.ValueBool()),
+		AutoCreateTickets: mondoov1.Boolean(m.AutoCreate.ValueBool()),
+		CustomFields:      convertCustomFields(m.CustomFields),
+		APIToken:          mondoov1.String(m.Credential.Token.ValueString()),
+	}
+
+	return opts
 }
 
 func (r *integrationZendeskResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -92,11 +111,6 @@ func (r *integrationZendeskResource) Schema(ctx context.Context, req resource.Sc
 					),
 				},
 			},
-			"api_token": schema.StringAttribute{
-				MarkdownDescription: "Zendesk API token.",
-				Required:            true,
-				Sensitive:           true,
-			},
 			"auto_close": schema.BoolAttribute{
 				MarkdownDescription: "Automatically close tickets.",
 				Optional:            true,
@@ -118,6 +132,16 @@ func (r *integrationZendeskResource) Schema(ctx context.Context, req resource.Sc
 							MarkdownDescription: "Custom field value.",
 							Required:            true,
 						},
+					},
+				},
+			},
+			"credentials": schema.SingleNestedAttribute{
+				Required: true,
+				Attributes: map[string]schema.Attribute{
+					"token": schema.StringAttribute{
+						MarkdownDescription: "Token for GitHub integration.",
+						Required:            true,
+						Sensitive:           true,
 					},
 				},
 			},
@@ -184,14 +208,7 @@ func (r *integrationZendeskResource) Create(ctx context.Context, req resource.Cr
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeTicketSystemZendesk,
 		mondoov1.ClientIntegrationConfigurationInput{
-			ZendeskConfigurationOptions: &mondoov1.ZendeskConfigurationOptionsInput{
-				Subdomain:         mondoov1.String(data.Subdomain.ValueString()),
-				Email:             mondoov1.String(data.Email.ValueString()),
-				APIToken:          mondoov1.String(data.APIToken.ValueString()),
-				AutoCloseTickets:  mondoov1.Boolean(data.AutoClose.ValueBool()),
-				AutoCreateTickets: mondoov1.Boolean(data.AutoCreate.ValueBool()),
-				CustomFields:      convertCustomFields(data.CustomFields),
-			},
+			ZendeskConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -238,14 +255,7 @@ func (r *integrationZendeskResource) Update(ctx context.Context, req resource.Up
 
 	// Do GraphQL request to API to update the resource.
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		ZendeskConfigurationOptions: &mondoov1.ZendeskConfigurationOptionsInput{
-			Subdomain:         mondoov1.String(data.Subdomain.ValueString()),
-			Email:             mondoov1.String(data.Email.ValueString()),
-			APIToken:          mondoov1.String(data.APIToken.ValueString()),
-			AutoCloseTickets:  mondoov1.Boolean(data.AutoClose.ValueBool()),
-			AutoCreateTickets: mondoov1.Boolean(data.AutoCreate.ValueBool()),
-			CustomFields:      convertCustomFields(data.CustomFields),
-		},
+		ZendeskConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	_, err := r.client.UpdateIntegration(ctx,
@@ -285,4 +295,35 @@ func (r *integrationZendeskResource) Delete(ctx context.Context, req resource.De
 			)
 		return
 	}
+}
+
+func (r *integrationZendeskResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
+		return
+	}
+
+	var customFields []integrationZendeskCustomFieldModel
+	for _, field := range integration.ConfigurationOptions.ZendeskConfigurationOptions.CustomFields {
+		customFields = append(customFields, integrationZendeskCustomFieldModel{
+			ID:    types.Int64Value(field.ID),
+			Value: types.StringValue(field.Value),
+		})
+	}
+
+	model := integrationZendeskResourceModel{
+		Mrn:          types.StringValue(integration.Mrn),
+		Name:         types.StringValue(integration.Name),
+		SpaceID:      types.StringValue(integration.SpaceID()),
+		Subdomain:    types.StringValue(integration.ConfigurationOptions.ZendeskConfigurationOptions.Subdomain),
+		Email:        types.StringValue(integration.ConfigurationOptions.ZendeskConfigurationOptions.Email),
+		AutoClose:    types.BoolValue(integration.ConfigurationOptions.ZendeskConfigurationOptions.AutoCloseTickets),
+		AutoCreate:   types.BoolValue(integration.ConfigurationOptions.ZendeskConfigurationOptions.AutoCreateTickets),
+		CustomFields: &customFields,
+		Credential: &integrationZendeskCredentialModel{
+			Token: types.StringPointerValue(nil),
+		},
+	}
+
+	resp.State.Set(ctx, &model)
 }

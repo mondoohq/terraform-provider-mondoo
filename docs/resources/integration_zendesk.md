@@ -28,7 +28,6 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
   name      = "My Zendesk Integration"
   subdomain = "your-subdomain"
   email     = "zendeskowner@email.com"
-  api_token = var.zendesk_token
 
   custom_fields = [
     {
@@ -43,6 +42,10 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
 
   auto_create = true
   auto_close  = true
+
+  credentials = {
+    token = var.zendesk_token
+  }
 }
 ```
 
@@ -51,7 +54,7 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
 
 ### Required
 
-- `api_token` (String, Sensitive) Zendesk API token.
+- `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `email` (String) Zendesk email.
 - `name` (String) Name of the integration.
 - `subdomain` (String) Zendesk subdomain.
@@ -66,6 +69,14 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
 ### Read-Only
 
 - `mrn` (String) Integration identifier
+
+<a id="nestedatt--credentials"></a>
+### Nested Schema for `credentials`
+
+Required:
+
+- `token` (String, Sensitive) Token for GitHub integration.
+
 
 <a id="nestedatt--custom_fields"></a>
 ### Nested Schema for `custom_fields`

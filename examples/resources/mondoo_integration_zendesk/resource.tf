@@ -13,7 +13,6 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
   name      = "My Zendesk Integration"
   subdomain = "your-subdomain"
   email     = "zendeskowner@email.com"
-  api_token = var.zendesk_token
 
   custom_fields = [
     {
@@ -28,4 +27,8 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
 
   auto_create = true
   auto_close  = true
+
+  credentials = {
+    token = var.zendesk_token
+  }
 }
