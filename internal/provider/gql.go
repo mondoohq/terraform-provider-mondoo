@@ -617,6 +617,19 @@ type ShodanConfigurationOptions struct {
 	Targets []string
 }
 
+type EmailConfigurationOptions struct {
+	Recipients        []EmailRecipient
+	AutoCreateTickets bool
+	AutoCloseTickets  bool
+}
+
+type EmailRecipient struct {
+	Name         string
+	Email        string
+	IsDefault    bool
+	ReferenceURL string
+}
+
 type ClientIntegrationConfigurationOptions struct {
 	AzureConfigurationOptions     AzureConfigurationOptions     `graphql:"... on AzureConfigurationOptions"`
 	HostConfigurationOptions      HostConfigurationOptions      `graphql:"... on HostConfigurationOptions"`
@@ -626,6 +639,7 @@ type ClientIntegrationConfigurationOptions struct {
 	GithubConfigurationOptions    GithubConfigurationOptions    `graphql:"... on GithubConfigurationOptions"`
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
 	ShodanConfigurationOptions    ShodanConfigurationOptions    `graphql:"... on ShodanConfigurationOptions"`
+	EmailConfigurationOptions     EmailConfigurationOptions     `graphql:"... on EmailConfigurationOptions"`
 	GitlabConfigurationOptions    GitlabConfigurationOptions    `graphql:"... on GitlabConfigurationOptions"`
 	// Add other configuration options here
 }
