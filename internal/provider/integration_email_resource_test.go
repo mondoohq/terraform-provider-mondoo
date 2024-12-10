@@ -17,10 +17,10 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccEmailIntegrationResourceConfig(accSpace.ID(), "one", []map[string]interface{}{
+				Config: testAccEmailIntegrationResourceConfig(accSpace.ID(), "one", `[
 					{"name": "John Doe", "email": "john@example.com", "is_default": true, "reference_url": "https://example.com"},
-					{"name": "Alice Doe", "email": "alice@example.com", "is_default": false, "reference_url": "https://example.com"},
-				}),
+					{"name": "Alice Doe", "email": "alice@example.com", "is_default": false, "reference_url": "https://example.com"}
+				]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_email.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_email.test", "space_id", accSpace.ID()),
@@ -38,10 +38,10 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccEmailIntegrationResourceConfig(accSpace.ID(), "three", []map[string]interface{}{
+				Config: testAccEmailIntegrationResourceConfig(accSpace.ID(), "three", `[
 					{"name": "John Doe", "email": "john.doe@example.com", "is_default": true, "reference_url": "https://newurl.com"},
-					{"name": "Alice Doe", "email": "alice.doe@example.com", "is_default": false, "reference_url": "https://newurl.com"},
-				}),
+					{"name": "Alice Doe", "email": "alice.doe@example.com", "is_default": false, "reference_url": "https://newurl.com"}
+				]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_email.test", "name", "three"),
 					resource.TestCheckResourceAttr("mondoo_integration_email.test", "space_id", accSpace.ID()),
@@ -62,12 +62,12 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 	})
 }
 
-func testAccEmailIntegrationResourceConfig(spaceID, intName string, recipients []map[string]interface{}) string {
+func testAccEmailIntegrationResourceConfig(spaceID, intName, recipients string) string {
 	return fmt.Sprintf(`
 resource "mondoo_integration_email" "test" {
   space_id = %[1]q
   name = %[2]q
-  recipients = %[3]q
+  recipients = %[3]s
   auto_create = true
   auto_close = true
 }
@@ -79,7 +79,7 @@ func testAccEmailIntegrationResourceWithSpaceInProviderConfig(spaceID, intName s
 provider "mondoo" {
   space = %[1]q
 }
-resource "mondoo_integration_email" "email_integration" {
+resource "mondoo_integration_email" "test" {
   name = %[2]q
   recipients = [
     {

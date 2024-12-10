@@ -21,7 +21,7 @@ func TestAccGitLabResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "discovery.0.groups", "true"),
+					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "discovery.groups", "true"),
 				),
 			},
 			{
@@ -29,7 +29,7 @@ func TestAccGitLabResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "credentials.0.token", "abctoken12345"),
+					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "credentials.token", "abctoken12345"),
 				),
 			},
 			// ImportState testing
@@ -46,7 +46,7 @@ func TestAccGitLabResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "discovery.0.groups", "true"),
+					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "discovery.groups", "true"),
 				),
 			},
 			{
@@ -54,7 +54,7 @@ func TestAccGitLabResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "credentials.0.token", "abctoken12345"),
+					resource.TestCheckResourceAttr("mondoo_integration_gitlab.test", "credentials.token", "abctoken12345"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -66,17 +66,17 @@ func testAccGitLabResourceConfig(spaceID, intName string, discoveryGroup bool) s
 	return fmt.Sprintf(`
 resource "mondoo_integration_gitlab" "test" {
 	space_id = %[1]q
-  	name = %[2]q
+	name = %[2]q
 	base_url = "https://my-self-hosted-gitlab.com"
-  	group    = "my-group"
+	group    = "my-group"
 	discovery = {
-	  groups        = %[3]t
-	  projects      = true
-	  terraform     = true
-	  k8s_manifests = true
+		groups        = %[3]t
+		projects      = true
+		terraform     = true
+		k8s_manifests = true
 	}
 	credentials = {
-	  token = "abcd1234567890"
+		token = "abcd1234567890"
 	}
 }
 `, spaceID, intName, discoveryGroup)
@@ -85,20 +85,20 @@ resource "mondoo_integration_gitlab" "test" {
 func testAccGitLabResourceWithSpaceInProviderConfig(spaceID, intName, token string) string {
 	return fmt.Sprintf(`
 provider "mondoo" {
-  space = %[1]q
+	space = %[1]q
 }
 resource "mondoo_integration_gitlab" "test" {
-  	name = %[2]q
+	name = %[2]q
 	base_url = "https://my-self-hosted-gitlab.com"
-  	group    = "my-group"
+	group    = "my-group"
 	discovery = {
-	  groups        = true
-	  projects      = true
-	  terraform     = true
-	  k8s_manifests = true
+		groups        = true
+		projects      = true
+		terraform     = true
+		k8s_manifests = true
 	}
 	credentials = {
-	  token = %[3]q
+		token = %[3]q
 	}
 }
 `, spaceID, intName, token)
