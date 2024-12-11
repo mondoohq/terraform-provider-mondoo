@@ -17,16 +17,16 @@ func TestAccZendeskResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccZendeskResourceConfig(accSpace.ID(), "one", "your-subdomain", "zendeskowner@email.com", []customField{
-					{ID: "123456", Value: "custom_value_1"},
-					{ID: "123457", Value: "custom_value_2"},
-				}),
+				Config: testAccZendeskResourceConfig(accSpace.ID(), "one", "your-subdomain", "zendeskowner@email.com", `[
+					{id: "123456", value: "custom_value_1"},
+					{id: "123457", value: "custom_value_2"},
+				]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "subdomain", "your-subdomain"),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "email", "zendeskowner@email.com"),
-					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "custom_fields.#", "2"),
+					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "custom_fields.0.value", "custom_value_1"),
 				),
 			},
 			{
@@ -36,20 +36,20 @@ func TestAccZendeskResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "auto_create", "true"),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "auto_close", "true"),
-					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "credentials.0.token", "abctoken12345"),
+					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "credentials.token", "abctoken12345"),
 				),
 			},
 			// Update and Read testing
 			{
-				Config: testAccZendeskResourceConfig(accSpace.ID(), "three", "updated-subdomain", "updated@email.com", []customField{
-					{ID: "123456", Value: "new_custom_value_1"},
-				}),
+				Config: testAccZendeskResourceConfig(accSpace.ID(), "three", "updated-subdomain", "updated@email.com", `[
+					{id: "123456", value: "new_custom_value_1"},
+				]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "name", "three"),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "subdomain", "updated-subdomain"),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "email", "updated@email.com"),
-					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "custom_fields.#", "1"),
+					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "custom_fields.0.value", "new_custom_value_1"),
 				),
 			},
 			{
@@ -59,7 +59,7 @@ func TestAccZendeskResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "auto_create", "false"),
 					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "auto_close", "false"),
-					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "credentials.0.token", "0987xyzabc7654"),
+					resource.TestCheckResourceAttr("mondoo_integration_zendesk.test", "credentials.token", "0987xyzabc7654"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -67,7 +67,7 @@ func TestAccZendeskResource(t *testing.T) {
 	})
 }
 
-func testAccZendeskResourceConfig(spaceID, name, subdomain, email string, customFields []customField) string {
+func testAccZendeskResourceConfig(spaceID, name, subdomain, email, customFields string) string {
 	return fmt.Sprintf(`
 resource "mondoo_integration_zendesk" "test" {
   space_id = %[1]q
@@ -75,9 +75,7 @@ resource "mondoo_integration_zendesk" "test" {
   subdomain = %[3]q
   email     = %[4]q
 
-  custom_fields = [
-    %[5]s
-  ]
+  custom_fields = %[5]s
 
   auto_create = true
   auto_close  = true
@@ -87,11 +85,6 @@ resource "mondoo_integration_zendesk" "test" {
   }
 }
 `, spaceID, name, subdomain, email, customFields)
-}
-
-type customField struct {
-	ID    string
-	Value string
 }
 
 func testAccZendeskResourceWithSpaceInProviderConfig(spaceID, intName, token string, autoCreate, autoClose bool) string {
