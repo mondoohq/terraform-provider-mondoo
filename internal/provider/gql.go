@@ -630,6 +630,19 @@ type ZendeskCustomField struct {
 	Value string
 }
 
+type EmailConfigurationOptions struct {
+	Recipients        []EmailRecipient
+	AutoCreateTickets bool
+	AutoCloseTickets  bool
+}
+
+type EmailRecipient struct {
+	Name         string
+	Email        string
+	IsDefault    bool
+	ReferenceURL string
+}
+
 type ClientIntegrationConfigurationOptions struct {
 	AzureConfigurationOptions     AzureConfigurationOptions     `graphql:"... on AzureConfigurationOptions"`
 	HostConfigurationOptions      HostConfigurationOptions      `graphql:"... on HostConfigurationOptions"`
@@ -640,6 +653,7 @@ type ClientIntegrationConfigurationOptions struct {
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
 	ShodanConfigurationOptions    ShodanConfigurationOptions    `graphql:"... on ShodanConfigurationOptions"`
 	ZendeskConfigurationOptions   ZendeskConfigurationOptions   `graphql:"... on ZendeskConfigurationOptions"`
+	EmailConfigurationOptions     EmailConfigurationOptions     `graphql:"... on EmailConfigurationOptions"`
 	GitlabConfigurationOptions    GitlabConfigurationOptions    `graphql:"... on GitlabConfigurationOptions"`
 	// Add other configuration options here
 }
