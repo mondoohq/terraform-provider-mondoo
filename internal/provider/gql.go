@@ -625,6 +625,19 @@ type JiraConfigurationOptions struct {
 	AutoCreateCases  bool
 }
 
+type EmailConfigurationOptions struct {
+	Recipients        []EmailRecipient
+	AutoCreateTickets bool
+	AutoCloseTickets  bool
+}
+
+type EmailRecipient struct {
+	Name         string
+	Email        string
+	IsDefault    bool
+	ReferenceURL string
+}
+
 type ClientIntegrationConfigurationOptions struct {
 	AzureConfigurationOptions     AzureConfigurationOptions     `graphql:"... on AzureConfigurationOptions"`
 	HostConfigurationOptions      HostConfigurationOptions      `graphql:"... on HostConfigurationOptions"`
@@ -635,6 +648,7 @@ type ClientIntegrationConfigurationOptions struct {
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
 	ShodanConfigurationOptions    ShodanConfigurationOptions    `graphql:"... on ShodanConfigurationOptions"`
 	JiraConfigurationOptions      JiraConfigurationOptions      `graphql:"... on JiraConfigurationOptions"`
+	EmailConfigurationOptions     EmailConfigurationOptions     `graphql:"... on EmailConfigurationOptions"`
 	GitlabConfigurationOptions    GitlabConfigurationOptions    `graphql:"... on GitlabConfigurationOptions"`
 	// Add other configuration options here
 }
