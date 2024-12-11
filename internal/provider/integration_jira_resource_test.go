@@ -19,8 +19,8 @@ func TestAccJiraResource(t *testing.T) {
 			{
 				Config: testAccJiraResourceConfig(accSpace.ID(), "one", "https://your-instance.atlassian.net", "jira.owner@email.com", "MONDOO"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_integration_shodan.test", "name", "one"),
-					resource.TestCheckResourceAttr("mondoo_integration_shodan.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "name", "one"),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "host", "https://your-instance.atlassian.net"),
 					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "email", "jira.owner@email.com"),
 					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "default_project", "MONDOO"),
@@ -29,40 +29,32 @@ func TestAccJiraResource(t *testing.T) {
 			{
 				Config: testAccJiraResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "abctoken12345", true, false),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_integration_shodan.test", "name", "two"),
-					resource.TestCheckResourceAttr("mondoo_integration_shodan.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "credentials.0.token", "abctoken12345"),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "name", "two"),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "credentials.token", "abctoken12345"),
 					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "auto_create", "true"),
 					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "auto_close", "false"),
 				),
 			},
-			// ImportState testing
-			// @afiune this doesn't work since most of our resources doesn't have the `id` attribute
-			// if we add it, instead of the `mrn` or as a copy, this import test will work
-			// {
-			// ResourceName:      "mondoo_integration_shodan.test",
-			// ImportState:       true,
-			// ImportStateVerify: true,
-			// },
 			// Update and Read testing
 			{
 				Config: testAccJiraResourceConfig(accSpace.ID(), "one", "https://your-instance.atlassian.net", "jira.owner@email.com", "MONDOO"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_integration_shodan.test", "name", "one"),
-					resource.TestCheckResourceAttr("mondoo_integration_shodan.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "name", "one"),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "host", "https://your-instance.atlassian.net"),
 					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "email", "jira.owner@email.com"),
 					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "default_project", "MONDOO"),
 				),
 			},
 			{
-				Config: testAccJiraResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "abctoken12345", true, false),
+				Config: testAccJiraResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "abctoken12345", false, true),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_integration_shodan.test", "name", "two"),
-					resource.TestCheckResourceAttr("mondoo_integration_shodan.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "credentials.0.token", "abctoken12345"),
-					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "auto_create", "true"),
-					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "auto_close", "false"),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "name", "two"),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "credentials.token", "abctoken12345"),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "auto_create", "false"),
+					resource.TestCheckResourceAttr("mondoo_integration_jira.test", "auto_close", "true"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -72,14 +64,6 @@ func TestAccJiraResource(t *testing.T) {
 
 func testAccJiraResourceConfig(spaceID, intName, host, email, defaultProject string) string {
 	return fmt.Sprintf(`
-resource "mondoo_integration_shodan" "test" {
-	space_id = %[1]q
-  name = %[2]q
-  targets = %[3]q
-	credentials = {
-	  token = "abcd1234567890"
-	}
-}
 resource "mondoo_integration_jira" "test" {
   space_id = %[1]q
   name  = %[2]q
