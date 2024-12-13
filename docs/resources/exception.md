@@ -48,8 +48,8 @@ resource "mondoo_exception" "exception" {
 ### Optional
 
 - `action` (String) The action to perform. Default is `SNOOZE`. Other options are `ENABLE`, `DISABLE`, `OUT_OF_SCOPE`.
-- `check_mrns` (List of String) List of check MRNs to set exceptions for.
+- `check_mrns` (List of String) List of check MRNs to set exceptions for. If set, `vulnerability_mrns` must not be set.
 - `justification` (String) Description why the exception is required.
 - `scope_mrn` (String) The MRN of the scope (either asset mrn or space mrn).
 - `valid_until` (String) The timestamp until the exception is valid.
-- `vulnerability_mrns` (List of String) List of vulnerability MRNs to set exceptions for.
+- `vulnerability_mrns` (List of String) List of vulnerability MRNs to set exceptions for. If set, `check_mrns` must not be set.
