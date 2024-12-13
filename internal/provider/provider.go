@@ -205,6 +205,7 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewFrameworkAssignmentResource,
 		NewCustomFrameworkResource,
 		NewIntegrationZendeskResource,
+		NewIntegrationJiraResource,
 		NewIntegrationEmailResource,
 		NewIntegrationGitlabResource,
 	}
