@@ -6,7 +6,9 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -87,6 +89,42 @@ func (r *exceptionResource) GetConfigurationOptions(ctx context.Context, data *e
 	return scopeMrn, checks, vulnerabilities, validUntilStr, nil
 }
 
+// ValidUntilValidator ensures the "valid_until" attribute is only set when "action" is "SNOOZE".
+type ValidUntilValidator struct{}
+
+// ValidateString performs the validation for the "valid_until" attribute.
+func (v ValidUntilValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	// Retrieve the "action" attribute value from the attribute path
+	var actionAttr types.String
+	err := req.Config.GetAttribute(ctx, path.Root("action"), &actionAttr)
+	if err != nil || actionAttr.IsNull() {
+		return // If "action" is not set or there's an error, nothing to validate
+	}
+
+	if actionAttr.ValueString() != "SNOOZE" && !req.ConfigValue.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"'valid_until' Can Only Be Set with 'action' as 'SNOOZE'",
+			"To use 'valid_until', the 'action' attribute must be set to 'SNOOZE'. Either remove 'valid_until' or change 'action' to 'SNOOZE'.",
+		)
+	}
+}
+
+// Description returns a plain-text description of the validator's purpose.
+func (v ValidUntilValidator) Description(ctx context.Context) string {
+	return "'valid_until' can only be set if 'action' is set to 'SNOOZE'."
+}
+
+// MarkdownDescription returns a markdown-formatted description of the validator's purpose.
+func (v ValidUntilValidator) MarkdownDescription(ctx context.Context) string {
+	return "'valid_until' can only be set if 'action' is set to `SNOOZE`."
+}
+
+// NewValidUntilValidator is a convenience function for creating an instance of the validator.
+func NewValidUntilValidator() validator.String {
+	return &ValidUntilValidator{}
+}
+
 func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Set custom exceptions fot a Scope.`,
@@ -104,6 +142,7 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(regexp.MustCompile(`[1-9][0-9][0-9]{2}-([0][1-9]|[1][0-2])-([1-2][0-9]|[0][1-9]|[3][0-1])`), "Date must be in the format 'YYYY-MM-DD'"),
+					NewValidUntilValidator(),
 				},
 			},
 			"justification": schema.StringAttribute{
@@ -120,14 +159,26 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 			},
 			"check_mrns": schema.ListAttribute{
-				MarkdownDescription: "List of check MRNs to set exceptions for.",
+				MarkdownDescription: "List of check MRNs to set exceptions for. If set, `vulnerability_mrns` must not be set.",
 				ElementType:         types.StringType,
 				Optional:            true,
+				Validators: []validator.List{
+					listvalidator.ConflictsWith(path.Expressions{
+						path.MatchRoot("vulnerability_mrns"),
+					}...),
+					listvalidator.ExactlyOneOf(path.MatchRoot("check_mrns"), path.MatchRoot("vulnerability_mrns")),
+				},
 			},
 			"vulnerability_mrns": schema.ListAttribute{
-				MarkdownDescription: "List of vulnerability MRNs to set exceptions for.",
+				MarkdownDescription: "List of vulnerability MRNs to set exceptions for. If set, `check_mrns` must not be set.",
 				ElementType:         types.StringType,
 				Optional:            true,
+				Validators: []validator.List{
+					listvalidator.ConflictsWith(path.Expressions{
+						path.MatchRoot("check_mrns"),
+					}...),
+					listvalidator.ExactlyOneOf(path.MatchRoot("check_mrns"), path.MatchRoot("vulnerability_mrns")),
+				},
 			},
 		},
 	}
