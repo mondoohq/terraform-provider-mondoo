@@ -90,7 +90,7 @@ func (r *integrationAwsResource) Metadata(ctx context.Context, req resource.Meta
 
 func (r *integrationAwsResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously scan Google AWS organization and accounts for misconfigurations and vulnerabilities.`,
+		MarkdownDescription: `Continuously scan AWS organization and accounts for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
