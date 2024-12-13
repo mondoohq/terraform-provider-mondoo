@@ -617,6 +617,14 @@ type ShodanConfigurationOptions struct {
 	Targets []string
 }
 
+type JiraConfigurationOptions struct {
+	Host             string
+	Email            string
+	DefaultProject   string
+	AutoCloseTickets bool
+	AutoCreateCases  bool
+}
+
 type EmailConfigurationOptions struct {
 	Recipients        []EmailRecipient
 	AutoCreateTickets bool
@@ -639,6 +647,7 @@ type ClientIntegrationConfigurationOptions struct {
 	GithubConfigurationOptions    GithubConfigurationOptions    `graphql:"... on GithubConfigurationOptions"`
 	HostedAwsConfigurationOptions HostedAwsConfigurationOptions `graphql:"... on HostedAwsConfigurationOptions"`
 	ShodanConfigurationOptions    ShodanConfigurationOptions    `graphql:"... on ShodanConfigurationOptions"`
+	JiraConfigurationOptions      JiraConfigurationOptions      `graphql:"... on JiraConfigurationOptions"`
 	EmailConfigurationOptions     EmailConfigurationOptions     `graphql:"... on EmailConfigurationOptions"`
 	GitlabConfigurationOptions    GitlabConfigurationOptions    `graphql:"... on GitlabConfigurationOptions"`
 	// Add other configuration options here
