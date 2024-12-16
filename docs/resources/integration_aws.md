@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_aws Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously scan Google AWS organization and accounts for misconfigurations and vulnerabilities.
+  Continuously scan AWS accounts for misconfigurations and vulnerabilities.
 ---
 
 # mondoo_integration_aws (Resource)
 
-Continuously scan Google AWS organization and accounts for misconfigurations and vulnerabilities.
+Continuously scan AWS accounts for misconfigurations and vulnerabilities.
 
 ## Example Usage
 
