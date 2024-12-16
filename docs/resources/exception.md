@@ -3,12 +3,12 @@
 page_title: "mondoo_exception Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Set custom exceptions fot a Scope.
+  Set custom exceptions for a Scope.
 ---
 
 # mondoo_exception (Resource)
 
-Set custom exceptions fot a Scope.
+Set custom exceptions for a Scope.
 
 ## Example Usage
 
