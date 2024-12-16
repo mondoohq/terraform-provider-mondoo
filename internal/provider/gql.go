@@ -656,8 +656,6 @@ type MicrosoftDefenderConfigurationOptionsInput struct {
 	ClientId               string
 	SubscriptionsAllowlist []string
 	SubscriptionsDenylist  []string
-	Certificate            string
-	ClientSecret           string
 }
 
 type ClientIntegrationConfigurationOptions struct {
@@ -673,7 +671,7 @@ type ClientIntegrationConfigurationOptions struct {
 	JiraConfigurationOptions                   JiraConfigurationOptions                   `graphql:"... on JiraConfigurationOptions"`
 	EmailConfigurationOptions                  EmailConfigurationOptions                  `graphql:"... on EmailConfigurationOptions"`
 	GitlabConfigurationOptions                 GitlabConfigurationOptions                 `graphql:"... on GitlabConfigurationOptions"`
-	MicrosoftDefenderConfigurationOptionsInput MicrosoftDefenderConfigurationOptionsInput `graphql:"... on MicrosoftDefenderConfigurationOptionsInput"`
+	MicrosoftDefenderConfigurationOptionsInput MicrosoftDefenderConfigurationOptionsInput `graphql:"... on MicrosoftDefenderConfigurationOptions"`
 	// Add other configuration options here
 }
 
