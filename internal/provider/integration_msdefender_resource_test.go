@@ -23,7 +23,7 @@ func TestAccMsDefenderIntegrationResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "tenant_id", "ffffffff-ffff-ffff-ffff-ffffffffffff"),
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "client_id", "ffffffff-ffff-ffff-ffff-ffffffffffff"),
-					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "subscription_allow_list", `["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]`),
+					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "subscription_allow_list.0", "ffffffff-ffff-ffff-ffff-ffffffffffff"),
 				),
 			},
 			{
@@ -31,7 +31,7 @@ func TestAccMsDefenderIntegrationResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "subscription_deny_list", `["ffffffff-ffff-ffff-ffff-ffffffffffff", "ffffffff-ffff-ffff-ffff-ffffffffffff"]`),
+					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "subscription_deny_list.0", "ffffffff-ffff-ffff-ffff-ffffffffffff"),
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "credentials.pem_file", "abcd1234567890"),
 				),
 			},
@@ -43,7 +43,7 @@ func TestAccMsDefenderIntegrationResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "tenant_id", "ffffffff-ffff-ffff-ffff-ffffffffff"),
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "client_id", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
-					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "subscription_allow_list", `["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]`),
+					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "subscription_allow_list.0", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
 				),
 			},
 			{
@@ -51,7 +51,7 @@ func TestAccMsDefenderIntegrationResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "name", "four"),
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "subscription_deny_list", `["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]`),
+					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "subscription_deny_list.0", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
 					resource.TestCheckResourceAttr("mondoo_integration_msdefender.msdefender_integration", "credentials.pem_file", "abcd1234567890"),
 				),
 			},
