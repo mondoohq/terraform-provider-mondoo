@@ -127,7 +127,7 @@ func NewValidUntilValidator() validator.String {
 
 func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Set custom exceptions fot a Scope.`,
+		MarkdownDescription: `Set custom exceptions for a Scope.`,
 		Attributes: map[string]schema.Attribute{
 			"scope_mrn": schema.StringAttribute{
 				MarkdownDescription: "The MRN of the scope (either asset mrn or space mrn).",
