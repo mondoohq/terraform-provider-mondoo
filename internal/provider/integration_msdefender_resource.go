@@ -205,7 +205,6 @@ func (r *integrationMsDefenderResource) Create(ctx context.Context, req resource
 			AddWarning("Client Error",
 				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
 			)
-		return
 	}
 
 	// Save space mrn into the Terraform state.
