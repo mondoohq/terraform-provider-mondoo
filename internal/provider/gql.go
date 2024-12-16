@@ -990,3 +990,44 @@ func (c *ExtendedGqlClient) ImportIntegration(ctx context.Context, req resource.
 
 	return &integration, true
 }
+
+func (c *ExtendedGqlClient) ApplyException(
+	ctx context.Context,
+	scopeMrn string,
+	action mondoov1.ExceptionMutationAction,
+	checkMrns, controlMrns, cveMrns, vulnerabilityMrns []string,
+	justification *string,
+	validUntil *string,
+	applyToCves *bool,
+) error {
+	var applyException struct {
+		ApplyException bool `graphql:"applyException(input: $input)"`
+	}
+
+	// Helper function to convert string slices to *[]mondoov1.String
+	convertToGraphQLList := func(mrns []string) *[]mondoov1.String {
+		if len(mrns) == 0 {
+			return nil
+		}
+		entries := []mondoov1.String{}
+		for _, mrn := range mrns {
+			entries = append(entries, mondoov1.String(mrn))
+		}
+		return &entries
+	}
+
+	// Prepare input fields
+	input := mondoov1.ExceptionMutationInput{
+		ScopeMrn:      mondoov1.String(scopeMrn),
+		Action:        action,
+		QueryMrns:     convertToGraphQLList(checkMrns),
+		ControlMrns:   convertToGraphQLList(controlMrns),
+		CveMrns:       convertToGraphQLList(cveMrns),
+		AdvisoryMrns:  convertToGraphQLList(vulnerabilityMrns),
+		Justification: (*mondoov1.String)(justification),
+		ValidUntil:    (*mondoov1.String)(validUntil),
+		ApplyToCves:   mondoov1.NewBooleanPtr(mondoov1.Boolean(*applyToCves)),
+	}
+
+	return c.Mutate(ctx, &applyException, input, nil)
+}
