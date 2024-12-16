@@ -304,7 +304,7 @@ func (r *integrationMsDefenderResource) ImportState(ctx context.Context, req res
 		SubscriptionAllowList: allowList,
 		SubscriptionDenyList:  denyList,
 		Credential: integrationMsDefenderCredentialModel{
-			PEMFile: types.StringValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.Certificate),
+			PEMFile: types.StringPointerValue(nil),
 		},
 	}
 
