@@ -36,7 +36,7 @@ resource "mondoo_integration_domain" "domain_integration" {
 
 - `http` (Boolean) Enable HTTP port.
 - `https` (Boolean) Enable HTTPS port.
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

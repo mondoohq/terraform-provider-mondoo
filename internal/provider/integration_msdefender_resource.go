@@ -78,7 +78,7 @@ func (r *integrationMsDefenderResource) Schema(ctx context.Context, req resource
 		MarkdownDescription: "Microsoft Defender for Cloud integration.",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -100,15 +100,15 @@ func (r *integrationMsDefenderResource) Schema(ctx context.Context, req resource
 				},
 			},
 			"client_id": schema.StringAttribute{
-				MarkdownDescription: "Azure Client ID.",
+				MarkdownDescription: "Azure client ID.",
 				Required:            true,
 			},
 			"tenant_id": schema.StringAttribute{
-				MarkdownDescription: "Azure Tenant ID.",
+				MarkdownDescription: "Azure tenant ID.",
 				Required:            true,
 			},
 			"subscription_allow_list": schema.ListAttribute{
-				MarkdownDescription: "List of Azure subscriptions to scan.",
+				MarkdownDescription: "List of Azure subscriptions from which to import Defender data.",
 				Optional:            true,
 				ElementType:         types.StringType,
 				Validators: []validator.List{
@@ -119,7 +119,7 @@ func (r *integrationMsDefenderResource) Schema(ctx context.Context, req resource
 				},
 			},
 			"subscription_deny_list": schema.ListAttribute{
-				MarkdownDescription: "List of Azure subscriptions to exclude from scanning.",
+				MarkdownDescription: "List of Azure subscriptions to exclude from imports.",
 				Optional:            true,
 				ElementType:         types.StringType,
 				Validators: []validator.List{
@@ -154,7 +154,7 @@ func (r *integrationMsDefenderResource) Configure(ctx context.Context, req resou
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -192,7 +192,7 @@ func (r *integrationMsDefenderResource) Create(ctx context.Context, req resource
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create MsDefender integration, got error: %s", err),
+				fmt.Sprintf("Unable to create MS Defender integration. Got error: %s", err),
 			)
 		return
 	}
@@ -203,7 +203,7 @@ func (r *integrationMsDefenderResource) Create(ctx context.Context, req resource
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
-				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+				fmt.Sprintf("Unable to trigger integration. Got error: %s", err),
 			)
 	}
 
@@ -256,7 +256,7 @@ func (r *integrationMsDefenderResource) Update(ctx context.Context, req resource
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update MsDefender integration, got error: %s", err),
+				fmt.Sprintf("Unable to update MS Defender integration. Got error: %s", err),
 			)
 		return
 	}
@@ -280,7 +280,7 @@ func (r *integrationMsDefenderResource) Delete(ctx context.Context, req resource
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete MsDefender integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete MS Defender integration. Got error: %s", err),
 			)
 		return
 	}

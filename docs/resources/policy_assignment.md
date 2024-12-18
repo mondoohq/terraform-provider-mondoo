@@ -30,5 +30,5 @@ resource "mondoo_policy_assignment" "space" {
 ### Optional
 
 - `policies` (List of String) Policies to assign to the space.
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
-- `state` (String) Policy Assignment State (preview, enabled, disabled).
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `state` (String) Policy assignment state (preview, enabled, or disabled).

@@ -52,7 +52,7 @@ resource "mondoo_integration_aws" "name" {
 
 ### Optional
 
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
 
 ### Read-Only
 

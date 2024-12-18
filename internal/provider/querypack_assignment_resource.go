@@ -51,7 +51,7 @@ func (r *queryPackAssignmentResource) Schema(_ context.Context, req resource.Sch
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -68,7 +68,7 @@ func (r *queryPackAssignmentResource) Schema(_ context.Context, req resource.Sch
 				},
 			},
 			"state": schema.StringAttribute{
-				MarkdownDescription: "QueryPack Assignment State (enabled, disabled).",
+				MarkdownDescription: "QueryPack Assignment State (enabled or disabled).",
 				Default:             stringdefault.StaticString("enabled"),
 				Computed:            true,
 				Optional:            true,
@@ -91,7 +91,7 @@ func (r *queryPackAssignmentResource) Configure(ctx context.Context, req resourc
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -202,7 +202,7 @@ func (r *queryPackAssignmentResource) Update(ctx context.Context, req resource.U
 	} else {
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
-			"Invalid state "+state+", use one of: enabled, disabled",
+			"Invalid state "+state+". Valid states are enabled and disabled",
 		)
 		return
 	}

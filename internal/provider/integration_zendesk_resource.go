@@ -76,7 +76,7 @@ func (r *integrationZendeskResource) Schema(ctx context.Context, req resource.Sc
 		MarkdownDescription: `Zendesk integration to keep track of security tasks and add Zendesk tickets directly from within the Mondoo Console.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -120,7 +120,7 @@ func (r *integrationZendeskResource) Schema(ctx context.Context, req resource.Sc
 				Optional:            true,
 			},
 			"custom_fields": schema.ListNestedAttribute{
-				MarkdownDescription: "Custom fields to be added to the Zendesk ticket.",
+				MarkdownDescription: "Custom fields to add to the Zendesk ticket.",
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -139,7 +139,7 @@ func (r *integrationZendeskResource) Schema(ctx context.Context, req resource.Sc
 				Required: true,
 				Attributes: map[string]schema.Attribute{
 					"token": schema.StringAttribute{
-						MarkdownDescription: "Token for GitHub integration.",
+						MarkdownDescription: "Token for Zendesk integration.",
 						Required:            true,
 						Sensitive:           true,
 					},
@@ -160,7 +160,7 @@ func (r *integrationZendeskResource) Configure(ctx context.Context, req resource
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -213,7 +213,7 @@ func (r *integrationZendeskResource) Create(ctx context.Context, req resource.Cr
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Zendesk integration, got error: %s", err),
+				fmt.Sprintf("Unable to create Zendesk integration. Got error: %s", err),
 			)
 		return
 	}
@@ -267,7 +267,7 @@ func (r *integrationZendeskResource) Update(ctx context.Context, req resource.Up
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update Zendesk integration, got error: %s", err),
+				fmt.Sprintf("Unable to update Zendesk integration. Got error: %s", err),
 			)
 		return
 	}
@@ -291,7 +291,7 @@ func (r *integrationZendeskResource) Delete(ctx context.Context, req resource.De
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Zendesk integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete Zendesk integration. Got error: %s", err),
 			)
 		return
 	}

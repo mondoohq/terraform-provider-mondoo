@@ -84,7 +84,7 @@ func (d *OrganizationDataSource) Configure(ctx context.Context, req datasource.C
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *mondoov1.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *mondoov1.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -118,7 +118,7 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	payload, err := d.client.GetOrganization(ctx, orgMrn)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch organization, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch organization. Got error: %s", err))
 		return
 	}
 

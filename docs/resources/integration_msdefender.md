@@ -278,16 +278,16 @@ resource "mondoo_integration_msdefender" "msdefender_integration" {
 
 ### Required
 
-- `client_id` (String) Azure Client ID.
+- `client_id` (String) Azure client ID.
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
-- `tenant_id` (String) Azure Tenant ID.
+- `tenant_id` (String) Azure tenant ID.
 
 ### Optional
 
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
-- `subscription_allow_list` (List of String) List of Azure subscriptions to scan.
-- `subscription_deny_list` (List of String) List of Azure subscriptions to exclude from scanning.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `subscription_allow_list` (List of String) List of Azure subscriptions from which to import Defender data.
+- `subscription_deny_list` (List of String) List of Azure subscriptions to exclude from imports.
 
 ### Read-Only
 

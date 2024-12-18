@@ -67,10 +67,10 @@ func (m integrationJiraResourceModel) GetConfigurationOptions() *mondoov1.JiraCo
 
 func (r *integrationJiraResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Integrate the Ticketing System Jira with Mondoo to automatically create and close issues based on Mondoo findings.`,
+		MarkdownDescription: `Integrate the Jira ticket system with Mondoo to automatically create and close Jira issues based on Mondoo findings.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -112,7 +112,7 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 			"default_project": schema.StringAttribute{
-				MarkdownDescription: "Default Jira project (is represented by the project key e.g. `MONDOO`).",
+				MarkdownDescription: "Default Jira project (represented by the project key, such as `SEC` or `SECURITY`).",
 				Optional:            true,
 			},
 			"auto_create": schema.BoolAttribute{
@@ -148,7 +148,7 @@ func (r *integrationJiraResource) Configure(ctx context.Context, req resource.Co
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -187,7 +187,7 @@ func (r *integrationJiraResource) Create(ctx context.Context, req resource.Creat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Jira integration, got error: %s", err),
+				fmt.Sprintf("Unable to create Jira integration. Got error: %s", err),
 			)
 		return
 	}
@@ -241,7 +241,7 @@ func (r *integrationJiraResource) Update(ctx context.Context, req resource.Updat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update Jira integration, got error: %s", err),
+				fmt.Sprintf("Unable to update Jira integration. Got error: %s", err),
 			)
 		return
 	}
@@ -265,7 +265,7 @@ func (r *integrationJiraResource) Delete(ctx context.Context, req resource.Delet
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Jira integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete Jira integration. Got error: %s", err),
 			)
 		return
 	}

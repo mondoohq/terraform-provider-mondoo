@@ -46,7 +46,7 @@ resource "mondoo_policy_assignment" "space" {
 - `content` (String, Sensitive) Data as string to be uploaded. Must be defined if source is not. Note: The content field is marked as sensitive. To view the raw contents of the object, please define an output.
 - `overwrite` (Boolean) If set to true, existing policies are overwritten.
 - `source` (String) A path to the data you want to upload. Must be defined if content is not.
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

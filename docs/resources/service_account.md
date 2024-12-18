@@ -45,11 +45,11 @@ output "service_account_base64" {
 
 - `description` (String) Description of the service account.
 - `name` (String) Name of the service account.
-- `org_id` (String) Mondoo Organization Identifier to create the service account in.
+- `org_id` (String) Identifier of the Mondoo organization in which to create the service account.
 - `roles` (List of String) Roles to assign to the service account.
-- `space_id` (String) Mondoo Space Identifier to create the service account in.
+- `space_id` (String) The identifier of the Mondoo space in which to create the service account.
 
 ### Read-Only
 
-- `credential` (String, Sensitive) The service account credential in JSON format, base64 encoded. This is the same content when creating service account credentials through the web console.
-- `mrn` (String) The Mondoo Resource Name (MRN) of the created service account.
+- `credential` (String, Sensitive) The service account credential in JSON format, base64 encoded. This is the same content when creating service account credentials through the Mondoo Console.
+- `mrn` (String) The Mondoo resource name (MRN) of the created service account.

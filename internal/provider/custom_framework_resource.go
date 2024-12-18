@@ -73,10 +73,10 @@ func (r *customFrameworkResource) getFrameworkContent(data customFrameworkResour
 
 func (r *customFrameworkResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Set custom Compliance Frameworks for a Mondoo Space.`,
+		MarkdownDescription: `Set custom compliance frameworks for a Mondoo space.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there's no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -84,14 +84,14 @@ func (r *customFrameworkResource) Schema(_ context.Context, _ resource.SchemaReq
 				},
 			},
 			"mrn": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Resource Name.",
+				MarkdownDescription: "Mondoo resource name.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"data_url": schema.StringAttribute{
-				MarkdownDescription: "URL to the custom Compliance Framework data.",
+				MarkdownDescription: "URL to the custom compliance framework data.",
 				Required:            true,
 			},
 		},
@@ -109,7 +109,7 @@ func (r *customFrameworkResource) Configure(_ context.Context, req resource.Conf
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -139,7 +139,7 @@ func (r *customFrameworkResource) Create(ctx context.Context, req resource.Creat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get Compliance Framework Content, got error: %s", err),
+				fmt.Sprintf("Unable to get compliance framework content. Got error: %s", err),
 			)
 		return
 	}
@@ -150,7 +150,7 @@ func (r *customFrameworkResource) Create(ctx context.Context, req resource.Creat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to upload Compliance Framework, got error: %s", err),
+				fmt.Sprintf("Unable to upload compliance framework. Got error: %s", err),
 			)
 		return
 	}
@@ -159,7 +159,7 @@ func (r *customFrameworkResource) Create(ctx context.Context, req resource.Creat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get Compliance Framework, got error: %s", err),
+				fmt.Sprintf("Unable to get compliance framework. Got error: %s", err),
 			)
 		return
 	}
@@ -219,7 +219,7 @@ func (r *customFrameworkResource) Update(ctx context.Context, req resource.Updat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get Compliance Framework Content, got error: %s", err),
+				fmt.Sprintf("Unable to get compliance framework content. Got error: %s", err),
 			)
 		return
 	}
@@ -230,7 +230,7 @@ func (r *customFrameworkResource) Update(ctx context.Context, req resource.Updat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to upload Compliance Framework, got error: %s", err),
+				fmt.Sprintf("Unable to upload compliance framework. Got error: %s", err),
 			)
 		return
 	}
@@ -254,7 +254,7 @@ func (r *customFrameworkResource) Delete(ctx context.Context, req resource.Delet
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Compliance Framework, got error: %s", err),
+				fmt.Sprintf("Unable to delete compliance framework. Got error: %s", err),
 			)
 		return
 	}
@@ -274,7 +274,7 @@ func (r *customFrameworkResource) ImportState(ctx context.Context, req resource.
 		resp.Diagnostics.AddError(
 			"Conflict Error",
 			fmt.Sprintf(
-				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+				"Unable to import integration. The provider is configured in a different space than the resource. (%s != %s)",
 				r.client.Space().ID(), spaceID),
 		)
 		return
@@ -284,7 +284,7 @@ func (r *customFrameworkResource) ImportState(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get Compliance Framework, got error: %s", err),
+				fmt.Sprintf("Unable to get compliance framework. Got error: %s", err),
 			)
 		return
 	}

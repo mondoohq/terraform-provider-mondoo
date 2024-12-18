@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_azure Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities. See Mondoo documentation https://mondoo.com/docs/platform/infra/cloud/azure/azure-integration-scan-subscription/ for more details.
+  Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities. To learn more, read the Mondoo documentation https://mondoo.com/docs/platform/infra/cloud/azure/azure-integration-scan-subscription/.
 ---
 
 # mondoo_integration_azure (Resource)
 
-Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities. See [Mondoo documentation](https://mondoo.com/docs/platform/infra/cloud/azure/azure-integration-scan-subscription/) for more details.
+Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities. To learn more, read the [Mondoo documentation](https://mondoo.com/docs/platform/infra/cloud/azure/azure-integration-scan-subscription/).
 
 ## Example Usage
 
@@ -278,15 +278,15 @@ resource "mondoo_integration_azure" "azure_integration" {
 
 ### Required
 
-- `client_id` (String) Azure Client ID.
+- `client_id` (String) Azure client ID.
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
-- `tenant_id` (String) Azure Tenant ID.
+- `tenant_id` (String) Azure tenant ID.
 
 ### Optional
 
 - `scan_vms` (Boolean) Scan VMs.
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 - `subscription_allow_list` (List of String) List of Azure subscriptions to scan.
 - `subscription_deny_list` (List of String) List of Azure subscriptions to exclude from scanning.
 

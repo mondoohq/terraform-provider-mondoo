@@ -3,12 +3,12 @@
 page_title: "mondoo_exception Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Set custom exceptions for a Scope.
+  Set custom exceptions for a scope.
 ---
 
 # mondoo_exception (Resource)
 
-Set custom exceptions for a Scope.
+Set custom exceptions for a scope.
 
 ## Example Usage
 
@@ -47,9 +47,9 @@ resource "mondoo_exception" "exception" {
 
 ### Optional
 
-- `action` (String) The action to perform. Default is `SNOOZE`. Other options are `ENABLE`, `DISABLE`, `OUT_OF_SCOPE`.
+- `action` (String) The action to perform. Default is `SNOOZE`. Other options are `ENABLE`, `DISABLE`, and `OUT_OF_SCOPE`.
 - `check_mrns` (List of String) List of check MRNs to set exceptions for. If set, `vulnerability_mrns` must not be set.
 - `justification` (String) Description why the exception is required.
 - `scope_mrn` (String) The MRN of the scope (either asset mrn or space mrn).
-- `valid_until` (String) The timestamp until the exception is valid.
+- `valid_until` (String) The date when the exception is no longer valid.
 - `vulnerability_mrns` (List of String) List of vulnerability MRNs to set exceptions for. If set, `check_mrns` must not be set.

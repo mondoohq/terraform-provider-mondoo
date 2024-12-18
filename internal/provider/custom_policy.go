@@ -60,7 +60,7 @@ func (r *customPolicyResource) Schema(ctx context.Context, req resource.SchemaRe
 		MarkdownDescription: "Custom Policy resource",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 			},
 			"mrns": schema.ListAttribute{
@@ -120,7 +120,7 @@ func (r *customPolicyResource) Configure(ctx context.Context, req resource.Confi
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
 			fmt.Sprintf(
-				"Expected *http.Client, got: %T. Please report this issue to the provider developers.",
+				"Expected *http.Client. Got: %T. Please report this issue to the provider developers.",
 				req.ProviderData,
 			),
 		)
@@ -201,7 +201,7 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to store policy, got error: %s", err),
+				fmt.Sprintf("Unable to store policy. Got error: %s", err),
 			)
 		return
 	}
@@ -283,7 +283,7 @@ func (r *customPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		if err != nil {
 			resp.Diagnostics.
 				AddError("Client Error",
-					fmt.Sprintf("Unable to store policy, got error: %s", err),
+					fmt.Sprintf("Unable to store policy. Got error: %s", err),
 				)
 			return
 		}
@@ -314,7 +314,7 @@ func (r *customPolicyResource) Delete(ctx context.Context, req resource.DeleteRe
 	for _, policyMrn := range policyMrns {
 		err := r.client.DeletePolicy(ctx, policyMrn)
 		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete policy, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete policy. Got error: %s", err))
 			return
 		}
 	}
@@ -337,13 +337,13 @@ func (r *customPolicyResource) ImportState(ctx context.Context, req resource.Imp
 
 	policy, err := r.client.GetPolicy(ctx, mrn, SpaceFrom(spaceID).MRN())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get policy, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get policy. Got error: %s", err))
 		return
 	}
 
 	content, err := r.client.DownloadBundle(ctx, string(policy.Mrn))
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to download bundle, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to download bundle. Got error: %s", err))
 		return
 	}
 

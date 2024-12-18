@@ -200,10 +200,10 @@ func NewAutoCreateValidator() validator.Bool {
 
 func (r *integrationEmailResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Send an email to your ticket system, or any recipient.",
+		MarkdownDescription: "Send email to your ticket system or any recipient.",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -244,11 +244,11 @@ func (r *integrationEmailResource) Schema(ctx context.Context, req resource.Sche
 							},
 						},
 						"is_default": schema.BoolAttribute{
-							MarkdownDescription: "Mark this recipient as default. This needs to be set if auto_create is enabled.",
+							MarkdownDescription: "Mark this recipient as default. This must be set if auto_create is enabled.",
 							Optional:            true,
 						},
 						"reference_url": schema.StringAttribute{
-							MarkdownDescription: "Reference URL for the recipient.",
+							MarkdownDescription: "Optional reference URL for the recipient.",
 							Optional:            true,
 						},
 					},
@@ -283,7 +283,7 @@ func (r *integrationEmailResource) Configure(ctx context.Context, req resource.C
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -337,7 +337,7 @@ func (r *integrationEmailResource) Create(ctx context.Context, req resource.Crea
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Email integration, got error: %s", err),
+				fmt.Sprintf("Unable to create email integration. Got error: %s", err),
 			)
 		return
 	}
@@ -391,7 +391,7 @@ func (r *integrationEmailResource) Update(ctx context.Context, req resource.Upda
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update Email integration, got error: %s", err),
+				fmt.Sprintf("Unable to update email integration. Got error: %s", err),
 			)
 		return
 	}
@@ -415,7 +415,7 @@ func (r *integrationEmailResource) Delete(ctx context.Context, req resource.Dele
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Email integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete email integration. Got error: %s", err),
 			)
 		return
 	}

@@ -93,7 +93,7 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 		MarkdownDescription: `Continuously scan AWS accounts for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -178,7 +178,7 @@ func (r *integrationAwsResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -217,7 +217,7 @@ func (r *integrationAwsResource) Create(ctx context.Context, req resource.Create
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create AWS integration, got error: %s", err),
+				fmt.Sprintf("Unable to create AWS integration. Got error: %s", err),
 			)
 		return
 	}
@@ -271,7 +271,7 @@ func (r *integrationAwsResource) Update(ctx context.Context, req resource.Update
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update AWS integration, got error: %s", err),
+				fmt.Sprintf("Unable to update AWS integration. Got error: %s", err),
 			)
 		return
 	}
@@ -295,7 +295,7 @@ func (r *integrationAwsResource) Delete(ctx context.Context, req resource.Delete
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete AWS integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete AWS integration. Got error: %s", err),
 			)
 		return
 	}

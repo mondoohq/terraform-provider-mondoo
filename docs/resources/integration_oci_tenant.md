@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_oci_tenant Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Example resource
+  Continuously monitor OCI tenancies and resources for misconfigurations and vulnerabilities.
 ---
 
 # mondoo_integration_oci_tenant (Resource)
 
-Example resource
+Continuously monitor OCI tenancies and resources for misconfigurations and vulnerabilities.
 
 ## Example Usage
 
@@ -52,7 +52,7 @@ EOT
 ### Optional
 
 - `name` (String) Name of the integration.
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

@@ -59,7 +59,7 @@ func (r *customQueryPackResource) Schema(_ context.Context, _ resource.SchemaReq
 		MarkdownDescription: "Custom Query Pack resource",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 			},
 			"mrns": schema.ListAttribute{
@@ -118,7 +118,7 @@ func (r *customQueryPackResource) Configure(_ context.Context, req resource.Conf
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -189,7 +189,7 @@ func (r *customQueryPackResource) Create(ctx context.Context, req resource.Creat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to store policy, got error: %s", err),
+				fmt.Sprintf("Unable to store policy. Got error: %s", err),
 			)
 		return
 	}
@@ -285,7 +285,7 @@ func (r *customQueryPackResource) Update(ctx context.Context, req resource.Updat
 		if err != nil {
 			resp.Diagnostics.
 				AddError("Client Error",
-					fmt.Sprintf("Unable to store policy, got error: %s", err),
+					fmt.Sprintf("Unable to store policy. Got error: %s", err),
 				)
 			return
 		}
@@ -318,7 +318,7 @@ func (r *customQueryPackResource) Delete(ctx context.Context, req resource.Delet
 		if err != nil {
 			resp.Diagnostics.
 				AddError("Client Error",
-					fmt.Sprintf("Unable to delete query pack, got error: %s", err),
+					fmt.Sprintf("Unable to delete query pack. Got error: %s", err),
 				)
 			return
 		}
@@ -347,7 +347,7 @@ func (r *customQueryPackResource) ImportState(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get policy, got error: %s", err),
+				fmt.Sprintf("Unable to get policy. Got error: %s", err),
 			)
 		return
 	}
@@ -356,7 +356,7 @@ func (r *customQueryPackResource) ImportState(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to download bundle, got error: %s", err),
+				fmt.Sprintf("Unable to download bundle. Got error: %s", err),
 			)
 		return
 	}
