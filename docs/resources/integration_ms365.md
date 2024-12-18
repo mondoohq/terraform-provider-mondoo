@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_ms365 Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. See Mondoo documentation https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/ for more details.
+  Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. To learn more, read the Mondoo documentation https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/.
 ---
 
 # mondoo_integration_ms365 (Resource)
 
-Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. See [Mondoo documentation](https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/) for more details.
+Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. To learn more, read the [Mondoo documentation](https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/).
 
 ## Example Usage
 
@@ -188,14 +188,14 @@ resource "mondoo_integration_ms365" "ms365_integration" {
 
 ### Required
 
-- `client_id` (String) Azure Client ID.
+- `client_id` (String) Azure client ID.
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
-- `tenant_id` (String) Azure Tenant ID.
+- `tenant_id` (String) Azure tenant ID.
 
 ### Optional
 
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 
@@ -206,4 +206,4 @@ resource "mondoo_integration_ms365" "ms365_integration" {
 
 Required:
 
-- `pem_file` (String, Sensitive) PEM file for Ms365 integration.
+- `pem_file` (String, Sensitive) PEM file for MS365 integration.

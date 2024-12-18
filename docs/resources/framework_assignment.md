@@ -3,12 +3,12 @@
 page_title: "mondoo_framework_assignment Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Set Compliance Frameworks for a Mondoo Space.
+  Set compliance frameworks for a Mondoo space.
 ---
 
 # mondoo_framework_assignment (Resource)
 
-Set Compliance Frameworks for a Mondoo Space.
+Set compliance frameworks for a Mondoo space.
 
 ## Example Usage
 
@@ -31,9 +31,9 @@ resource "mondoo_framework_assignment" "framework_assignment" {
 
 ### Required
 
-- `enabled` (Boolean) Enable or disable the Compliance Framework.
-- `framework_mrn` (List of String) Compliance Framework MRN.
+- `enabled` (Boolean) Enable or disable the compliance framework.
+- `framework_mrn` (List of String) Compliance framework MRN.
 
 ### Optional
 
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there's no ID, the provider space is used.

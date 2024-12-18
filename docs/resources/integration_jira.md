@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_jira Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Integrate the Ticketing System Jira with Mondoo to automatically create and close issues based on Mondoo findings.
+  Integrate the Jira ticket system with Mondoo to automatically create and close Jira issues based on Mondoo findings.
 ---
 
 # mondoo_integration_jira (Resource)
 
-Integrate the Ticketing System Jira with Mondoo to automatically create and close issues based on Mondoo findings.
+Integrate the Jira ticket system with Mondoo to automatically create and close Jira issues based on Mondoo findings.
 
 ## Example Usage
 
@@ -53,8 +53,8 @@ resource "mondoo_integration_jira" "jira_integration" {
 
 - `auto_close` (Boolean) Automatically close Jira issues for resolved Mondoo findings
 - `auto_create` (Boolean) Automatically create Jira issues for Mondoo findings.
-- `default_project` (String) Default Jira project (is represented by the project key e.g. `MONDOO`).
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `default_project` (String) Default Jira project (represented by the project key, such as `SEC` or `SECURITY`).
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

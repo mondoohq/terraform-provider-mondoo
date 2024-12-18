@@ -3,12 +3,12 @@
 page_title: "mondoo_custom_framework Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Set custom Compliance Frameworks for a Mondoo Space.
+  Set custom compliance frameworks for a Mondoo space.
 ---
 
 # mondoo_custom_framework (Resource)
 
-Set custom Compliance Frameworks for a Mondoo Space.
+Set custom compliance frameworks for a Mondoo space.
 
 ## Example Usage
 
@@ -33,12 +33,12 @@ resource "mondoo_custom_framework" "custom_framework" {
 
 ### Required
 
-- `data_url` (String) URL to the custom Compliance Framework data.
+- `data_url` (String) URL to the custom compliance framework data.
 
 ### Optional
 
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there's no space ID, the provider space is used.
 
 ### Read-Only
 
-- `mrn` (String) Mondoo Resource Name.
+- `mrn` (String) Mondoo resource name.

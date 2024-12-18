@@ -63,8 +63,8 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
 
 - `auto_close` (Boolean) Automatically close tickets.
 - `auto_create` (Boolean) Automatically create tickets.
-- `custom_fields` (Attributes List) Custom fields to be added to the Zendesk ticket. (see [below for nested schema](#nestedatt--custom_fields))
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `custom_fields` (Attributes List) Custom fields to add to the Zendesk ticket. (see [below for nested schema](#nestedatt--custom_fields))
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 
@@ -75,7 +75,7 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
 
 Required:
 
-- `token` (String, Sensitive) Token for GitHub integration.
+- `token` (String, Sensitive) Token for Zendesk integration.
 
 
 <a id="nestedatt--custom_fields"></a>

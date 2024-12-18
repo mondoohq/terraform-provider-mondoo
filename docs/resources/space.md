@@ -37,7 +37,7 @@ resource "mondoo_space" "my_space" {
 
 ### Optional
 
-- `id` (String) Id of the space. Must be globally unique. If the provider has a space configured and this field is not provided, the provider space is used.
+- `id` (String) ID of the space. Must be globally unique. If the provider has a space configured and this field is empty, the provider space is used.
 - `name` (String) Name of the space.
 
 ### Read-Only

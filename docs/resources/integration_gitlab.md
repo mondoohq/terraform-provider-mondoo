@@ -57,7 +57,7 @@ resource "mondoo_integration_gitlab" "gitlab_integration" {
 - `base_url` (String) Base URL of the GitLab instance (only set this if your instance is self-hosted).
 - `discovery` (Attributes) (see [below for nested schema](#nestedatt--discovery))
 - `group` (String) Group to assign the integration to (by default all groups are discovered).
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

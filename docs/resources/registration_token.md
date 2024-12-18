@@ -258,7 +258,7 @@ output.
 - `expires_in` (String) The duration after which the token will expire. Format: 1h, 1d, 1w, 1m, 1y
 - `no_expiration` (Boolean) If set to true, the token will not expire.
 - `revoked` (Boolean) If set to true, the token is revoked.
-- `space_id` (String) Mondoo Space Identifier to create the token in. If it is not provided, the provider space is used.
+- `space_id` (String) Identifier of the Mondoo space in which to create the token. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

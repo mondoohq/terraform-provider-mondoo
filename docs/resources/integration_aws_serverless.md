@@ -101,10 +101,10 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 ### Optional
 
 - `account_ids` (List of String) List of AWS account IDs.
-- `console_sign_in_trigger` (Boolean) Enable console sign in trigger.
+- `console_sign_in_trigger` (Boolean) Enable console sign-in trigger.
 - `instance_state_change_trigger` (Boolean) Enable instance state change trigger.
 - `is_organization` (Boolean) Is organization.
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
 
 ### Read-Only
 
@@ -136,7 +136,7 @@ Optional:
 - `ebs_volume_scan` (Boolean) Enable EBS volume scan.
 - `exclude_instance_ids_filter` (List of String) List of instance IDs to exclude.
 - `exclude_regions_filter` (List of String) List of regions to exclude.
-- `exclude_tags_filter` (Map of String) Excluded Tags filter.
+- `exclude_tags_filter` (Map of String) Excluded tags filter.
 - `instance_connect` (Boolean) Enable instance connect.
 - `instance_ids_filter` (List of String) List of instance IDs filter.
 - `regions_filter` (List of String) List of regions filter.

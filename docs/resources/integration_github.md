@@ -48,14 +48,14 @@ resource "mondoo_integration_github" "gh_integration" {
 
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
-- `owner` (String) GitHub Owner.
+- `owner` (String) GitHub owner.
 
 ### Optional
 
-- `repository` (String) GitHub Repository.
+- `repository` (String) GitHub repository.
 - `repository_allow_list` (List of String) List of GitHub repositories to scan.
 - `repository_deny_list` (List of String) List of GitHub repositories to exclude from scanning.
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

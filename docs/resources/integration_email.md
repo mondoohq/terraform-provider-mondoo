@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_email Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Send an email to your ticket system, or any recipient.
+  Send email to your ticket system or any recipient.
 ---
 
 # mondoo_integration_email (Resource)
 
-Send an email to your ticket system, or any recipient.
+Send email to your ticket system or any recipient.
 
 ## Example Usage
 
@@ -53,7 +53,7 @@ resource "mondoo_integration_email" "email_integration" {
 
 - `auto_close` (Boolean) Auto close tickets (defaults to false).
 - `auto_create` (Boolean) Auto create tickets (defaults to false).
-- `space_id` (String) Mondoo Space Identifier. If it is not provided, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 
@@ -69,5 +69,5 @@ Required:
 
 Optional:
 
-- `is_default` (Boolean) Mark this recipient as default. This needs to be set if auto_create is enabled.
-- `reference_url` (String) Reference URL for the recipient.
+- `is_default` (Boolean) Mark this recipient as default. This must be set if auto_create is enabled.
+- `reference_url` (String) Optional reference URL for the recipient.
