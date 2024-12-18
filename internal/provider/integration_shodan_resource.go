@@ -57,7 +57,7 @@ func (r *integrationShodanResource) Schema(_ context.Context, _ resource.SchemaR
 		MarkdownDescription: `Continuously assess external risk for domains and IP addresses.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -113,7 +113,7 @@ func (r *integrationShodanResource) Configure(ctx context.Context, req resource.
 			Diagnostics.
 			AddError("Unexpected Resource Configure Type",
 				fmt.Sprintf(
-					"Expected *http.Client, got: %T. Please report this issue to the provider developers.",
+					"Expected *http.Client. Got: %T. Please report this issue to the provider developers.",
 					req.ProviderData,
 				),
 			)
@@ -162,7 +162,7 @@ func (r *integrationShodanResource) Create(ctx context.Context, req resource.Cre
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to create integration, got error: %s", err,
+					"Unable to create integration. Got error: %s", err,
 				),
 			)
 		return
@@ -178,7 +178,7 @@ func (r *integrationShodanResource) Create(ctx context.Context, req resource.Cre
 			Diagnostics.
 			AddWarning("Client Error",
 				fmt.Sprintf(
-					"Unable to trigger integration, got error: %s", err,
+					"Unable to trigger integration. Got error: %s", err,
 				),
 			)
 		return
@@ -239,7 +239,7 @@ func (r *integrationShodanResource) Update(ctx context.Context, req resource.Upd
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to update Domain integration, got error: %s", err,
+					"Unable to update Shodan integration. Got error: %s", err,
 				),
 			)
 		return
@@ -266,7 +266,7 @@ func (r *integrationShodanResource) Delete(ctx context.Context, req resource.Del
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to delete Domain integration, got error: %s", err,
+					"Unable to delete Shodan integration. Got error: %s", err,
 				),
 			)
 		return
@@ -279,7 +279,7 @@ func (r *integrationShodanResource) ImportState(ctx context.Context, req resourc
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get integration, got error: %s", err),
+				fmt.Sprintf("Unable to get integration. Got error: %s", err),
 			)
 		return
 	}

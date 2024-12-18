@@ -127,7 +127,7 @@ func NewValidUntilValidator() validator.String {
 
 func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Set custom exceptions for a Scope.`,
+		MarkdownDescription: `Set custom exceptions for a scope.`,
 		Attributes: map[string]schema.Attribute{
 			"scope_mrn": schema.StringAttribute{
 				MarkdownDescription: "The MRN of the scope (either asset mrn or space mrn).",
@@ -138,7 +138,7 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 			},
 			"valid_until": schema.StringAttribute{
-				MarkdownDescription: "The timestamp until the exception is valid.",
+				MarkdownDescription: "The date when the exception is no longer valid.",
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(regexp.MustCompile(`[1-9][0-9][0-9]{2}-([0][1-9]|[1][0-2])-([1-2][0-9]|[0][1-9]|[3][0-1])`), "Date must be in the format 'YYYY-MM-DD'"),
@@ -150,7 +150,7 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 				Optional:            true,
 			},
 			"action": schema.StringAttribute{
-				MarkdownDescription: "The action to perform. Default is `SNOOZE`. Other options are `ENABLE`, `DISABLE`, `OUT_OF_SCOPE`.",
+				MarkdownDescription: "The action to perform. Default is `SNOOZE`. Other options are `ENABLE`, `DISABLE`, and `OUT_OF_SCOPE`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("SNOOZE"),
@@ -195,7 +195,7 @@ func (r *exceptionResource) Configure(ctx context.Context, req resource.Configur
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return

@@ -69,7 +69,7 @@ func (d *SpaceDataSource) Configure(ctx context.Context, req datasource.Configur
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *mondoov1.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *mondoov1.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -101,7 +101,7 @@ func (d *SpaceDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	payload, err := d.client.GetSpace(ctx, space.MRN())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error",
-			fmt.Sprintf("Unable to fetch space, got error: %s", err),
+			fmt.Sprintf("Unable to fetch space. Got error: %s", err),
 		)
 		return
 	}

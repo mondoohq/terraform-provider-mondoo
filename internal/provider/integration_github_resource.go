@@ -93,7 +93,7 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 		MarkdownDescription: `Continuously scan GitHub organizations and repositories for misconfigurations.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -115,11 +115,11 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 				},
 			},
 			"owner": schema.StringAttribute{
-				MarkdownDescription: "GitHub Owner.",
+				MarkdownDescription: "GitHub owner.",
 				Required:            true,
 			},
 			"repository": schema.StringAttribute{
-				MarkdownDescription: "GitHub Repository.",
+				MarkdownDescription: "GitHub repository.",
 				Optional:            true,
 			},
 			"repository_allow_list": schema.ListAttribute{
@@ -154,7 +154,7 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 						Validators: []validator.String{
 							stringvalidator.RegexMatches(
 								regexp.MustCompile(`^(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})$`),
-								"must be a valid classic GitHub Token with 40 characters in length, with a prefix of ghp_ or a fine-grained GitHub token with 93 characters in length, with a prefix of github_pat_",
+								"must be a valid classic GitHub token with 40 characters in length, with a prefix of ghp_ or a fine-grained GitHub token with 93 characters in length, with a prefix of github_pat_",
 							),
 						},
 					},
@@ -175,7 +175,7 @@ func (r *integrationGithubResource) Configure(ctx context.Context, req resource.
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -214,7 +214,7 @@ func (r *integrationGithubResource) Create(ctx context.Context, req resource.Cre
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Domain integration, got error: %s", err),
+				fmt.Sprintf("Unable to create GitHub integration. Got error: %s", err),
 			)
 		return
 	}
@@ -225,7 +225,7 @@ func (r *integrationGithubResource) Create(ctx context.Context, req resource.Cre
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
-				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+				fmt.Sprintf("Unable to trigger integration. Got error: %s", err),
 			)
 		return
 	}
@@ -279,7 +279,7 @@ func (r *integrationGithubResource) Update(ctx context.Context, req resource.Upd
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update Domain integration, got error: %s", err),
+				fmt.Sprintf("Unable to update GitHub integration. Got error: %s", err),
 			)
 		return
 	}
@@ -303,7 +303,7 @@ func (r *integrationGithubResource) Delete(ctx context.Context, req resource.Del
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Domain integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete GitHub integration. Got error: %s", err),
 			)
 		return
 	}

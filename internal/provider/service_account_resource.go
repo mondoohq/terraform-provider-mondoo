@@ -94,20 +94,20 @@ func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created service account.",
+				MarkdownDescription: "The Mondoo resource name (MRN) of the created service account.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"space_id": schema.StringAttribute{ // TODO: add check that either space or org needs to be set
-				MarkdownDescription: "Mondoo Space Identifier to create the service account in.",
+				MarkdownDescription: "The identifier of the Mondoo space in which to create the service account.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"org_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Organization Identifier to create the service account in.",
+				MarkdownDescription: "Identifier of the Mondoo organization in which to create the service account.",
 				Optional:            true,
 			},
 			"roles": schema.ListAttribute{
@@ -121,7 +121,7 @@ func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"credential": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The service account credential in JSON format, base64 encoded. This is the same content when creating service account credentials through the web console.",
+				MarkdownDescription: "The service account credential in JSON format, base64 encoded. This is the same content when creating service account credentials through the Mondoo Console.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -142,7 +142,7 @@ func (r *ServiceAccountResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -233,7 +233,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create service account, got error: %s", err),
+				fmt.Sprintf("Unable to create service account. Got error: %s", err),
 			)
 		return
 	}
@@ -256,7 +256,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create service account, got error: %s", err),
+				fmt.Sprintf("Unable to create service account. Got error: %s", err),
 			)
 		return
 	}
@@ -320,7 +320,7 @@ func (r *ServiceAccountResource) Read(ctx context.Context, req resource.ReadRequ
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
-			fmt.Sprintf("Unable to read service account, got error: %s", err),
+			fmt.Sprintf("Unable to read service account. Got error: %s", err),
 		)
 		return
 	}
@@ -361,7 +361,7 @@ func (r *ServiceAccountResource) Update(ctx context.Context, req resource.Update
 	})
 	err := r.client.Mutate(ctx, &updateMutation, updateInput, nil)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account. Got error: %s", err))
 		return
 	}
 
@@ -382,8 +382,8 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 	scopeMrn := r.getScope(ctx, data)
 	if scopeMrn == "" {
 		resp.Diagnostics.AddError(
-			"Either space_id or org_id needs to be set",
-			"Either space_id or org_id needs to be set",
+			"Either space_id or org_id must be set",
+			"Either space_id or org_id must be set",
 		)
 		return
 	}
@@ -403,7 +403,7 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 	})
 	err := r.client.Mutate(ctx, &deleteMutation, deleteInput, nil)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account. Got error: %s", err))
 		return
 	}
 }

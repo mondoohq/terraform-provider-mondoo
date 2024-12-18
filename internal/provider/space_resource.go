@@ -61,7 +61,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Id of the space. Must be globally unique. If the provider has a space configured and this field is not provided, the provider space is used.",
+				MarkdownDescription: "ID of the space. Must be globally unique. If the provider has a space configured and this field is empty, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -105,7 +105,7 @@ func (r *SpaceResource) Configure(ctx context.Context, req resource.ConfigureReq
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *mondoov1.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *mondoov1.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -140,7 +140,7 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create space, got error: %s", err),
+				fmt.Sprintf("Unable to create space. Got error: %s", err),
 			)
 		return
 	}
@@ -215,7 +215,7 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	err = r.client.UpdateSpace(ctx, planSpaceID, data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.
-			AddError("Client Error", fmt.Sprintf("Unable to update space, got error: %s", err))
+			AddError("Client Error", fmt.Sprintf("Unable to update space. Got error: %s", err))
 		return
 	}
 
@@ -238,7 +238,7 @@ func (r *SpaceResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete space, got error: %s", err),
+				fmt.Sprintf("Unable to delete space. Got error: %s", err),
 			)
 		return
 	}
@@ -250,7 +250,7 @@ func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to retrieve space, got error: %s", err),
+				fmt.Sprintf("Unable to retrieve space. Got error: %s", err),
 			)
 		return
 	}

@@ -57,7 +57,7 @@ func (r *RegistrationTokenResource) Schema(ctx context.Context, req resource.Sch
 
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier to create the token in. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Identifier of the Mondoo space in which to create the token. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -116,7 +116,7 @@ func (r *RegistrationTokenResource) Configure(ctx context.Context, req resource.
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -166,8 +166,8 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 
 	if expires_in != nil && noExpiration != nil {
 		resp.Diagnostics.AddError(
-			"Either expires_in or no_expiration needs to be set",
-			"Either expires_in or no_expiration needs to be set",
+			"Either expires_in or no_expiration must be set",
+			"Either expires_in or no_expiration must be set",
 		)
 		return
 	}
@@ -197,7 +197,7 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create registration token, got error: %s", err),
+				fmt.Sprintf("Unable to create registration token. Got error: %s", err),
 			)
 		return
 	}
@@ -210,7 +210,7 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 	data.ExpiresAt = types.StringValue(string(generateRegistrationToken.RegistrationToken.ExpiresAt))
 
 	// Write logs using the tflog package
-	tflog.Trace(ctx, "created a service account resource")
+	tflog.Trace(ctx, "created a token resource")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -287,7 +287,7 @@ func (r *RegistrationTokenResource) Delete(ctx context.Context, req resource.Del
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update service account, got error: %s", err),
+				fmt.Sprintf("Unable to update token. Got error: %s", err),
 			)
 		return
 	}

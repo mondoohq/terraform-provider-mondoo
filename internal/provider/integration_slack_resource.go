@@ -44,10 +44,10 @@ func (r *integrationSlackResource) Metadata(ctx context.Context, req resource.Me
 
 func (r *integrationSlackResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Continuously scan your Slack Teams for security misconfigurations.",
+		MarkdownDescription: "Continuously scan your Slack teams for security misconfigurations.",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -94,7 +94,7 @@ func (r *integrationSlackResource) Configure(ctx context.Context, req resource.C
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -135,7 +135,7 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Slack integration, got error: %s", err),
+				fmt.Sprintf("Unable to create Slack integration. Got error: %s", err),
 			)
 		return
 	}
@@ -146,7 +146,7 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
-				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+				fmt.Sprintf("Unable to trigger integration. Got error: %s", err),
 			)
 		return
 	}
@@ -203,7 +203,7 @@ func (r *integrationSlackResource) Update(ctx context.Context, req resource.Upda
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update OCI tenant integration, got error: %s", err),
+				fmt.Sprintf("Unable to update Slack tenant integration. Got error: %s", err),
 			)
 		return
 	}
@@ -227,7 +227,7 @@ func (r *integrationSlackResource) Delete(ctx context.Context, req resource.Dele
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Slack integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete Slack integration. Got error: %s", err),
 			)
 		return
 	}

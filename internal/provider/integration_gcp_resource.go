@@ -51,10 +51,10 @@ func (r *integrationGcpResource) Metadata(ctx context.Context, req resource.Meta
 
 func (r *integrationGcpResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously scan Google GCP organizations and projects for misconfigurations and vulnerabilities.`,
+		MarkdownDescription: `Continuously scan GCP organizations and projects for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -76,7 +76,7 @@ func (r *integrationGcpResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"project_id": schema.StringAttribute{
-				MarkdownDescription: "GCP project id",
+				MarkdownDescription: "GCP project ID",
 				Optional:            true,
 			},
 			"credentials": schema.SingleNestedAttribute{
@@ -103,7 +103,7 @@ func (r *integrationGcpResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -146,7 +146,7 @@ func (r *integrationGcpResource) Create(ctx context.Context, req resource.Create
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create GCP integration, got error: %s", err),
+				fmt.Sprintf("Unable to create GCP integration. Got error: %s", err),
 			)
 		return
 	}
@@ -157,7 +157,7 @@ func (r *integrationGcpResource) Create(ctx context.Context, req resource.Create
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
-				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+				fmt.Sprintf("Unable to trigger integration. Got error: %s", err),
 			)
 		return
 	}
@@ -215,7 +215,7 @@ func (r *integrationGcpResource) Update(ctx context.Context, req resource.Update
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update Gcp integration, got error: %s", err),
+				fmt.Sprintf("Unable to update GCP integration. Got error: %s", err),
 			)
 		return
 	}
@@ -239,7 +239,7 @@ func (r *integrationGcpResource) Delete(ctx context.Context, req resource.Delete
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Gcp integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete GCP integration. Got error: %s", err),
 			)
 		return
 	}

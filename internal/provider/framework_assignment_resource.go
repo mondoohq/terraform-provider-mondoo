@@ -38,10 +38,10 @@ func (r *frameworkAssignmentResource) Metadata(_ context.Context, req resource.M
 
 func (r *frameworkAssignmentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Set Compliance Frameworks for a Mondoo Space.`,
+		MarkdownDescription: `Set compliance frameworks for a Mondoo space.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there's no ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -49,12 +49,12 @@ func (r *frameworkAssignmentResource) Schema(_ context.Context, _ resource.Schem
 				},
 			},
 			"framework_mrn": schema.ListAttribute{
-				MarkdownDescription: "Compliance Framework MRN.",
+				MarkdownDescription: "Compliance framework MRN.",
 				Required:            true,
 				ElementType:         types.StringType,
 			},
 			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "Enable or disable the Compliance Framework.",
+				MarkdownDescription: "Enable or disable the compliance framework.",
 				Required:            true,
 			},
 		},
@@ -72,7 +72,7 @@ func (r *frameworkAssignmentResource) Configure(_ context.Context, req resource.
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -109,7 +109,7 @@ func (r *frameworkAssignmentResource) Create(ctx context.Context, req resource.C
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err),
+				fmt.Sprintf("Unable to create compliance framework. Got error: %s", err),
 			)
 		return
 	}
@@ -172,7 +172,7 @@ func (r *frameworkAssignmentResource) Update(ctx context.Context, req resource.U
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err),
+				fmt.Sprintf("Unable to create compliance framework. Got error: %s", err),
 			)
 		return
 	}
@@ -198,7 +198,7 @@ func (r *frameworkAssignmentResource) Delete(ctx context.Context, req resource.D
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Compliance Framework, got error: %s", err),
+				fmt.Sprintf("Unable to create compliance framework. Got error: %s", err),
 			)
 		return
 	}

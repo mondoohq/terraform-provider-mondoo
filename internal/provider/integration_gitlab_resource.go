@@ -88,7 +88,7 @@ func (r *integrationGitlabResource) Schema(ctx context.Context, req resource.Sch
 		MarkdownDescription: `Continuously scan GitLab for misconfigurations.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -169,7 +169,7 @@ func (r *integrationGitlabResource) Configure(ctx context.Context, req resource.
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -208,7 +208,7 @@ func (r *integrationGitlabResource) Create(ctx context.Context, req resource.Cre
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create GitLab integration, got error: %s", err),
+				fmt.Sprintf("Unable to create GitLab integration. Got error: %s", err),
 			)
 		return
 	}
@@ -219,7 +219,7 @@ func (r *integrationGitlabResource) Create(ctx context.Context, req resource.Cre
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
-				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+				fmt.Sprintf("Unable to trigger integration. Got error: %s", err),
 			)
 		return
 	}
@@ -272,7 +272,7 @@ func (r *integrationGitlabResource) Update(ctx context.Context, req resource.Upd
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update GitLab integration, got error: %s", err),
+				fmt.Sprintf("Unable to update GitLab integration. Got error: %s", err),
 			)
 		return
 	}
@@ -296,7 +296,7 @@ func (r *integrationGitlabResource) Delete(ctx context.Context, req resource.Del
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete GitLab integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete GitLab integration. Got error: %s", err),
 			)
 		return
 	}

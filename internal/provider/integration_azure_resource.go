@@ -54,10 +54,10 @@ func (r *integrationAzureResource) Metadata(ctx context.Context, req resource.Me
 
 func (r *integrationAzureResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities. See [Mondoo documentation](https://mondoo.com/docs/platform/infra/cloud/azure/azure-integration-scan-subscription/) for more details.`,
+		MarkdownDescription: `Continuously scan Microsoft Azure subscriptions and resources for misconfigurations and vulnerabilities. To learn more, read the [Mondoo documentation](https://mondoo.com/docs/platform/infra/cloud/azure/azure-integration-scan-subscription/).`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -79,11 +79,11 @@ func (r *integrationAzureResource) Schema(ctx context.Context, req resource.Sche
 				},
 			},
 			"client_id": schema.StringAttribute{
-				MarkdownDescription: "Azure Client ID.",
+				MarkdownDescription: "Azure client ID.",
 				Required:            true,
 			},
 			"tenant_id": schema.StringAttribute{
-				MarkdownDescription: "Azure Tenant ID.",
+				MarkdownDescription: "Azure tenant ID.",
 				Required:            true,
 			},
 			"scan_vms": schema.BoolAttribute{
@@ -137,7 +137,7 @@ func (r *integrationAzureResource) Configure(ctx context.Context, req resource.C
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -177,7 +177,7 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 	if len(listDeny) > 0 && len(listAllow) > 0 {
 		resp.Diagnostics.
 			AddError("ConflictingAttributesError",
-				"Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.",
+				"You can't provide both a subscription_allow_list and a subscription_deny_list. Choose one or the other.",
 			)
 		return
 	}
@@ -200,7 +200,7 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Azure integration, got error: %s", err),
+				fmt.Sprintf("Unable to create Azure integration. Got error: %s", err),
 			)
 		return
 	}
@@ -211,7 +211,7 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
-				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+				fmt.Sprintf("Unable to trigger integration. Got error: %s", err),
 			)
 		return
 	}
@@ -264,7 +264,7 @@ func (r *integrationAzureResource) Update(ctx context.Context, req resource.Upda
 	if len(listDeny) > 0 && len(listAllow) > 0 {
 		resp.Diagnostics.
 			AddError("ConflictingAttributesError",
-				"Both subscription_allow_list and subscription_deny_list cannot be provided simultaneously.",
+				"You can't provide both a subscription_allow_list and a subscription_deny_list. Choose one or the other.",
 			)
 		return
 	}
@@ -289,7 +289,7 @@ func (r *integrationAzureResource) Update(ctx context.Context, req resource.Upda
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update Azure integration, got error: %s", err),
+				fmt.Sprintf("Unable to update Azure integration. Got error: %s", err),
 			)
 		return
 	}
@@ -313,7 +313,7 @@ func (r *integrationAzureResource) Delete(ctx context.Context, req resource.Dele
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Azure integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete Azure integration. Got error: %s", err),
 			)
 		return
 	}

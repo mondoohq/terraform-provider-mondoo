@@ -116,24 +116,24 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 		eventScanTriggers = append(eventScanTriggers, &mondoov1.AWSEventPatternInput{
 			ScanType:        mondoov1.String("ALL"),
 			EventSource:     mondoov1.String("aws.signin"),
-			EventDetailType: mondoov1.String("AWS Console Sign In via CloudTrail"),
+			EventDetailType: mondoov1.String("AWS Console Sign-in via CloudTrail"),
 		})
 		eventScanTriggers = append(eventScanTriggers, &mondoov1.AWSEventPatternInput{
 			ScanType:        mondoov1.String("ALL"),
 			EventSource:     mondoov1.String("aws.ec2"),
-			EventDetailType: mondoov1.String("EC2 Instance State-change Notification"),
+			EventDetailType: mondoov1.String("EC2 Instance State-Change Notification"),
 		})
 	} else if m.ConsoleSignInTrigger.ValueBool() && !m.InstanceStateChangeTrigger.ValueBool() {
 		eventScanTriggers = append(eventScanTriggers, &mondoov1.AWSEventPatternInput{
 			ScanType:        mondoov1.String("ALL"),
 			EventSource:     mondoov1.String("aws.signin"),
-			EventDetailType: mondoov1.String("AWS Console Sign In via CloudTrail"),
+			EventDetailType: mondoov1.String("AWS Console Sign-in via CloudTrail"),
 		})
 	} else if m.InstanceStateChangeTrigger.ValueBool() && !m.ConsoleSignInTrigger.ValueBool() {
 		eventScanTriggers = append(eventScanTriggers, &mondoov1.AWSEventPatternInput{
 			ScanType:        mondoov1.String("ALL"),
 			EventSource:     mondoov1.String("aws.ec2"),
-			EventDetailType: mondoov1.String("EC2 Instance State-change Notification"),
+			EventDetailType: mondoov1.String("EC2 Instance State-Change Notification"),
 		})
 	}
 
@@ -209,7 +209,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 		MarkdownDescription: `Continuously scan AWS organization and accounts for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -239,7 +239,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 				Required:            true,
 			},
 			"console_sign_in_trigger": schema.BoolAttribute{
-				MarkdownDescription: "Enable console sign in trigger.",
+				MarkdownDescription: "Enable console sign-in trigger.",
 				Optional:            true,
 			},
 			"instance_state_change_trigger": schema.BoolAttribute{
@@ -311,7 +311,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 								ElementType:         types.StringType,
 							},
 							"exclude_tags_filter": schema.MapAttribute{
-								MarkdownDescription: "Excluded Tags filter.",
+								MarkdownDescription: "Excluded tags filter.",
 								Optional:            true,
 								ElementType:         types.StringType,
 							},
@@ -403,7 +403,7 @@ func (r *integrationAwsServerlessResource) Configure(ctx context.Context, req re
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -439,7 +439,7 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 	if len(accountIDs) > 0 && data.IsOrganization.ValueBool() {
 		resp.Diagnostics.
 			AddError("ConflictingAttributesError",
-				"Cannot install CloudFormation Stack to both AWS organization and accounts.",
+				"Cannot install CloudFormation stack to both AWS organization and accounts.",
 			)
 		return
 	}
@@ -455,7 +455,7 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create AWS integration, got error: %s", err),
+				fmt.Sprintf("Unable to create AWS integration. Got error: %s", err),
 			)
 		return
 	}
@@ -500,7 +500,7 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 	if len(accountIDs) > 0 && data.IsOrganization.ValueBool() {
 		resp.Diagnostics.
 			AddError("ConflictingAttributesError",
-				"Cannot install CloudFormation Stack to both AWS organization and accounts.",
+				"Cannot install CloudFormation stack to both AWS organization and accounts.",
 			)
 		return
 	}
@@ -523,7 +523,7 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update AWS integration, got error: %s", err),
+				fmt.Sprintf("Unable to update AWS integration. Got error: %s", err),
 			)
 		return
 	}
@@ -547,7 +547,7 @@ func (r *integrationAwsServerlessResource) Delete(ctx context.Context, req resou
 		resp.Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to delete AWS serverless integration '%s', got error: %s",
+					"Unable to delete AWS serverless integration '%s'. Got error: %s",
 					data.Mrn.ValueString(), err.Error(),
 				),
 			)

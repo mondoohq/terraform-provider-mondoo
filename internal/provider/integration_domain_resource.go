@@ -46,7 +46,7 @@ func (r *integrationDomainResource) Schema(ctx context.Context, req resource.Sch
 		MarkdownDescription: `Continuously scan endpoints to evaluate domain TLS, SSL, HTTP, and HTTPS security`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -93,7 +93,7 @@ func (r *integrationDomainResource) Configure(ctx context.Context, req resource.
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -137,7 +137,7 @@ func (r *integrationDomainResource) Create(ctx context.Context, req resource.Cre
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create Domain integration, got error: %s", err),
+				fmt.Sprintf("Unable to create domain integration. Got error: %s", err),
 			)
 		return
 	}
@@ -148,7 +148,7 @@ func (r *integrationDomainResource) Create(ctx context.Context, req resource.Cre
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
-				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+				fmt.Sprintf("Unable to trigger integration. Got error: %s", err),
 			)
 		return
 	}
@@ -206,7 +206,7 @@ func (r *integrationDomainResource) Update(ctx context.Context, req resource.Upd
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update Domain integration, got error: %s", err),
+				fmt.Sprintf("Unable to update domain integration. Got error: %s", err),
 			)
 		return
 	}
@@ -230,7 +230,7 @@ func (r *integrationDomainResource) Delete(ctx context.Context, req resource.Del
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Domain integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete domain integration. Got error: %s", err),
 			)
 		return
 	}

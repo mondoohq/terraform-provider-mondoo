@@ -50,10 +50,10 @@ func (r *integrationMs365Resource) Metadata(ctx context.Context, req resource.Me
 
 func (r *integrationMs365Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. See [Mondoo documentation](https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/) for more details.`,
+		MarkdownDescription: `Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. To learn more, read the [Mondoo documentation](https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/).`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -75,18 +75,18 @@ func (r *integrationMs365Resource) Schema(ctx context.Context, req resource.Sche
 				},
 			},
 			"client_id": schema.StringAttribute{
-				MarkdownDescription: "Azure Client ID.",
+				MarkdownDescription: "Azure client ID.",
 				Required:            true,
 			},
 			"tenant_id": schema.StringAttribute{
-				MarkdownDescription: "Azure Tenant ID.",
+				MarkdownDescription: "Azure tenant ID.",
 				Required:            true,
 			},
 			"credentials": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
 					"pem_file": schema.StringAttribute{
-						MarkdownDescription: "PEM file for Ms365 integration.",
+						MarkdownDescription: "PEM file for MS365 integration.",
 						Required:            true,
 						Sensitive:           true,
 					},
@@ -107,7 +107,7 @@ func (r *integrationMs365Resource) Configure(ctx context.Context, req resource.C
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -150,7 +150,7 @@ func (r *integrationMs365Resource) Create(ctx context.Context, req resource.Crea
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create MS365 integration, got error: %s", err),
+				fmt.Sprintf("Unable to create MS365 integration. Got error: %s", err),
 			)
 		return
 	}
@@ -161,7 +161,7 @@ func (r *integrationMs365Resource) Create(ctx context.Context, req resource.Crea
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
-				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+				fmt.Sprintf("Unable to trigger integration. Got error: %s", err),
 			)
 		return
 	}
@@ -219,7 +219,7 @@ func (r *integrationMs365Resource) Update(ctx context.Context, req resource.Upda
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update Ms365 integration, got error: %s", err),
+				fmt.Sprintf("Unable to update MS365 integration. Got error: %s", err),
 			)
 		return
 	}
@@ -243,7 +243,7 @@ func (r *integrationMs365Resource) Delete(ctx context.Context, req resource.Dele
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Ms365 integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete MS365 integration. Got error: %s", err),
 			)
 		return
 	}
@@ -255,7 +255,7 @@ func (r *integrationMs365Resource) ImportState(ctx context.Context, req resource
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get integration, got error: %s", err),
+				fmt.Sprintf("Unable to get integration. Got error: %s", err),
 			)
 		return
 	}

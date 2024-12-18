@@ -968,7 +968,7 @@ func (c *ExtendedGqlClient) ImportIntegration(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get integration, got error: %s", err),
+				fmt.Sprintf("Unable to get integration. Got error: %s", err),
 			)
 		return nil, false
 	}

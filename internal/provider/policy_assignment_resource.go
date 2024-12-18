@@ -49,7 +49,7 @@ func (r *policyAssignmentResource) Schema(_ context.Context, req resource.Schema
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 			},
 			"policies": schema.ListAttribute{
@@ -62,7 +62,7 @@ func (r *policyAssignmentResource) Schema(_ context.Context, req resource.Schema
 				},
 			},
 			"state": schema.StringAttribute{
-				MarkdownDescription: "Policy Assignment State (preview, enabled, disabled).",
+				MarkdownDescription: "Policy assignment state (preview, enabled, or disabled).",
 				Default:             stringdefault.StaticString("enabled"),
 				Computed:            true,
 				Optional:            true,
@@ -85,7 +85,7 @@ func (r *policyAssignmentResource) Configure(ctx context.Context, req resource.C
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -199,7 +199,7 @@ func (r *policyAssignmentResource) Update(ctx context.Context, req resource.Upda
 	} else {
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
-			"Invalid state "+state+", use one of: enabled, preview, disabled",
+			"Invalid state "+state+". Valid states are enabled, preview, and disabled",
 		)
 		return
 	}

@@ -60,11 +60,11 @@ func (r *integrationOciTenantResource) Metadata(ctx context.Context, req resourc
 func (r *integrationOciTenantResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Example resource",
+		MarkdownDescription: "Continuously monitor OCI tenancies and resources for misconfigurations and vulnerabilities.",
 
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo Space Identifier. If it is not provided, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -124,7 +124,7 @@ func (r *integrationOciTenantResource) Configure(ctx context.Context, req resour
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -169,7 +169,7 @@ func (r *integrationOciTenantResource) Create(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create OCI tenant integration, got error: %s", err),
+				fmt.Sprintf("Unable to create OCI integration. Got error: %s", err),
 			)
 		return
 	}
@@ -180,7 +180,7 @@ func (r *integrationOciTenantResource) Create(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
-				fmt.Sprintf("Unable to trigger integration, got error: %s", err),
+				fmt.Sprintf("Unable to trigger integration. Got error: %s", err),
 			)
 		return
 	}
@@ -205,7 +205,7 @@ func (r *integrationOciTenantResource) Read(ctx context.Context, req resource.Re
 	}
 
 	// Write logs using the tflog package
-	tflog.Trace(ctx, "read a OCI integration resource")
+	tflog.Trace(ctx, "read an OCI integration resource")
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -241,7 +241,7 @@ func (r *integrationOciTenantResource) Update(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update OCI tenant integration, got error: %s", err),
+				fmt.Sprintf("Unable to update OCI integration. Got error: %s", err),
 			)
 		return
 	}
@@ -265,7 +265,7 @@ func (r *integrationOciTenantResource) Delete(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to delete Oci tenant integration, got error: %s", err),
+				fmt.Sprintf("Unable to delete OCI integration. Got error: %s", err),
 			)
 		return
 	}
@@ -277,7 +277,7 @@ func (r *integrationOciTenantResource) ImportState(ctx context.Context, req reso
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get integration, got error: %s", err),
+				fmt.Sprintf("Unable to get integration. Got error: %s", err),
 			)
 		return
 	}
@@ -289,7 +289,7 @@ func (r *integrationOciTenantResource) ImportState(ctx context.Context, req reso
 		resp.Diagnostics.AddError(
 			"Conflict Error",
 			fmt.Sprintf(
-				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+				"Unable to import integration. The provider is configured in a different space than the resource. (%s != %s)",
 				r.client.Space().ID(), spaceID),
 		)
 		return
