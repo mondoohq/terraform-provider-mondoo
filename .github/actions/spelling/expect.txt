@@ -8,6 +8,8 @@ codegen
 concat
 connectionstrings
 Cwj
+CIDs
+crowdstrike
 DXhjr
 FIGc
 Gci
