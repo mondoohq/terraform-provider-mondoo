@@ -25,6 +25,11 @@ variable "client_secret" {
   sensitive   = true
 }
 
+variable "cloud" {
+  description = "The Falcon Cloud to connect"
+  type        = string
+}
+
 provider "mondoo" {
   space = "hungry-poet-123456"
 }
@@ -34,6 +39,7 @@ resource "mondoo_integration_crowdstrike" "crowdstrike_integration" {
   name          = "CrowdStrike Integration"
   client_id     = var.client_id
   client_secret = var.client_secret
+  cloud         = var.cloud
 }
 ```
 
