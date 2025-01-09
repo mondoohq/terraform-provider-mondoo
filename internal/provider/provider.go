@@ -210,6 +210,7 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewIntegrationGitlabResource,
 		NewExceptionResource,
 		NewIntegrationMsDefenderResource,
+		NewIntegrationCrowdstrikeResource,
 	}
 }
 
