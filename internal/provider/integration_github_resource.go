@@ -42,8 +42,17 @@ type integrationGithubResourceModel struct {
 	RepositoryAllowList types.List `tfsdk:"repository_allow_list"`
 	RepositoryDenyList  types.List `tfsdk:"repository_deny_list"`
 
+	Discovery *integrationGithubDiscoveryModel `tfsdk:"discovery"`
+
 	// credentials
 	Credential *integrationGithubCredentialModel `tfsdk:"credentials"`
+}
+
+type integrationGithubDiscoveryModel struct {
+	// Discover Terraform files in the repositories. (Optional.)
+	Terraform types.Bool `tfsdk:"terraform"`
+	// Discover k8s manifests in the repositories. (Optional.)
+	K8sManifests types.Bool `tfsdk:"k8s_manifests"`
 }
 
 type integrationGithubCredentialModel struct {
@@ -67,6 +76,11 @@ func (m integrationGithubResourceModel) GetConfigurationOptions() *mondoov1.Gith
 	token := m.Credential.Token.ValueString()
 	if token != "" {
 		opts.Token = mondoov1.NewStringPtr(mondoov1.String(token))
+	}
+
+	if m.Discovery != nil {
+		opts.DiscoverTerraform = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.Discovery.Terraform.ValueBool()))
+		opts.DiscoverK8sManifests = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.Discovery.K8sManifests.ValueBool()))
 	}
 
 	ctx := context.Background()
@@ -142,6 +156,19 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 					listvalidator.ConflictsWith(path.Expressions{
 						path.MatchRoot("repository_allow_list"),
 					}...),
+				},
+			},
+			"discovery": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"terraform": schema.BoolAttribute{
+						MarkdownDescription: "Enable discovery of Terraform configurations.",
+						Optional:            true,
+					},
+					"k8s_manifests": schema.BoolAttribute{
+						MarkdownDescription: "Enable discovery of Kubernetes manifests.",
+						Optional:            true,
+					},
 				},
 			},
 			"credentials": schema.SingleNestedAttribute{
@@ -326,6 +353,10 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 		Repository:          types.StringValue(integration.ConfigurationOptions.GithubConfigurationOptions.Repository),
 		RepositoryAllowList: allowList,
 		RepositoryDenyList:  denyList,
+		Discovery: &integrationGithubDiscoveryModel{
+			Terraform:    types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverTerraform),
+			K8sManifests: types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverK8sManifests),
+		},
 		Credential: &integrationGithubCredentialModel{
 			Token: types.StringPointerValue(nil),
 		},
