@@ -172,7 +172,7 @@ func (r *integrationSentinelOneResource) Create(ctx context.Context, req resourc
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeShodan,
+		mondoov1.ClientIntegrationTypeSentinelOne,
 		mondoov1.ClientIntegrationConfigurationInput{
 			SentinelOneConfigurationOptions: data.GetConfigurationOptions(),
 		})
