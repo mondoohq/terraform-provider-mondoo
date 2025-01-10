@@ -37,12 +37,32 @@ type integrationSentinelOneResourceModel struct {
 	Name types.String `tfsdk:"name"`
 
 	// SentinelOne options
+	Host       types.String                          `tfsdk:"host"`
+	Account    types.String                          `tfsdk:"account"`
+	Credential integrationSentinelOneCredentialModel `tfsdk:"credentials"`
+}
+
+type integrationSentinelOneCredentialModel struct {
+	Certificate  types.String `tfsdk:"certificate"`
+	ClientSecret types.String `tfsdk:"client_secret"`
 }
 
 func (m integrationSentinelOneResourceModel) GetConfigurationOptions() *mondoov1.SentinelOneConfigurationOptionsInput {
-	return &mondoov1.SentinelOneConfigurationOptionsInput{
-		// SentinelOne options
+	// SentinelOne options
+	opts := &mondoov1.SentinelOneConfigurationOptionsInput{
+		Host:    mondoov1.String(m.Host.ValueString()),
+		Account: mondoov1.String(m.Account.ValueString()),
 	}
+
+	if certificate := m.Credential.Certificate.ValueString(); certificate != "" {
+		opts.Certificate = mondoov1.NewStringPtr(mondoov1.String(certificate))
+	}
+
+	if secret := m.Credential.ClientSecret.ValueString(); secret != "" {
+		opts.ClientSecret = mondoov1.NewStringPtr(mondoov1.String(secret))
+	}
+
+	return opts
 }
 
 func (r *integrationSentinelOneResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -76,6 +96,30 @@ func (r *integrationSentinelOneResource) Schema(_ context.Context, _ resource.Sc
 				},
 			},
 			// SentinelOne options
+			"host": schema.StringAttribute{
+				MarkdownDescription: "The host of the SentinelOne integration.",
+				Required:            true,
+			},
+			"account": schema.StringAttribute{
+				MarkdownDescription: "The account ID of the SentinelOne integration.",
+				Required:            true,
+			},
+			"credentials": schema.SingleNestedAttribute{
+				Required:            true,
+				MarkdownDescription: "Credentials require one of certificate or client secret to be provided.",
+				Attributes: map[string]schema.Attribute{
+					"certificate": schema.StringAttribute{
+						MarkdownDescription: "The certificate for the SentinelOne integration.",
+						Optional:            true,
+						Sensitive:           true,
+					},
+					"client_secret": schema.StringAttribute{
+						MarkdownDescription: "The client secret of the SentinelOne integration.",
+						Optional:            true,
+						Sensitive:           true,
+					},
+				},
+			},
 		},
 	}
 }
@@ -137,7 +181,7 @@ func (r *integrationSentinelOneResource) Create(ctx context.Context, req resourc
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to create integration. Got error: %s", err,
+					"Unable to create %s integration. Got error: %s", mondoov1.IntegrationTypeSentinelOne, err,
 				),
 			)
 		return
@@ -250,13 +294,13 @@ func (r *integrationSentinelOneResource) ImportState(ctx context.Context, req re
 		return
 	}
 	model := integrationSentinelOneResourceModel{
-		Mrn:          types.StringValue(integration.Mrn),
-		Name:         types.StringValue(integration.Name),
-		SpaceID:      types.StringValue(integration.SpaceID()),
-
+		Mrn:     types.StringValue(integration.Mrn),
+		Name:    types.StringValue(integration.Name),
+		SpaceID: types.StringValue(integration.SpaceID()),
 		// SentinelOne options
+		Host:    types.StringValue(integration.ConfigurationOptions.SentinelOneConfigurationOptions.Host),
+		Account: types.StringValue(integration.ConfigurationOptions.SentinelOneConfigurationOptions.Account),
 	}
 
 	resp.State.Set(ctx, &model)
 }
-
