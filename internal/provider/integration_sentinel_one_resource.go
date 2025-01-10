@@ -148,7 +148,6 @@ func (r *integrationSentinelOneResource) Configure(_ context.Context, req resour
 }
 
 func (r *integrationSentinelOneResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-
 	var data integrationSentinelOneResourceModel
 
 	// Read Terraform plan data into the model
@@ -167,7 +166,6 @@ func (r *integrationSentinelOneResource) Create(ctx context.Context, req resourc
 	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	// Do GraphQL request to API to create the resource.
-
 	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
@@ -190,7 +188,7 @@ func (r *integrationSentinelOneResource) Create(ctx context.Context, req resourc
 	// trigger integration to gather results quickly after the first setup
 	_, err = r.client.TriggerAction(ctx,
 		string(integration.Mrn),
-		mondoov1.ActionTypeRunScan,
+		mondoov1.ActionTypeRunImport,
 	)
 	if err != nil {
 		resp.
@@ -300,6 +298,10 @@ func (r *integrationSentinelOneResource) ImportState(ctx context.Context, req re
 		// SentinelOne options
 		Host:    types.StringValue(integration.ConfigurationOptions.SentinelOneConfigurationOptions.Host),
 		Account: types.StringValue(integration.ConfigurationOptions.SentinelOneConfigurationOptions.Account),
+		Credential: integrationSentinelOneCredentialModel{
+			Certificate:  types.StringPointerValue(nil),
+			ClientSecret: types.StringPointerValue(nil),
+		},
 	}
 
 	resp.State.Set(ctx, &model)

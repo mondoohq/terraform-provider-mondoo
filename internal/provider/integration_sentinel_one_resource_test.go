@@ -22,7 +22,7 @@ func TestAccSentinelOneIntegrationResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "host"),
-					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "host"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "account"),
 				),
 			},
 			{
@@ -31,7 +31,7 @@ func TestAccSentinelOneIntegrationResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "host"),
-					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "host"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "account"),
 				),
 			},
 			// Update and Read testing
@@ -41,7 +41,7 @@ func TestAccSentinelOneIntegrationResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "three"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "new-host"),
-					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "new-host"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "new-account"),
 				),
 			},
 			{
@@ -50,7 +50,7 @@ func TestAccSentinelOneIntegrationResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "four"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "new-host"),
-					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "new-host"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "new-account"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
