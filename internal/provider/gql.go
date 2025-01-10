@@ -662,6 +662,10 @@ type CrowdstrikeFalconConfigurationOptionsInput struct {
 	Cloud     string
 	MemberCID string
 }
+type SentinelOneConfigurationOptions struct {
+	Host    string
+	Account string
+}
 
 type ClientIntegrationConfigurationOptions struct {
 	AzureConfigurationOptions                  AzureConfigurationOptions                  `graphql:"... on AzureConfigurationOptions"`
@@ -678,6 +682,7 @@ type ClientIntegrationConfigurationOptions struct {
 	GitlabConfigurationOptions                 GitlabConfigurationOptions                 `graphql:"... on GitlabConfigurationOptions"`
 	MicrosoftDefenderConfigurationOptionsInput MicrosoftDefenderConfigurationOptionsInput `graphql:"... on MicrosoftDefenderConfigurationOptions"`
 	CrowdstrikeFalconConfigurationOptionsInput CrowdstrikeFalconConfigurationOptionsInput `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
+	SentinelOneConfigurationOptions            SentinelOneConfigurationOptions            `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
 	// Add other configuration options here
 }
 
