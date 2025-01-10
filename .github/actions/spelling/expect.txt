@@ -10,6 +10,7 @@ connectionstrings
 Cwj
 CIDs
 crowdstrike
+sentinelone
 DXhjr
 FIGc
 Gci
