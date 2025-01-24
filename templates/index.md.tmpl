@@ -8,11 +8,44 @@ description: |-
 
 The Mondoo provider is used to configure your Mondoo Platform infrastructure.
 
+## Pre-requisites
+
+- [Mondoo Platform account](https://mondoo.com/docs/platform/start/plat-start-acct/)
+- [Mondoo organization](https://mondoo.com/docs/platform/start/organize/overview/)
+- [Mondoo service account](https://mondoo.com/docs/platform/maintain/access/service_accounts/)
+
 {{ if .HasExample -}}
 ## Example Usage
 
 {{tffile .ExampleFile }}
 {{- end }}
+
+## Applying the configuration to Mondoo Platform
+
+To execute the terraform configuration, you need to set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo
+API token.
+
+```bash
+export MONDOO_CONFIG_BASE64="token here"
+```
+
+Then initialize a working directory containing Terraform configuration files.
+
+```bash
+terraform init
+```
+
+Create an execution plan, which lets you preview the changes that the Terraform plan makes to your Mondoo organization:
+
+```bash
+terraform plan -out plan.out
+```
+
+Execute the actions proposed in the Terraform plan.
+
+```bash
+terraform apply -auto-approve plan.out
+```
 
 ## Authentication
 
@@ -23,10 +56,37 @@ By default, the provider will use the Mondoo CLI configuration file to authentic
 configuration file is located at `~/.config/mondoo/mondoo.yml` on Linux and macOS, and `%HomePath%\mondoo\mondoo.yml`
 on Windows.
 
-You can alternatively use the `credentials` field, or any of the following environment variables ordered by precedence.
+You can alternatively use the following environment variables ordered by precedence:
 
 * `MONDOO_CONFIG_BASE64`
 * `MONDOO_CONFIG_PATH`
 * `MONDOO_API_TOKEN`
+
+If you want to manage the credential as part of your Terraform configuration, use the `credentials` field:
+
+```hcl
+provider "mondoo" {
+  credentials = "{json-formatted-credentials}"
+}
+```
+
+## Regions
+
+By default, the provider will use the Mondoo Platform in the US region. To use the EU region, set the `region`
+attribute:
+
+```hcl
+provider "mondoo" {
+  region = "eu"
+}
+```
+
+For dedicated Mondoo Platform installations, set the `endpoint` attribute:
+
+```hcl
+provider "mondoo" {
+  endpoint = "https://api.{example.com}"
+}
+```
 
 {{ .SchemaMarkdown | trimspace }}
