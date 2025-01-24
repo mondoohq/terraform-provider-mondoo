@@ -34,7 +34,7 @@ provider "mondoo" {
 
 ## Applying the configuration to Mondoo Platform
 
-To execute the terraform configuration, you need to set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo
+To execute the Terraform configuration, you need to set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo
 API token.
 
 ```bash
