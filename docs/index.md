@@ -34,7 +34,7 @@ provider "mondoo" {
 
 ## Applying the configuration to Mondoo Platform
 
-To execute the terraform configuration, you need to set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo
+To execute the Terraform configuration, you need to set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo
 API token.
 
 ```bash
@@ -68,13 +68,13 @@ By default, the provider will use the Mondoo CLI configuration file to authentic
 configuration file is located at `~/.config/mondoo/mondoo.yml` on Linux and macOS, and `%HomePath%\mondoo\mondoo.yml`
 on Windows.
 
-You can alternatively, use the following environment variables ordered by precedence:
+You can alternatively use the following environment variables ordered by precedence:
 
 * `MONDOO_CONFIG_BASE64`
 * `MONDOO_CONFIG_PATH`
 * `MONDOO_API_TOKEN`
 
-If you want to mange the credential as part of your terraform configuration, use the `credentials` field:
+If you want to manage the credential as part of your Terraform configuration, use the `credentials` field:
 
 ```hcl
 provider "mondoo" {
