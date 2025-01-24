@@ -53,16 +53,10 @@ Create an execution plan, which lets you preview the changes that the Terraform 
 terraform plan -out plan.out
 ```
 
-Execute the actions proposed in the Terraform plan
+Execute the actions proposed in the Terraform plan.
 
 ```bash
 terraform apply -auto-approve plan.out
-```
-
-Extract the value of the output variable `space_setup` from the state file.
-
-```bash
-terraform output -json space_setup | jq
 ```
 
 ## Authentication

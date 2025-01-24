@@ -47,12 +47,6 @@ Execute the actions proposed in the Terraform plan.
 terraform apply -auto-approve plan.out
 ```
 
-Extract the value of the output variable `space_setup` from the state file.
-
-```bash
-terraform output -json space_setup | jq
-```
-
 ## Authentication
 
 To configure the Mondoo provider you will need a service account with **Editor** permissions, to create a service
