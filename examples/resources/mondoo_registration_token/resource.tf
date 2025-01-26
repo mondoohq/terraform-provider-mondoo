@@ -8,7 +8,7 @@ variable "space_names" {
 }
 
 variable "org_id" {
-  description = "The organization id to create the spaces in"
+  description = "The ID of the organization in which to create the spaces"
   type        = string
   default     = ""
 }

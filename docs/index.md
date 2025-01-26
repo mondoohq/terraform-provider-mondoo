@@ -1,20 +1,24 @@
 ---
 page_title: "Provider: Mondoo"
 description: |-
-  The Mondoo provider is used to configure your Mondoo Platform infrastructure.
+  Use the Mondoo provider to configure your Mondoo Platform infrastructure.
 ---
 
-# Mondoo Provider
+# Mondoo provider
 
-The Mondoo provider is used to configure your Mondoo Platform infrastructure.
+Use the Mondoo provider to configure your Mondoo Platform infrastructure. To learn about Mondoo, read the [Mondoo documentation](https://mondoo.com/docs/platform/home/).
 
-## Pre-requisites
+## Prerequisites
 
-- [Mondoo Platform account](https://mondoo.com/docs/platform/start/plat-start-acct/)
-- [Mondoo organization](https://mondoo.com/docs/platform/start/organize/overview/)
-- [Mondoo service account](https://mondoo.com/docs/platform/maintain/access/service_accounts/)
+- A [Mondoo Platform account](https://mondoo.com/docs/platform/start/plat-start-acct/)
 
-## Example Usage
+- The ID of an existing [organization](https://mondoo.com/docs/platform/start/organize/overview/) in your Mondoo Platform account
+
+   To retrieve the ID: In the top navigation bar of the Mondoo Console, select the organization name. This opens the organization's overview page. In your browser's address bar, copy the value after `?organizationId=`.
+
+- A [Mondoo service account](https://mondoo.com/docs/platform/maintain/access/service_accounts/#generate-a-service-account-for-access-to-all-spaces-in-an-organization) with **Editor** permissions to the Mondoo organization
+
+## Example usage
 
 ```terraform
 terraform {
@@ -27,7 +31,7 @@ terraform {
 }
 
 variable "org_id" {
-  description = "The organization id to create the spaces in"
+  description = "The ID of the organization in which to create the spaces"
   type        = string
 }
 
@@ -38,7 +42,7 @@ data "mondoo_organization" "org" {
 }
 
 resource "mondoo_space" "my_space" {
-  name   = "My Space New"
+  name   = "My New Space"
   org_id = data.mondoo_organization.org.id
 }
 
@@ -86,43 +90,43 @@ resource "mondoo_exception" "windows_defender_exception" {
 }
 ```
 
-## Applying the configuration to Mondoo Platform
+## Apply the configuration to Mondoo Platform
 
-To execute the terraform configuration, you need to set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo
-API token.
+To execute the terraform configuration:
 
-```bash
-export MONDOO_CONFIG_BASE64="token here"
-```
+1. Set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo API token:
 
-Then initialize a working directory containing Terraform configuration files.
+   ```bash
+   export MONDOO_CONFIG_BASE64="token here"
+   ```
 
-```bash
-terraform init
-```
+2. Initialize a working directory containing Terraform configuration files:
 
-Create an execution plan, which lets you preview the changes that the Terraform plan makes to your Mondoo organization:
+   ```bash
+   terraform init
+   ```
 
-```bash
-terraform plan -out plan.out
-```
+3. Create an execution plan, which lets you preview the changes that the Terraform plan will make to your Mondoo organization:
 
-Execute the actions proposed in the Terraform plan.
+   ```bash
+   terraform plan -out plan.out
+   ```
 
-```bash
-terraform apply -auto-approve plan.out
-```
+4. Execute the actions proposed in the Terraform plan:
+
+   ```bash
+   terraform apply -auto-approve plan.out
+   ```
 
 ## Authentication
 
-To configure the Mondoo provider you will need a service account with **Editor** permissions, to create a service
-account, see [Create and Manage Service Accounts](https://mondoo.com/docs/platform/maintain/access/service_accounts/).
+To configure the Mondoo provider, you need a service account with **Editor** permissions to the organization. To learn how to create one, read [Create and Manage Service Accounts](https://mondoo.com/docs/platform/maintain/access/service_accounts/#generate-a-service-account-for-access-to-all-spaces-in-an-organization).
 
-By default, the provider will use the Mondoo CLI configuration file to authenticate to the Mondoo Platform. The CLI
+By default, the provider uses the Mondoo CLI configuration file to authenticate to the Mondoo Platform. The CLI
 configuration file is located at `~/.config/mondoo/mondoo.yml` on Linux and macOS, and `%HomePath%\mondoo\mondoo.yml`
 on Windows.
 
-You can alternatively use the following environment variables ordered by precedence:
+You can alternatively use the following environment variables, ordered by precedence:
 
 * `MONDOO_CONFIG_BASE64`
 * `MONDOO_CONFIG_PATH`
@@ -138,8 +142,7 @@ provider "mondoo" {
 
 ## Regions
 
-By default, the provider will use the Mondoo Platform in the US region. To use the EU region, set the `region`
-attribute:
+By default, the provider uses Mondoo Platform in the US region. To use the EU region instead, set the `region` attribute:
 
 ```hcl
 provider "mondoo" {
@@ -161,6 +164,6 @@ provider "mondoo" {
 ### Optional
 
 - `credentials` (String) The contents of a service account key file in JSON format.
-- `endpoint` (String) The endpoint url of the server to manage resources
+- `endpoint` (String) The endpoint url of the server to manage resources.
 - `region` (String) The default region to manage resources in. Valid regions are `us` or `eu`.
 - `space` (String) The default space to manage resources in.

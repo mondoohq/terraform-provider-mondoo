@@ -8,7 +8,7 @@ terraform {
 }
 
 variable "org_id" {
-  description = "The organization id to create the spaces in"
+  description = "The ID of the organization in which to create the spaces"
   type        = string
 }
 
@@ -19,7 +19,7 @@ data "mondoo_organization" "org" {
 }
 
 resource "mondoo_space" "my_space" {
-  name   = "My Space New"
+  name   = "My New Space"
   org_id = data.mondoo_organization.org.id
 }
 

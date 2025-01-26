@@ -66,7 +66,7 @@ func (p *MondooProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 				},
 			},
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "The endpoint url of the server to manage resources",
+				MarkdownDescription: "The endpoint url of the server to manage resources.",
 				Optional:            true,
 			},
 		},
