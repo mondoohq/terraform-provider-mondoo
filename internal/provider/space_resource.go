@@ -82,7 +82,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"org_id": schema.StringAttribute{
-				MarkdownDescription: "Id of the organization.",
+				MarkdownDescription: "ID of the organization.",
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(

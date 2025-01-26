@@ -12,15 +12,13 @@ Use the Mondoo provider to configure your Mondoo Platform infrastructure. To lea
 
 - A [Mondoo Platform account](https://mondoo.com/docs/platform/start/plat-start-acct/)
 
-- An [organization](https://mondoo.com/docs/platform/start/organize/overview/) in your Mondoo Platform
+- The ID of an existing [organization](https://mondoo.com/docs/platform/start/organize/overview/) in your Mondoo Platform account
 
-- The ID of the organization
-
-   To retrieve the ID: In the top navigation bar of the Mondoo Console, select the organization name. This opens the organization's overview page. In your browser's address bar, copy the value after `?organizationId`.
+   To retrieve the ID: In the top navigation bar of the Mondoo Console, select the organization name. This opens the organization's overview page. In your browser's address bar, copy the value after `?organizationId=`.
 
 - A [Mondoo service account](https://mondoo.com/docs/platform/maintain/access/service_accounts/#generate-a-service-account-for-access-to-all-spaces-in-an-organization) with **Editor** permissions to the Mondoo organization
 
-## Example
+## Example usage
 
 ```terraform
 terraform {
@@ -33,7 +31,7 @@ terraform {
 }
 
 variable "org_id" {
-  description = "The ID of the organization in which to create new spaces"
+  description = "The ID of the organization in which to create the spaces"
   type        = string
 }
 
@@ -94,25 +92,27 @@ resource "mondoo_exception" "windows_defender_exception" {
 
 ## Apply the configuration to Mondoo Platform
 
-1. To execute the Terraform configuration, set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo API token you created:
+To execute the terraform configuration:
+
+1. Set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo API token:
 
    ```bash
-   export MONDOO_CONFIG_BASE64="your-token-here"
+   export MONDOO_CONFIG_BASE64="token here"
    ```
 
-2. Initialize a working directory containing the Terraform configuration files:
+2. Initialize a working directory containing Terraform configuration files:
 
    ```bash
    terraform init
    ```
 
-3. Create an execution plan, which lets you preview the changes that the Terraform plan makes to your Mondoo organization:
+3. Create an execution plan, which lets you preview the changes that the Terraform plan will make to your Mondoo organization:
 
    ```bash
    terraform plan -out plan.out
    ```
 
-4. Execute the actions proposed in the Terraform plan.
+4. Execute the actions proposed in the Terraform plan:
 
    ```bash
    terraform apply -auto-approve plan.out
@@ -120,8 +120,7 @@ resource "mondoo_exception" "windows_defender_exception" {
 
 ## Authentication
 
-To configure the Mondoo provider you need a service account with **Editor** permissions, to create a service
-account, see [Create and Manage Service Accounts](https://mondoo.com/docs/platform/maintain/access/service_accounts/).
+To configure the Mondoo provider, you need a service account with **Editor** permissions to the organization. To learn how to create one, read [Create and Manage Service Accounts](https://mondoo.com/docs/platform/maintain/access/service_accounts/#generate-a-service-account-for-access-to-all-spaces-in-an-organization).
 
 By default, the provider uses the Mondoo CLI configuration file to authenticate to the Mondoo Platform. The CLI
 configuration file is located at `~/.config/mondoo/mondoo.yml` on Linux and macOS, and `%HomePath%\mondoo\mondoo.yml`
@@ -143,8 +142,7 @@ provider "mondoo" {
 
 ## Regions
 
-By default, the provider uses Mondoo Platform in the US region. To use the EU region, set the `region`
-attribute:
+By default, the provider uses Mondoo Platform in the US region. To use the EU region instead, set the `region` attribute:
 
 ```hcl
 provider "mondoo" {
@@ -166,6 +164,6 @@ provider "mondoo" {
 ### Optional
 
 - `credentials` (String) The contents of a service account key file in JSON format.
-- `endpoint` (String) The endpoint url of the server to manage resources
-- `region` (String) The default region in which to manage resources. Valid regions are `us` or `eu`.
-- `space` (String) The default space in which to manage resources.
+- `endpoint` (String) The endpoint url of the server to manage resources.
+- `region` (String) The default region to manage resources in. Valid regions are `us` or `eu`.
+- `space` (String) The default space to manage resources in.
