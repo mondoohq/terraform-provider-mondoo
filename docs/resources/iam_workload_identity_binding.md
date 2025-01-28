@@ -18,9 +18,10 @@ provider "mondoo" {
 }
 
 resource "mondoo_iam_workload_identity_binding" "example" {
-  name       = "Example Binding"
-  issuer_uri = "https://accounts.google.com"
-  subject    = "foo"
+  name       = "Github binding example"
+  issuer_uri = "https://token.actions.githubusercontent.com"
+  subject    = "repo:mondoohq/server:ref:refs/heads/main"
+  expiration = 3600
 }
 ```
 
