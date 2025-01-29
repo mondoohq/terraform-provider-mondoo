@@ -223,40 +223,6 @@ type SpaceReportPayload struct {
 	SpaceReport SpaceReport
 }
 
-func (c *ExtendedGqlClient) GetPolicySpaceReport(ctx context.Context, spaceMrn string) (*[]Policy, error) {
-	// Define the query struct according to the provided query
-	var spaceReportQuery struct {
-		Report struct {
-			SpaceReport SpaceReport `graphql:"... on SpaceReport"`
-		} `graphql:"spaceReport(input: $input)"`
-	}
-	// Define the input variable according to the provided query
-	input := mondoov1.SpaceReportInput{
-		SpaceMrn: mondoov1.String(spaceMrn),
-	}
-
-	variables := map[string]interface{}{
-		"input": input,
-	}
-
-	tflog.Trace(ctx, "GetSpaceReportInput", map[string]interface{}{
-		"input": fmt.Sprintf("%+v", input),
-	})
-
-	// Execute the query
-	err := c.Query(ctx, &spaceReportQuery, variables)
-	if err != nil {
-		return nil, err
-	}
-
-	var policies []Policy
-	for _, edges := range spaceReportQuery.Report.SpaceReport.PolicyReportSummaries.Edges {
-		policies = append(policies, edges.Node.Policy)
-	}
-
-	return &policies, nil
-}
-
 type ContentInput struct {
 	ScopeMrn     string
 	CatalogType  string
@@ -467,7 +433,7 @@ func (c *ExtendedGqlClient) CreateIntegration(ctx context.Context, spaceMrn, nam
 		ConfigurationOptions: opts,
 	}
 
-	tflog.Trace(ctx, "CreateSpaceInput", map[string]interface{}{
+	tflog.Trace(ctx, "CreateClientIntegrationInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createInput),
 	})
 
