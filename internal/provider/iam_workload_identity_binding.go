@@ -165,7 +165,7 @@ type WIFAuthBinding struct {
 	Roles            []string
 	Expiration       int32
 	IssuerURI        string
-	Subject          []byte
+	Subject          string
 	Mappings         []KeyValue
 	AllowedAudiences []string
 }
@@ -250,15 +250,19 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 	}
 
 	// Write logs using the tflog package
-	tflog.Debug(ctx, "created a binding resource")
-
+	tflog.Debug(ctx, "created a b2nding resource", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", createMutation),
+	})
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mrn)
 	data.Description = types.StringValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Description)
 	data.Roles = ConvertListValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Roles)
 	data.AllowedAudiences = ConvertListValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.AllowedAudiences)
-	newMappings, _ := types.MapValueFrom(context.Background(), types.StringType, createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mappings)
-	data.Mappings = newMappings
+	data.SpaceID = types.StringValue(space.ID())
+	if len(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mappings) != 0 {
+		newMappings, _ := types.MapValueFrom(context.Background(), types.StringType, createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mappings)
+		data.Mappings = newMappings
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -275,15 +279,30 @@ func (r *IAMWorkloadIdentityBindingResource) readIAMWorkloadIdentityBinding(ctx 
 		"mrn": mondoov1.String(mrn),
 	}
 
+	tflog.Debug(ctx, "getWIFAuthBindingInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", variables),
+	})
+
 	err := r.client.Query(ctx, &q, variables)
 	if err != nil {
 		return IAMWorkloadIdentityBindingResourceModel{}, err
 	}
 
+	tflog.Debug(ctx, "getWIFAuthBindingPayload", map[string]interface{}{
+		"payload": fmt.Sprintf("%+v", q),
+	})
+
 	return IAMWorkloadIdentityBindingResourceModel{
-		Mrn:         types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Mrn),
-		Name:        types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Name),
-		Description: types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Description),
+		SpaceID:          types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Scope),
+		Mrn:              types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Mrn),
+		Name:             types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Name),
+		Description:      types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Description),
+		IssuerURI:        types.StringValue(q.IAMWorkloadIdentityBinding.Binding.IssuerURI),
+		Subject:          types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Subject),
+		Expiration:       types.Int32Value(q.IAMWorkloadIdentityBinding.Binding.Expiration),
+		Roles:            ConvertListValue(q.IAMWorkloadIdentityBinding.Binding.Roles),
+		AllowedAudiences: ConvertListValue(q.IAMWorkloadIdentityBinding.Binding.AllowedAudiences),
+		Mappings:         types.MapNull(types.StringType),
 	}, nil
 }
 
@@ -306,12 +325,8 @@ func (r *IAMWorkloadIdentityBindingResource) Read(ctx context.Context, req resou
 		return
 	}
 
-	data.Mrn = m.Mrn
-	data.Name = m.Name
-	data.Description = m.Description
-
 	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &m)...)
 }
 
 // Update is not allowed by design. We only read and exist.
@@ -320,6 +335,10 @@ func (r *IAMWorkloadIdentityBindingResource) Update(ctx context.Context, req res
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+}
+
+type DeletePayload struct {
+	Mrn mondoov1.String
 }
 
 func (r *IAMWorkloadIdentityBindingResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -332,30 +351,40 @@ func (r *IAMWorkloadIdentityBindingResource) Delete(ctx context.Context, req res
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
-	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
-
 	// Do GraphQL request to API to delete the resource.
 	var deleteMutation struct {
-		DeleteIAMWorkloadIdentityBindings struct {
-			Mrn mondoov1.String
-		} `graphql:"removeWIFAuthBinding(mrn: $mrn)"`
+		RemoveWIFAuthBinding DeletePayload `graphql:"removeWIFAuthBinding(mrn: $mrn)"`
 	}
 
-	deleteInput := mondoov1.String(space.MRN())
-	tflog.Debug(ctx, "removeWIFAuthBinding", map[string]interface{}{
-		"mrn": space.MRN(),
+	variables := map[string]interface{}{
+		"mrn": mondoov1.String(data.Mrn.String()),
+	}
+	tflog.Debug(ctx, "RemoveWIFAuthBindingVariables", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", variables),
 	})
-	err = r.client.Mutate(ctx, &deleteMutation, deleteInput, nil)
+	err := r.client.Mutate(ctx, &deleteMutation, nil, variables)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
 			fmt.Sprintf("Unable to delete binding. Got error: %s", err),
 		)
 	}
+}
+
+func (r *IAMWorkloadIdentityBindingResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	mrn := req.ID
+
+	m, err := r.readIAMWorkloadIdentityBinding(ctx, mrn)
+	if err != nil {
+		resp.
+			Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf(
+					"Unable to import binding. Got error: %s", err,
+				),
+			)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &m)...)
 }
