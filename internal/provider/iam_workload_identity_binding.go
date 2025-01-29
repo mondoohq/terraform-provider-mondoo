@@ -164,41 +164,19 @@ type WIFAuthBinding struct {
 	Scope            string
 	Roles            []string
 	Expiration       int32
-	IssuerURI        string `graphql:"issuerURI"`
+	IssuerURI        string
 	Subject          []byte
 	Mappings         []KeyValue
 	AllowedAudiences []string
 }
+
 type WIFExternalAuthConfig struct {
-	UniverseDomain   string `graphql:"universe_domain"`
+	UniverseDomain   string
 	Type             string
 	Audience         string
-	SubjectTokenType string `graphql:"subject_token_type"`
+	SubjectTokenType string
 	Scopes           []string
-	IssuerURI        string `graphql:"issuer_uri"`
-}
-
-// Workaround because of inconsistencies.
-type CreateWIFAuthBindingInput struct {
-	// Space mrn associated with the binding. (Required.)
-	ScopeMrn mondoov1.String `json:"scopeMrn"`
-	// User selected name. (Required.)
-	Name mondoov1.String `json:"name"`
-	// URI for the token issuer, e.g. https://accounts.google.com. (Required.)
-	IssuerURI mondoov1.String `json:"issuerUri"`
-	// Unique identifier to confirm. (Required.)
-	Subject mondoov1.String `json:"subject"`
-
-	// Optional description. (Optional.)
-	Description *mondoov1.String `json:"description,omitempty"`
-	// List of roles associated with the binding (e.g. agent mrn). (Optional.)
-	Roles *[]mondoov1.String `json:"roles,omitempty"`
-	// Expiration in seconds associated with the binding. (Optional.)
-	Expiration *mondoov1.Int `json:"expiration,omitempty"`
-	// List of additional configurations to confirm. (Optional.)
-	Mappings *[]mondoov1.KeyValueInput `json:"mappings,omitempty"`
-	// List of allowed audiences. (Optional.)
-	AllowedAudiences *[]mondoov1.String `json:"allowedAudiences,omitempty"`
+	IssuerURI        string
 }
 
 func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -239,8 +217,7 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 	}
 
 	// We can't do this until we fix some inconsistencies
-	// createInput := mondoov1.CreateWIFAuthBindingInput{
-	createInput := CreateWIFAuthBindingInput{
+	createInput := mondoov1.CreateWIFAuthBindingInput{
 		ScopeMrn:         mondoov1.String(space.MRN()),
 		Name:             mondoov1.String(data.Name.ValueString()),
 		Description:      mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
