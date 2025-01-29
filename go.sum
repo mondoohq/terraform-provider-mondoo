@@ -612,6 +612,8 @@ go.mondoo.com/cnquery/v11 v11.37.1 h1:bzM4o7+k/WGrqFHaY0t1aUZjVG+ufOL8BwEphoFiL6
 go.mondoo.com/cnquery/v11 v11.37.1/go.mod h1:Fy0e1XJzZgtQyRAuPzoEapfxB2G5DjwWagJAPqKT/Ks=
 go.mondoo.com/mondoo-go v0.0.0-20250127074240-22a812af6d20 h1:RkZ6b/BOuVVWn4vS+0e4Tv0G9MP0L4hZLvgEs+2ESmg=
 go.mondoo.com/mondoo-go v0.0.0-20250127074240-22a812af6d20/go.mod h1:0HMHhLaS0V1himFIJQxABmvqEAdWv1NUScXpSjrhxqo=
+go.mondoo.com/mondoo-go v0.0.0-20250129071639-c3de624e0c5a h1:DtwCDuKcXUVJZyKni8TlkxxlFdutPVK6JFCldIuq8cw=
+go.mondoo.com/mondoo-go v0.0.0-20250129071639-c3de624e0c5a/go.mod h1:0HMHhLaS0V1himFIJQxABmvqEAdWv1NUScXpSjrhxqo=
 go.mondoo.com/ranger-rpc v0.6.5 h1:KKoeTGPonJI3T6lrT9oxdH9eNlZC6pdqYvsuWZWyB6w=
 go.mondoo.com/ranger-rpc v0.6.5/go.mod h1:kwPJSYj32vZJjWoQSKEao5YoUO/ZRcjVGxBOL4tApf0=
 go.mongodb.org/mongo-driver v1.10.0 h1:UtV6N5k14upNp4LTduX0QCufG124fSu25Wz9tu94GLg=
