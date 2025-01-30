@@ -93,7 +93,7 @@ func (r *WorkspaceResource) Metadata(_ context.Context, req resource.MetadataReq
 func (r *WorkspaceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: `Allows management of Mondoo Workspaces.`,
+		MarkdownDescription: `Allows management of Mondoo workspaces.`,
 
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{

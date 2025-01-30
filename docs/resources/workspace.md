@@ -3,12 +3,12 @@
 page_title: "mondoo_workspace Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Allows management of Mondoo Workspaces.
+  Allows management of Mondoo workspaces.
 ---
 
 # mondoo_workspace (Resource)
 
-Allows management of Mondoo Workspaces.
+Allows management of Mondoo workspaces.
 
 ## Example Usage
 
