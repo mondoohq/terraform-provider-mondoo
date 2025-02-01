@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -115,6 +116,10 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 			"expiration": schema.Int32Attribute{
 				MarkdownDescription: "Expiration in seconds associated with the binding.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Int32{
+					int32planmodifier.UseStateForUnknown(),
+				},
 			},
 			"allowed_audiences": schema.ListAttribute{
 				MarkdownDescription: " List of allowed audiences.",
@@ -261,6 +266,7 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 	data.Roles = ConvertListValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Roles)
 	data.AllowedAudiences = ConvertListValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.AllowedAudiences)
 	data.SpaceID = types.StringValue(space.ID())
+	data.Expiration = types.Int32Value(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Expiration)
 	if len(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mappings) != 0 {
 		newMappings, _ := types.MapValueFrom(context.Background(), types.StringType, createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mappings)
 		data.Mappings = newMappings
