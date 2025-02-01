@@ -216,14 +216,13 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 		})
 	}
 
-	// We can't do this until we fix some inconsistencies
 	createInput := mondoov1.CreateWIFAuthBindingInput{
 		ScopeMrn:         mondoov1.String(space.MRN()),
 		Name:             mondoov1.String(data.Name.ValueString()),
 		Description:      mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
 		Roles:            &roles,
 		IssuerURI:        mondoov1.String(data.IssuerURI.ValueString()),
-		Subject:          mondoov1.String(data.SpaceID.ValueString()),
+		Subject:          mondoov1.String(data.Subject.ValueString()),
 		Expiration:       mondoov1.NewIntPtr(mondoov1.Int(data.Expiration.ValueInt32())),
 		AllowedAudiences: &allowedAudiences,
 		Mappings:         &mappings,
