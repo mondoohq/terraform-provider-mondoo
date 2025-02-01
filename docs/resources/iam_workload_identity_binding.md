@@ -41,7 +41,7 @@ resource "mondoo_iam_workload_identity_binding" "example" {
 - `expiration` (Number) Expiration in seconds associated with the binding.
 - `mappings` (Map of String) List of additional configurations to confirm.
 - `roles` (List of String) List of roles associated with the binding (e.g. agent mrn).
-- `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
+- `scope_mrn` (String) The MRN of the scope (either space or organization). If there is no scope, the provider space is used.
 
 ### Read-Only
 
