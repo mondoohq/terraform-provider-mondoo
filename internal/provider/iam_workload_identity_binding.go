@@ -223,9 +223,12 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 		Roles:            &roles,
 		IssuerURI:        mondoov1.String(data.IssuerURI.ValueString()),
 		Subject:          mondoov1.String(data.Subject.ValueString()),
-		Expiration:       mondoov1.NewIntPtr(mondoov1.Int(data.Expiration.ValueInt32())),
 		AllowedAudiences: &allowedAudiences,
 		Mappings:         &mappings,
+	}
+
+	if expiration := data.Expiration.ValueInt32(); expiration != 0 {
+		createInput.Expiration = mondoov1.NewIntPtr(mondoov1.Int(expiration))
 	}
 
 	tflog.Debug(ctx, "CreateWIFAuthBindingInput", map[string]interface{}{
