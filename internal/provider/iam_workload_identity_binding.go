@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -115,6 +116,10 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 			"expiration": schema.Int32Attribute{
 				MarkdownDescription: "Expiration in seconds associated with the binding.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Int32{
+					int32planmodifier.UseStateForUnknown(),
+				},
 			},
 			"allowed_audiences": schema.ListAttribute{
 				MarkdownDescription: " List of allowed audiences.",
@@ -223,9 +228,12 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 		Roles:            &roles,
 		IssuerURI:        mondoov1.String(data.IssuerURI.ValueString()),
 		Subject:          mondoov1.String(data.Subject.ValueString()),
-		Expiration:       mondoov1.NewIntPtr(mondoov1.Int(data.Expiration.ValueInt32())),
 		AllowedAudiences: &allowedAudiences,
 		Mappings:         &mappings,
+	}
+
+	if expiration := data.Expiration.ValueInt32(); expiration != 0 {
+		createInput.Expiration = mondoov1.NewIntPtr(mondoov1.Int(expiration))
 	}
 
 	tflog.Debug(ctx, "CreateWIFAuthBindingInput", map[string]interface{}{
@@ -258,6 +266,7 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 	data.Roles = ConvertListValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Roles)
 	data.AllowedAudiences = ConvertListValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.AllowedAudiences)
 	data.SpaceID = types.StringValue(space.ID())
+	data.Expiration = types.Int32Value(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Expiration)
 	if len(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mappings) != 0 {
 		newMappings, _ := types.MapValueFrom(context.Background(), types.StringType, createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mappings)
 		data.Mappings = newMappings
@@ -290,9 +299,9 @@ func (r *IAMWorkloadIdentityBindingResource) readIAMWorkloadIdentityBinding(ctx 
 	tflog.Debug(ctx, "getWIFAuthBindingPayload", map[string]interface{}{
 		"payload": fmt.Sprintf("%+v", q),
 	})
-
+	space := SpaceFrom(q.IAMWorkloadIdentityBinding.Binding.Scope)
 	return IAMWorkloadIdentityBindingResourceModel{
-		SpaceID:          types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Scope),
+		SpaceID:          types.StringValue(space.ID()),
 		Mrn:              types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Mrn),
 		Name:             types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Name),
 		Description:      types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Description),
@@ -356,7 +365,7 @@ func (r *IAMWorkloadIdentityBindingResource) Delete(ctx context.Context, req res
 	}
 
 	variables := map[string]interface{}{
-		"mrn": mondoov1.String(data.Mrn.String()),
+		"mrn": mondoov1.String(data.Mrn.ValueString()),
 	}
 	tflog.Debug(ctx, "RemoveWIFAuthBindingVariables", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", variables),
