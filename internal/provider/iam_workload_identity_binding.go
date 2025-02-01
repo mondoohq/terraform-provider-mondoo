@@ -290,9 +290,9 @@ func (r *IAMWorkloadIdentityBindingResource) readIAMWorkloadIdentityBinding(ctx 
 	tflog.Debug(ctx, "getWIFAuthBindingPayload", map[string]interface{}{
 		"payload": fmt.Sprintf("%+v", q),
 	})
-
+	space := SpaceFrom(q.IAMWorkloadIdentityBinding.Binding.Scope)
 	return IAMWorkloadIdentityBindingResourceModel{
-		SpaceID:          types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Scope),
+		SpaceID:          types.StringValue(space.ID()),
 		Mrn:              types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Mrn),
 		Name:             types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Name),
 		Description:      types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Description),
