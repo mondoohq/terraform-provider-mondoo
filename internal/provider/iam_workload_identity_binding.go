@@ -359,7 +359,7 @@ func (r *IAMWorkloadIdentityBindingResource) Delete(ctx context.Context, req res
 	}
 
 	variables := map[string]interface{}{
-		"mrn": mondoov1.String(data.Mrn.String()),
+		"mrn": mondoov1.String(data.Mrn.ValueString()),
 	}
 	tflog.Debug(ctx, "RemoveWIFAuthBindingVariables", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", variables),
