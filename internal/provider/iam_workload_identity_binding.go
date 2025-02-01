@@ -34,7 +34,7 @@ type IAMWorkloadIdentityBindingResource struct {
 // IAMWorkloadIdentityBindingResourceModel describes the resource data model.
 type IAMWorkloadIdentityBindingResourceModel struct {
 	// scope
-	SpaceID types.String `tfsdk:"space_id"`
+	ScopeMRN types.String `tfsdk:"scope_mrn"`
 
 	// Binding details
 
@@ -68,8 +68,8 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 		MarkdownDescription: `Allows management of a Mondoo Workload Identity Federation bindings.`,
 
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used.",
+			"scope_mrn": schema.StringAttribute{
+				MarkdownDescription: "The MRN of the scope (either space or organization). If there is no scope, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -194,13 +194,16 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+	// Extract ScopeMrn
+	scopeMRN := data.ScopeMRN.ValueString()
+	if scopeMRN == "" {
+		scopeMRN = r.client.space.MRN()
+	}
+	if scopeMRN == "" {
+		resp.Diagnostics.AddError("Missing Scope", "Provide it via scope_mrn or provider space")
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMRN)
 
 	// Do GraphQL request to API to create the resource
 	var (
@@ -222,7 +225,7 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 	}
 
 	createInput := mondoov1.CreateWIFAuthBindingInput{
-		ScopeMrn:         mondoov1.String(space.MRN()),
+		ScopeMrn:         mondoov1.String(scopeMRN),
 		Name:             mondoov1.String(data.Name.ValueString()),
 		Description:      mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
 		Roles:            &roles,
@@ -247,7 +250,7 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 		} `graphql:"createWIFAuthBinding(input: $input)"`
 	}
 
-	err = r.client.Mutate(ctx, &createMutation, createInput, nil)
+	err := r.client.Mutate(ctx, &createMutation, createInput, nil)
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
@@ -260,12 +263,12 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 	tflog.Debug(ctx, "created a b2nding resource", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createMutation),
 	})
-	// Save space mrn into the Terraform state.
+	// Save scope mrn into the Terraform state.
 	data.Mrn = types.StringValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mrn)
 	data.Description = types.StringValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Description)
 	data.Roles = ConvertListValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Roles)
 	data.AllowedAudiences = ConvertListValue(createMutation.CreateIAMWorkloadIdentityBinding.Binding.AllowedAudiences)
-	data.SpaceID = types.StringValue(space.ID())
+	data.ScopeMRN = types.StringValue(scopeMRN)
 	data.Expiration = types.Int32Value(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Expiration)
 	if len(createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mappings) != 0 {
 		newMappings, _ := types.MapValueFrom(context.Background(), types.StringType, createMutation.CreateIAMWorkloadIdentityBinding.Binding.Mappings)
@@ -299,9 +302,8 @@ func (r *IAMWorkloadIdentityBindingResource) readIAMWorkloadIdentityBinding(ctx 
 	tflog.Debug(ctx, "getWIFAuthBindingPayload", map[string]interface{}{
 		"payload": fmt.Sprintf("%+v", q),
 	})
-	space := SpaceFrom(q.IAMWorkloadIdentityBinding.Binding.Scope)
 	return IAMWorkloadIdentityBindingResourceModel{
-		SpaceID:          types.StringValue(space.ID()),
+		ScopeMRN:         types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Scope),
 		Mrn:              types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Mrn),
 		Name:             types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Name),
 		Description:      types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Description),
