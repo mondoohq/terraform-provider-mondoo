@@ -484,7 +484,7 @@ func (r *WorkspaceResource) Create(ctx context.Context, req resource.CreateReque
 		"response": fmt.Sprintf("%+v", createMutation),
 	})
 	// Save space mrn into the Terraform state.
-	data.SpaceID = types.StringValue(createMutation.Workspace.OwnerMrn)
+	data.SpaceID = types.StringValue(SpaceFrom(createMutation.Workspace.OwnerMrn).ID())
 	data.Mrn = types.StringValue(createMutation.Workspace.Mrn)
 	data.Name = types.StringValue(createMutation.Workspace.Name)
 	data.Description = types.StringValue(createMutation.Workspace.Description)
@@ -518,7 +518,7 @@ func (r *WorkspaceResource) queryWorkspace(ctx context.Context, mrn string) (Wor
 	})
 
 	return WorkspaceResourceModel{
-		SpaceID:     types.StringValue(q.Workspace.OwnerMrn),
+		SpaceID:     types.StringValue(SpaceFrom(q.Workspace.OwnerMrn).ID()),
 		Mrn:         types.StringValue(q.Workspace.Mrn),
 		Name:        types.StringValue(q.Workspace.Name),
 		Description: types.StringValue(q.Workspace.Description),
@@ -602,7 +602,7 @@ func (r *WorkspaceResource) Update(ctx context.Context, req resource.UpdateReque
 		"response": fmt.Sprintf("%+v", createMutation),
 	})
 	// Save space mrn into the Terraform state.
-	data.SpaceID = types.StringValue(createMutation.Workspace.OwnerMrn)
+	data.SpaceID = types.StringValue(SpaceFrom(createMutation.Workspace.OwnerMrn).ID())
 	data.Mrn = types.StringValue(createMutation.Workspace.Mrn)
 	data.Name = types.StringValue(createMutation.Workspace.Name)
 	data.Description = types.StringValue(createMutation.Workspace.Description)
