@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/fatih/structs"
+	"github.com/go-viper/mapstructure/v2"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -57,9 +57,21 @@ func generateIntegrationResources() error {
 	}
 
 	i := mondoov1.ClientIntegrationConfigurationInput{}
-	m := structs.Map(i)
+	output := make(map[string]interface{})
+	config := &mapstructure.DecoderConfig{
+		Metadata: nil,
+		Result:   &output,
+	}
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return err
+	}
 
-	for k := range m {
+	if err := decoder.Decode(i); err != nil {
+		return err
+	}
+
+	for k := range output {
 		// TODO we know the type and the struct associated to the type, we need
 		// to look it (the struct) and use the same `structs.Map(v)` to list all
 		// fields per integration and auto generate the terraform schema and more
