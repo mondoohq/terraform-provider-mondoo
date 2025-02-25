@@ -28,3 +28,29 @@ func ConvertSliceStrings(list types.List) (slice []mondoov1.String) {
 	allowlist.ElementsAs(ctx, &slice, true)
 	return
 }
+
+// ConvertListValueInt32 converts a slice of int32 to a types.List.
+func ConvertListValueInt32(list []int32) types.List {
+	var valueList []attr.Value
+	for _, val := range list {
+		valueList = append(valueList, types.Int32Value(val))
+	}
+	// Ensure the list is of type types.StringType
+	return types.ListValueMust(types.Int32Type, valueList)
+}
+
+// ConvertSliceInt32 converts a types.List to a slice of int32.
+func ConvertSliceInt32(list types.List) (slice []mondoov1.Int) {
+	ctx := context.Background()
+	allowlist, _ := list.ToListValue(ctx)
+	allowlist.ElementsAs(ctx, &slice, true)
+	return
+}
+
+// ConvertSlice converts a types.List to a slice of strings.
+func ConvertSlice[T any](list types.List) (slice []T) {
+	ctx := context.Background()
+	allowlist, _ := list.ToListValue(ctx)
+	allowlist.ElementsAs(ctx, &slice, true)
+	return
+}

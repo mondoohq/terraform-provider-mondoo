@@ -20,6 +20,12 @@ resource "mondoo_integration_github" "gh_integration" {
   # repository_allow_list= ["repo1", "repo2"]
   # repository_deny_list = ["repo1", "repo2"]
 
+  # configure discovery options
+  discovery = {
+    terraform     = true
+    k8s_manifests = true
+  }
+
   credentials = {
     token = var.github_token
   }

@@ -7,9 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -55,11 +54,8 @@ func (r *policyAssignmentResource) Schema(_ context.Context, req resource.Schema
 			"policies": schema.ListAttribute{
 				MarkdownDescription: "Policies to assign to the space.",
 				ElementType:         types.StringType,
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.List{
-					listplanmodifier.UseStateForUnknown(),
-				},
+				Required:            true,
+				Validators:          []validator.List{listvalidator.SizeAtLeast(1)},
 			},
 			"state": schema.StringAttribute{
 				MarkdownDescription: "Policy assignment state (preview, enabled, or disabled).",

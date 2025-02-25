@@ -35,6 +35,12 @@ resource "mondoo_integration_github" "gh_integration" {
   # repository_allow_list= ["repo1", "repo2"]
   # repository_deny_list = ["repo1", "repo2"]
 
+  # configure discovery options
+  discovery = {
+    terraform     = true
+    k8s_manifests = true
+  }
+
   credentials = {
     token = var.github_token
   }
@@ -52,6 +58,7 @@ resource "mondoo_integration_github" "gh_integration" {
 
 ### Optional
 
+- `discovery` (Attributes) (see [below for nested schema](#nestedatt--discovery))
 - `repository` (String) GitHub repository.
 - `repository_allow_list` (List of String) List of GitHub repositories to scan.
 - `repository_deny_list` (List of String) List of GitHub repositories to exclude from scanning.
@@ -67,3 +74,12 @@ resource "mondoo_integration_github" "gh_integration" {
 Required:
 
 - `token` (String, Sensitive) Token for GitHub integration.
+
+
+<a id="nestedatt--discovery"></a>
+### Nested Schema for `discovery`
+
+Optional:
+
+- `k8s_manifests` (Boolean) Enable discovery of Kubernetes manifests.
+- `terraform` (Boolean) Enable discovery of Terraform configurations.

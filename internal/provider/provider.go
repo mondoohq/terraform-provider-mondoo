@@ -47,7 +47,7 @@ func (p *MondooProvider) Metadata(_ context.Context, _ provider.MetadataRequest,
 	resp.Version = p.version
 }
 
-func (p *MondooProvider) Schema(ctx context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *MondooProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"credentials": schema.StringAttribute{
@@ -66,7 +66,7 @@ func (p *MondooProvider) Schema(ctx context.Context, _ provider.SchemaRequest, r
 				},
 			},
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "The endpoint url of the server to manage resources",
+				MarkdownDescription: "The endpoint url of the server to manage resources.",
 				Optional:            true,
 			},
 		},
@@ -182,7 +182,7 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	resp.ResourceData = extendedClient
 }
 
-func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *MondooProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewSpaceResource,
 		NewServiceAccountResource,
@@ -211,6 +211,9 @@ func (p *MondooProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewExceptionResource,
 		NewIntegrationMsDefenderResource,
 		NewIntegrationCrowdstrikeResource,
+		NewIntegrationSentinelOneResource,
+		NewIAMWorkloadIdentityBindingResource,
+		NewWorkspaceResource,
 	}
 }
 

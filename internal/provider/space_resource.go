@@ -69,8 +69,8 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^[a-z]([\d-_]|[a-z]){6,35}[a-z\d]$`),
-						"must contain 6 to 35 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
+						regexp.MustCompile(`^[a-z\d]([\d-_]|[a-z]){4,48}[a-z\d]$`),
+						"must contain 4 to 50 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
 					),
 				},
 			},
@@ -82,7 +82,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"org_id": schema.StringAttribute{
-				MarkdownDescription: "Id of the organization.",
+				MarkdownDescription: "ID of the organization.",
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
