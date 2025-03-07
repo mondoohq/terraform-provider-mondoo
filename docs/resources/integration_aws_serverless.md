@@ -169,4 +169,5 @@ Optional:
 Optional:
 
 - `cidr_block` (String) CIDR block for the Mondoo VPC.
-- `use_mondoo_vpc` (Boolean) Use Mondoo VPC.
+- `use_mondoo_vpc` (Boolean, Deprecated) Use Mondoo VPC.
+- `vpc_flavour` (String) VPC flavour, one of: DEFAULT_VPC, MONDOO_NATGW, MONDOO_IGW
