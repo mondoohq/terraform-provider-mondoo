@@ -39,6 +39,9 @@ type customPolicyResourceModel struct {
 	// scope
 	SpaceID types.String `tfsdk:"space_id"`
 
+	// Provide the scope mrn if the space is not set
+	ScopeMrn types.String `tfsdk:"scope_mrn"`
+
 	// policy mrn
 	Mrns      types.List `tfsdk:"mrns"`
 	Overwrite types.Bool `tfsdk:"overwrite"`
@@ -61,6 +64,10 @@ func (r *customPolicyResource) Schema(ctx context.Context, req resource.SchemaRe
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
+				Optional:            true,
+			},
+			"scope_mrn": schema.StringAttribute{
+				MarkdownDescription: "Mondoo scope MRN. Provide this if not uploading to a space",
 				Optional:            true,
 			},
 			"mrns": schema.ListAttribute{
@@ -165,13 +172,21 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
+	var scopeMrn string
+	if !data.ScopeMrn.IsNull() {
+		scopeMrn = data.ScopeMrn.ValueString()
+	} else {
+		// Compute and validate the space
+		space, err := r.client.ComputeSpace(data.SpaceID)
+		if err != nil {
+			// resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+			// return
+		} else {
+			scopeMrn = space.MRN()
+		}
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource
 	if data.Content.IsNull() && data.Source.IsNull() {
@@ -194,7 +209,7 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	// call graphql api
 	tflog.Debug(ctx, "Creating custom policy")
 	setCustomPolicy, err := r.client.SetCustomPolicy(ctx,
-		space.MRN(),
+		scopeMrn,
 		data.Overwrite.ValueBoolPointer(),
 		policyBundleData,
 	)
@@ -253,11 +268,14 @@ func (r *customPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
+	var scopeMrn string
 	// Compute and validate the space
 	space, err := r.client.ComputeSpace(data.SpaceID)
 	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
+		// resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		// return
+	} else {
+		scopeMrn = space.MRN()
 	}
 	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
@@ -276,7 +294,7 @@ func (r *customPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 
 		// call graphql api
 		setCustomPolicy, err := r.client.SetCustomPolicy(ctx,
-			space.MRN(),
+			scopeMrn,
 			data.Overwrite.ValueBoolPointer(),
 			policyBundleData,
 		)
