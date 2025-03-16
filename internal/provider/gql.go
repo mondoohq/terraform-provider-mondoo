@@ -122,6 +122,13 @@ type spacePayload struct {
 	Organization orgPayload
 }
 
+type orgPayload struct {
+	Id          string
+	Mrn         string
+	Name        string
+	Description string
+}
+
 func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayload, error) {
 	var q struct {
 		Space spacePayload `graphql:"space(mrn: $mrn)"`
@@ -138,10 +145,54 @@ func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayl
 	return q.Space, nil
 }
 
-type orgPayload struct {
-	Id   string
-	Mrn  string
-	Name string
+func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *string, name string, description *string) (orgPayload, error) {
+	var createMutation struct {
+		CreateOrganization orgPayload `graphql:"createOrganization(input: $input)"`
+	}
+
+	createInput := mondoov1.CreateOrganizationInput{
+		Name: mondoov1.String(name),
+	}
+	if orgID != nil {
+		createInput.ID = mondoov1.NewStringPtr(mondoov1.String(*orgID))
+	}
+
+	if description != nil {
+		createInput.Description = mondoov1.NewStringPtr(mondoov1.String(*description))
+	}
+
+	tflog.Trace(ctx, "CreateOrganizationInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", createInput),
+	})
+
+	err := c.Mutate(ctx, &createMutation, createInput, nil)
+	return createMutation.CreateOrganization, err
+}
+
+func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn string, name string, description *string) error {
+	var updateMutation struct {
+		UpdateOrganization struct {
+			Organization struct {
+				Mrn         mondoov1.String
+				Name        mondoov1.String
+				Description mondoov1.String
+			}
+		} `graphql:"updateOrganization(input: $input)"`
+	}
+
+	updateInput := mondoov1.UpdateOrganizationInput{
+		Mrn:  mondoov1.String(orgMrn),
+		Name: mondoov1.String(name),
+	}
+	if description != nil {
+		updateInput.Description = mondoov1.NewStringPtr(mondoov1.String(*description))
+	}
+
+	tflog.Trace(ctx, "UpdateOrganizationInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", updateInput),
+	})
+
+	return c.Mutate(ctx, &updateMutation, updateInput, nil)
 }
 
 func (c *ExtendedGqlClient) GetOrganization(ctx context.Context, mrn string) (orgPayload, error) {
@@ -158,6 +209,21 @@ func (c *ExtendedGqlClient) GetOrganization(ctx context.Context, mrn string) (or
 	}
 
 	return q.Organization, nil
+}
+
+func (c *ExtendedGqlClient) DeleteOrganization(ctx context.Context, orgMrn string) error {
+	var deleteMutation struct {
+		DeleteOrganization mondoov1.String `graphql:"deleteOrganization(orgMrn: $orgMrn)"`
+	}
+	variables := map[string]interface{}{
+		"orgMrn": mondoov1.ID(orgMrn),
+	}
+
+	tflog.Trace(ctx, "DeleteOrganizationInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", variables),
+	})
+
+	return c.Mutate(ctx, &deleteMutation, nil, variables)
 }
 
 type setCustomPolicyPayload struct {
