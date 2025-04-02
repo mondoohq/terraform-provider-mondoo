@@ -69,6 +69,9 @@ func (r *customPolicyResource) Schema(ctx context.Context, req resource.SchemaRe
 			"scope_mrn": schema.StringAttribute{
 				MarkdownDescription: "Mondoo scope MRN. Provide this if not uploading to a space",
 				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("space_id")),
+				},
 			},
 			"mrns": schema.ListAttribute{
 				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created policies",
@@ -179,8 +182,8 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		// Compute and validate the space
 		space, err := r.client.ComputeSpace(data.SpaceID)
 		if err != nil {
-			// resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-			// return
+			resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+			return
 		} else {
 			scopeMrn = space.MRN()
 		}
@@ -272,8 +275,8 @@ func (r *customPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 	// Compute and validate the space
 	space, err := r.client.ComputeSpace(data.SpaceID)
 	if err != nil {
-		// resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		// return
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
 	} else {
 		scopeMrn = space.MRN()
 	}
