@@ -196,3 +196,23 @@ func (r *organizationResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 }
+
+func (r *organizationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	mrn := "//captain.api.mondoo.app/organizations/" + req.ID
+	orgPayload, err := r.client.GetOrganization(ctx, mrn)
+	if err != nil {
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to retrieve org. Got error: %s", err),
+			)
+		return
+	}
+
+	model := organizationResourceModel{
+		Name:        types.StringValue(orgPayload.Name),
+		OrgId:       types.StringValue(orgPayload.Id),
+		OrgMrn:      types.StringValue(orgPayload.Mrn),
+		Description: types.StringValue(orgPayload.Description),
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
