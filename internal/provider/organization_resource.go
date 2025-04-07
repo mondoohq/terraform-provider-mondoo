@@ -51,7 +51,7 @@ func (r *organizationResource) Schema(ctx context.Context, req resource.SchemaRe
 				},
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "ID of the space. Must be globally unique. If the provider has a space configured and this field is empty, the provider space is used.",
+				MarkdownDescription: "ID of the org. Must be globally unique. If the provider has a org configured and this field is empty, the provider org is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -65,7 +65,7 @@ func (r *organizationResource) Schema(ctx context.Context, req resource.SchemaRe
 				},
 			},
 			"mrn": schema.StringAttribute{
-				MarkdownDescription: "Mrn of the space.",
+				MarkdownDescription: "Mrn of the org.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
