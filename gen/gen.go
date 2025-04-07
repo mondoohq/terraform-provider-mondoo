@@ -56,38 +56,47 @@ func generateIntegrationResources() error {
 		return err
 	}
 
-	i := mondoov1.ClientIntegrationConfigurationInput{}
-	output := make(map[string]interface{})
-	config := &mapstructure.DecoderConfig{
-		Metadata: nil,
-		Result:   &output,
+	i := mondoov1.ClientIntegrationConfigurationInput{
+		ShodanConfigurationOptions: &mondoov1.ShodanConfigurationOptionsInput{},
 	}
-	decoder, err := mapstructure.NewDecoder(config)
+	output, err := structToMap(i)
 	if err != nil {
 		return err
 	}
 
-	if err := decoder.Decode(i); err != nil {
-		return err
-	}
-
-	for k := range output {
-		// TODO we know the type and the struct associated to the type, we need
-		// to look it (the struct) and use the same `structs.Map(v)` to list all
-		// fields per integration and auto generate the terraform schema and more
-		// details, for now, we only leave a comment where we need to add specific
-		// integration options
-
+	for k, v := range output {
 		var (
 			className, _          = strings.CutSuffix(k, "ConfigurationOptions")
 			terraformResourceName = strings.ToLower(toSnakeCase(className))
+			fullResourceName      = fmt.Sprintf("mondoo_integration_%s", terraformResourceName)
 			resource              = IntegrationResource{
 				ResourceClassName:     className,
 				TerraformResourceName: terraformResourceName,
 			}
 		)
+		mm, err := structToMap(v)
+		if err != nil {
+			log.Fatalf("unable to conver struct %s to map", className)
+		}
+		if v == nil || len(mm) == 0 {
+			fmt.Printf("%s integration has no fields, skipping\n", className)
+			continue
+		}
+		fmt.Printf("generating code for '%s' integration (resource %s)\n", className, fullResourceName)
 
-		fmt.Printf("> Generating code for %s integration\n", className)
+		// TODO aprse the config options and try to generate a struct that can be passed to the template
+		// so that we know the schema of each integration
+		for kk, vv := range mm {
+			fmt.Println(kk)
+			switch vv.(type) {
+			case mondoov1.String:
+				fmt.Println("string")
+			case *mondoov1.String:
+				fmt.Println("stringptr")
+			case *[]mondoov1.String:
+				fmt.Println("stringptr array")
+			}
+		}
 
 		// Create the resource file
 		resourceOutputFilePath := filepath.Join(outputDirPath,
@@ -118,7 +127,7 @@ func generateIntegrationResources() error {
 		}
 
 		// Create examples/ files
-		examplesDirPath := filepath.Join(outputDirPath, "examples", fmt.Sprintf("mondoo_integration_%s", terraformResourceName))
+		examplesDirPath := filepath.Join(outputDirPath, "examples", fullResourceName)
 		// Ensure the output directory exists
 		if err := os.MkdirAll(examplesDirPath, 0755); err != nil {
 			return err
@@ -163,4 +172,19 @@ func mainDotTFTestFile() []byte {
   }
 }
 `)
+}
+func structToMap(input interface{}) (map[string]interface{}, error) {
+	output := make(map[string]interface{})
+	config := &mapstructure.DecoderConfig{
+		Metadata: nil,
+		Result:   &output,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return nil, err
+	}
+
+	err = decoder.Decode(input)
+	return output, err
 }
