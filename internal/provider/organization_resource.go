@@ -166,7 +166,7 @@ func (r *organizationResource) Update(ctx context.Context, req resource.UpdateRe
 
 	err := r.client.UpdateOrganization(
 		ctx,
-		data.OrgMrn.String(),
+		data.OrgMrn.ValueString(),
 		data.Name.ValueString(),
 		data.Description.ValueStringPointer(),
 	)
