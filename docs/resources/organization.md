@@ -29,8 +29,8 @@ resource "mondoo_organization" "myorg" {
 ### Optional
 
 - `description` (String) Description of the organization.
-- `id` (String) ID of the space. Must be globally unique. If the provider has a space configured and this field is empty, the provider space is used.
+- `id` (String) ID of the org. Must be globally unique. If the provider has a org configured and this field is empty, the provider org is used.
 
 ### Read-Only
 
-- `mrn` (String) Mrn of the space.
+- `mrn` (String) Mrn of the org.
