@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -398,10 +399,14 @@ func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, re
 		return
 	}
 
+	resp.Diagnostics.Append(validateIntegrationAwsServerlessResourceModel(&data)...)
+}
+
+func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
 	// user has provided mondoo vpc only
 	if mondooVpc := data.ScanConfiguration.VpcConfiguration != nil && data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool(); mondooVpc {
 		if cidr := data.ScanConfiguration.VpcConfiguration.CIDR.ValueString(); cidr == "" {
-			resp.Diagnostics.AddError(
+			diagnostics.AddError(
 				"MissingAttributeError",
 				"Attribute cidr_block must not be empty when use_mondoo_vpc is set to true.",
 			)
@@ -414,7 +419,7 @@ func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, re
 	}
 	if vpcFlavour != "" {
 		if !slices.Contains(allowedVpcFlavours, vpcFlavour) {
-			resp.Diagnostics.AddError(
+			diagnostics.AddError(
 				"InvalidAttributeValueError",
 				fmt.Sprintf("Attribute vpc_flavour must be one of %v, received: '%s'", allowedVpcFlavours, vpcFlavour),
 			)
@@ -423,12 +428,14 @@ func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, re
 		if cidr := data.ScanConfiguration.VpcConfiguration.CIDR.ValueString(); slices.Contains([]mondoov1.VPCFlavour{
 			mondoov1.VPCFlavourMondooNatgw, mondoov1.VPCFlavourMondooIgw,
 		}, vpcFlavour) && cidr == "" {
-			resp.Diagnostics.AddError(
+			diagnostics.AddError(
 				"MissingAttributeError",
 				"Attribute cidr_block must not be empty when Mondoo VPC is used.",
 			)
 		}
 	}
+
+	return
 }
 
 func (r *integrationAwsServerlessResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
