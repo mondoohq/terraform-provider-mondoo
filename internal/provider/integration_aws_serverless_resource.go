@@ -403,8 +403,12 @@ func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, re
 }
 
 func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
+	if data.ScanConfiguration.VpcConfiguration == nil {
+		return
+	}
+
 	// user has provided mondoo vpc only
-	if mondooVpc := data.ScanConfiguration.VpcConfiguration != nil && data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool(); mondooVpc {
+	if mondooVpc := data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool(); mondooVpc {
 		if cidr := data.ScanConfiguration.VpcConfiguration.CIDR.ValueString(); cidr == "" {
 			diagnostics.AddError(
 				"MissingAttributeError",
