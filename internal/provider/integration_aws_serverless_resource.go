@@ -418,10 +418,10 @@ func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerles
 	}
 
 	vpcFlavour := mondoov1.VPCFlavour(data.ScanConfiguration.VpcConfiguration.VPCFlavour.ValueString())
-	allowedVpcFlavours := []mondoov1.VPCFlavour{
-		mondoov1.VPCFlavourDefaultVpc, mondoov1.VPCFlavourMondooNatgw, mondoov1.VPCFlavourMondooIgw,
-	}
 	if vpcFlavour != "" {
+		allowedVpcFlavours := []mondoov1.VPCFlavour{
+			mondoov1.VPCFlavourDefaultVpc, mondoov1.VPCFlavourMondooNatgw, mondoov1.VPCFlavourMondooIgw,
+		}
 		if !slices.Contains(allowedVpcFlavours, vpcFlavour) {
 			diagnostics.AddError(
 				"InvalidAttributeValueError",
