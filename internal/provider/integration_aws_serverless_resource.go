@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -285,6 +288,9 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 								MarkdownDescription: "Use Mondoo VPC.",
 								Optional:            true,
 								DeprecationMessage:  "This field is deprecated and will be removed in the future.",
+								Validators: []validator.Bool{
+									boolvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("vpc_flavour")),
+								},
 							},
 							"cidr_block": schema.StringAttribute{
 								MarkdownDescription: "CIDR block for the Mondoo VPC.",
