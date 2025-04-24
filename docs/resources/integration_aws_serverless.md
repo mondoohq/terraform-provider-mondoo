@@ -171,3 +171,12 @@ Optional:
 - `cidr_block` (String) CIDR block for the Mondoo VPC.
 - `use_mondoo_vpc` (Boolean, Deprecated) Use Mondoo VPC.
 - `vpc_flavour` (String) VPC flavour, one of: DEFAULT_VPC, MONDOO_NATGW, MONDOO_IGW
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# Import using integration MRN.
+terraform import mondoo_integration_aws_serverless.aws_serverless "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
+```

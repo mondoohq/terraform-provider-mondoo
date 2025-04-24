@@ -83,3 +83,12 @@ Optional:
 
 - `k8s_manifests` (Boolean) Enable discovery of Kubernetes manifests.
 - `terraform` (Boolean) Enable discovery of Terraform configurations.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# Import using integration MRN.
+terraform import mondoo_integration_github.gh_integration "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
+```

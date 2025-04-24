@@ -61,3 +61,12 @@ resource "mondoo_integration_crowdstrike" "crowdstrike_integration" {
 ### Read-Only
 
 - `mrn` (String) Integration identifier
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# Import using integration MRN.
+terraform import mondoo_integration_crowdstrike.crowdstrike_integration "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
+```

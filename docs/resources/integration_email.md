@@ -71,3 +71,12 @@ Optional:
 
 - `is_default` (Boolean) Mark this recipient as default. This must be set if auto_create is enabled.
 - `reference_url` (String) Optional reference URL for the recipient.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# Import using integration MRN.
+terraform import mondoo_integration_email.email_integration "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
+```
