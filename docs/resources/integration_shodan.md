@@ -57,3 +57,12 @@ resource "mondoo_integration_shodan" "shodan_integration" {
 Required:
 
 - `token` (String, Sensitive) Token for Shodan integration.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# Import using integration MRN.
+terraform import mondoo_integration_shodan.shodan_integration "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
+```

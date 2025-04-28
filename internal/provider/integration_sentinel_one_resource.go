@@ -18,7 +18,9 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
+// Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationSentinelOneResource)(nil)
+var _ resource.ResourceWithImportState = (*integrationSentinelOneResource)(nil)
 
 func NewIntegrationSentinelOneResource() resource.Resource {
 	return &integrationSentinelOneResource{}

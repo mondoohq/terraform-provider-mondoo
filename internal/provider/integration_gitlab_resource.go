@@ -16,7 +16,9 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
+// Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationGitlabResource)(nil)
+var _ resource.ResourceWithImportState = (*integrationGitlabResource)(nil)
 
 func NewIntegrationGitlabResource() resource.Resource {
 	return &integrationGitlabResource{}

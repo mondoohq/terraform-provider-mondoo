@@ -91,3 +91,12 @@ resource "mondoo_integration_gcp" "name" {
 Required:
 
 - `private_key` (String, Sensitive)
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# Import using integration MRN.
+terraform import mondoo_integration_gcp.name "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
+```
