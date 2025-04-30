@@ -632,7 +632,10 @@ type SentinelOneConfigurationOptions struct {
 	Host    string
 	Account string
 }
-
+type OktaConfigurationOptions struct {
+	OrgUrl   string
+	ApiToken string
+}
 type ClientIntegrationConfigurationOptions struct {
 	AzureConfigurationOptions                  AzureConfigurationOptions                  `graphql:"... on AzureConfigurationOptions"`
 	HostConfigurationOptions                   HostConfigurationOptions                   `graphql:"... on HostConfigurationOptions"`
