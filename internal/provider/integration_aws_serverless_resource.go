@@ -3,17 +3,24 @@ package provider
 import (
 	"context"
 	"fmt"
+	"slices"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
+// Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationAwsServerlessResource)(nil)
+var _ resource.ResourceWithImportState = (*integrationAwsServerlessResource)(nil)
 
 func NewIntegrationAwsServerlessResource() resource.Resource {
 	return &integrationAwsServerlessResource{}
@@ -64,9 +71,12 @@ type ScanConfigurationInput struct {
 }
 
 type VPCConfigurationInput struct {
+	// (Optional.)
 	UseMondooVPC types.Bool `tfsdk:"use_mondoo_vpc"`
 	// (Optional.)
 	CIDR types.String `tfsdk:"cidr_block"`
+	// (Optional.)
+	VPCFlavour types.String `tfsdk:"vpc_flavour"`
 }
 
 type AWSEventPatternInput struct {
@@ -190,10 +200,18 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 
 	if m.ScanConfiguration.VpcConfiguration != nil {
 		useMondooVPC := m.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool()
+
+		var vpcFlavourPtr *mondoov1.VPCFlavour
+		if m.ScanConfiguration.VpcConfiguration.VPCFlavour.ValueString() != "" {
+			vpcFlavour := mondoov1.VPCFlavour(m.ScanConfiguration.VpcConfiguration.VPCFlavour.ValueString())
+			vpcFlavourPtr = &vpcFlavour
+		}
+
 		opts.ScanConfiguration.VpcConfiguration = &mondoov1.VPCConfigurationInput{
 			UseMondooVPC:  mondoov1.NewBooleanPtr(mondoov1.Boolean(useMondooVPC)),
 			UseDefaultVPC: mondoov1.NewBooleanPtr(mondoov1.Boolean(!useMondooVPC)),
 			CIDR:          mondoov1.NewStringPtr(mondoov1.String(m.ScanConfiguration.VpcConfiguration.CIDR.ValueString())),
+			VpcFlavour:    vpcFlavourPtr,
 		}
 	}
 
@@ -271,9 +289,17 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 							"use_mondoo_vpc": schema.BoolAttribute{
 								MarkdownDescription: "Use Mondoo VPC.",
 								Optional:            true,
+								DeprecationMessage:  "This field is deprecated and will be removed in the future.",
+								Validators: []validator.Bool{
+									boolvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("vpc_flavour")),
+								},
 							},
 							"cidr_block": schema.StringAttribute{
 								MarkdownDescription: "CIDR block for the Mondoo VPC.",
+								Optional:            true,
+							},
+							"vpc_flavour": schema.StringAttribute{
+								MarkdownDescription: "VPC flavour, one of: DEFAULT_VPC, MONDOO_NATGW, MONDOO_IGW",
 								Optional:            true,
 							},
 						},
@@ -381,15 +407,47 @@ func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, re
 		return
 	}
 
+	resp.Diagnostics.Append(validateIntegrationAwsServerlessResourceModel(&data)...)
+}
+
+func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
+	if data.ScanConfiguration.VpcConfiguration == nil {
+		return
+	}
+
 	// user has provided mondoo vpc only
-	if mondooVpc := data.ScanConfiguration.VpcConfiguration != nil && data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool(); mondooVpc {
+	if mondooVpc := data.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool(); mondooVpc {
 		if cidr := data.ScanConfiguration.VpcConfiguration.CIDR.ValueString(); cidr == "" {
-			resp.Diagnostics.AddError(
+			diagnostics.AddError(
 				"MissingAttributeError",
 				"Attribute cidr_block must not be empty when use_mondoo_vpc is set to true.",
 			)
 		}
 	}
+
+	vpcFlavour := mondoov1.VPCFlavour(data.ScanConfiguration.VpcConfiguration.VPCFlavour.ValueString())
+	if vpcFlavour != "" {
+		allowedVpcFlavours := []mondoov1.VPCFlavour{
+			mondoov1.VPCFlavourDefaultVpc, mondoov1.VPCFlavourMondooNatgw, mondoov1.VPCFlavourMondooIgw,
+		}
+		if !slices.Contains(allowedVpcFlavours, vpcFlavour) {
+			diagnostics.AddError(
+				"InvalidAttributeValueError",
+				fmt.Sprintf("Attribute vpc_flavour must be one of %v, received: '%s'", allowedVpcFlavours, vpcFlavour),
+			)
+		}
+
+		if cidr := data.ScanConfiguration.VpcConfiguration.CIDR.ValueString(); slices.Contains([]mondoov1.VPCFlavour{
+			mondoov1.VPCFlavourMondooNatgw, mondoov1.VPCFlavourMondooIgw,
+		}, vpcFlavour) && cidr == "" {
+			diagnostics.AddError(
+				"MissingAttributeError",
+				"Attribute cidr_block must not be empty when Mondoo VPC is used.",
+			)
+		}
+	}
+
+	return
 }
 
 func (r *integrationAwsServerlessResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

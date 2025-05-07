@@ -4,13 +4,12 @@ ADk
 appsettings
 ashburn
 AThq
+CIDs
 codegen
 concat
 connectionstrings
-Cwj
-CIDs
 crowdstrike
-sentinelone
+Cwj
 DXhjr
 FIGc
 Gci
@@ -24,6 +23,7 @@ ljq
 LQV
 mrns
 msdefender
+NATGW
 NCIs
 nestedatt
 NHar
@@ -38,6 +38,7 @@ qpbi
 querypack
 Qwc
 scim
+sentinelone
 startswith
 Tcy
 testacc

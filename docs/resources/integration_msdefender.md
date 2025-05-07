@@ -299,3 +299,12 @@ resource "mondoo_integration_msdefender" "msdefender_integration" {
 Required:
 
 - `pem_file` (String, Sensitive) PEM file for Azure integration.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# Import using integration MRN.
+terraform import mondoo_integration_msdefender.msdefender_integration "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
+```

@@ -43,3 +43,12 @@ resource "mondoo_space" "my_space" {
 ### Read-Only
 
 - `mrn` (String) Mrn of the space.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# Import using space MRN.
+terraform import mondoo_space.my_space "//captain.api.mondoo.app/spaces/hungry-poet-123456"
+```

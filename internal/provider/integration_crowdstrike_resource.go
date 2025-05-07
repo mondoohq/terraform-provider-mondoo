@@ -15,7 +15,9 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
+// Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationCrowdstrikeResource)(nil)
+var _ resource.ResourceWithImportState = (*integrationCrowdstrikeResource)(nil)
 
 func NewIntegrationCrowdstrikeResource() resource.Resource {
 	return &integrationCrowdstrikeResource{}

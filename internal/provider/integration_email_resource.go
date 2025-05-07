@@ -18,7 +18,9 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
+// Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationEmailResource)(nil)
+var _ resource.ResourceWithImportState = (*integrationEmailResource)(nil)
 
 func NewIntegrationEmailResource() resource.Resource {
 	return &integrationEmailResource{}

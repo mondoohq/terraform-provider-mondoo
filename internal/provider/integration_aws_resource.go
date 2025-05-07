@@ -21,7 +21,9 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
+// Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationAwsResource)(nil)
+var _ resource.ResourceWithImportState = (*integrationAwsResource)(nil)
 
 func NewIntegrationAwsResource() resource.Resource {
 	return &integrationAwsResource{}
