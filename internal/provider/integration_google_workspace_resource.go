@@ -88,11 +88,11 @@ func (r *integrationGoogleWorkspaceResource) Schema(_ context.Context, _ resourc
 			// GoogleWorkspace options
 			"customer_id": schema.StringAttribute{
 				MarkdownDescription: "The GoogleWorkspace CustomerID",
-				Optional:            true,
+				Required:            true,
 			},
 			"impersonated_user_email": schema.StringAttribute{
 				MarkdownDescription: "The GoogleWorkspace ImpersonatedUserEmail",
-				Optional:            true,
+				Required:            true,
 			},
 			"service_account": schema.StringAttribute{
 				MarkdownDescription: "The GoogleWorkspace ServiceAccount",

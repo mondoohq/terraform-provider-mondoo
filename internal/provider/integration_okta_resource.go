@@ -86,7 +86,7 @@ func (r *integrationOktaResource) Schema(_ context.Context, _ resource.SchemaReq
 			// Okta options
 			"organization": schema.StringAttribute{
 				MarkdownDescription: "The Okta Organization",
-				Optional:            true,
+				Required:            true,
 			},
 			"token": schema.StringAttribute{
 				MarkdownDescription: "The Okta Token",

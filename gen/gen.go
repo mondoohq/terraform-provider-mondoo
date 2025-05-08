@@ -4,10 +4,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"go/format"
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"text/template"
@@ -30,7 +33,13 @@ type IntegrationResource struct {
 	Fields                map[string]Field
 }
 
+func NewField(base Field, raw any) Field {
+	base.RawStruct = raw
+	return base
+}
+
 type Field struct {
+	RawStruct           any
 	GoType              string
 	MondooType          string
 	TerraformType       string
@@ -67,11 +76,58 @@ func (f Field) ImportConvertion(resourceClassName, fieldName string) string {
 	return "\"unimplemented: check gen/gen.go\""
 }
 
+func (f Field) AttributeOptionalOrRequired(name string) string {
+	rawField, ok := findField(f.RawStruct, name)
+	if !ok {
+		panic("field in struct not found")
+	}
+
+	tag := parseTFGenTag(rawField.Tag.Get("tfgen"))
+	if tag.Required {
+		return "Required: true"
+	}
+	return "Optional: true"
+}
+
+type tfgenTag struct {
+	Required    bool
+	Description string
+}
+
+func parseTFGenTag(tag string) tfgenTag {
+	t := tfgenTag{}
+	for _, val := range strings.Split(tag, ";") {
+		switch {
+		case strings.HasPrefix(val, "required=1"):
+			t.Required = true
+		case strings.HasPrefix(val, "description="):
+			t.Description, _ = strings.CutPrefix(val, "description=")
+		}
+	}
+	return t
+}
+
 func (f Field) AdditionalSchemaAttributes() string {
 	if f.TerraformSubType != "" {
 		return fmt.Sprintf("\nElementType: %s,", f.TerraformSubType)
 	}
 	return ""
+}
+
+func findField(obj any, fieldName string) (reflect.StructField, bool) {
+	val := reflect.TypeOf(obj)
+
+	// If the object is a pointer, get the underlying element
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	// Make sure the object is a struct
+	if val.Kind() != reflect.Struct {
+		return reflect.StructField{}, false
+	}
+
+	return val.FieldByName(fieldName)
 }
 
 var (
@@ -179,13 +235,13 @@ func generateIntegrationResources() error {
 			fmt.Println(kk)
 			switch t := vv.(type) {
 			case mondoov1.Boolean:
-				resource.Fields[kk] = BooleanField
+				resource.Fields[kk] = NewField(BooleanField, v)
 			case mondoov1.String:
-				resource.Fields[kk] = StringField
+				resource.Fields[kk] = NewField(StringField, v)
 			case *mondoov1.String:
-				resource.Fields[kk] = StringPtrField
+				resource.Fields[kk] = NewField(StringPtrField, v)
 			case *[]mondoov1.String:
-				resource.Fields[kk] = ArrayStringPtrField
+				resource.Fields[kk] = NewField(ArrayStringPtrField, v)
 			default:
 				// when adding new types, we need to update all the templates
 				panic(fmt.Sprintf("unimplemented mondoo api type: %v", t))
@@ -202,11 +258,23 @@ func generateIntegrationResources() error {
 		if err != nil {
 			return err
 		}
-		defer resourceFile.Close()
 
-		if err := resourceTmpl.Execute(resourceFile, resource); err != nil {
+		var buf bytes.Buffer
+		if err := resourceTmpl.Execute(&buf, resource); err != nil {
 			return err
 		}
+
+		// format go file with gofmt
+		out, err := format.Source(buf.Bytes())
+		if err != nil {
+			log.Println(err)
+			out = []byte("// gofmt error: " + err.Error() + "\n\n" + buf.String())
+		}
+
+		if _, err := resourceFile.Write(out); err != nil {
+			return err
+		}
+		resourceFile.Close() // done
 
 		// Create test file
 		testOutputFilePath := filepath.Join(outputDirPath,
@@ -216,11 +284,11 @@ func generateIntegrationResources() error {
 		if err != nil {
 			return err
 		}
-		defer testFile.Close()
 
 		if err := testTmpl.Execute(testFile, resource); err != nil {
 			return err
 		}
+		testFile.Close() // done
 
 		// Create examples/ files
 		examplesDirPath := filepath.Join(outputDirPath, "examples", fullResourceName)
@@ -239,11 +307,11 @@ func generateIntegrationResources() error {
 		if err != nil {
 			return err
 		}
-		defer testFile.Close()
 
 		if err := resourceTFTmpl.Execute(resourceTFFile, resource); err != nil {
 			return err
 		}
+		resourceTFFile.Close() // done
 	}
 
 	// Create the gql_generated.go file
@@ -254,7 +322,19 @@ func generateIntegrationResources() error {
 	}
 	defer gqlGeneratedFile.Close()
 
-	if err := gqlTmpl.Execute(gqlGeneratedFile, resources); err != nil {
+	var buf bytes.Buffer
+	if err := gqlTmpl.Execute(&buf, resources); err != nil {
+		return err
+	}
+
+	// format go file with gofmt
+	out, err := format.Source(buf.Bytes())
+	if err != nil {
+		log.Println(err)
+		out = []byte("// gofmt error: " + err.Error() + "\n\n" + buf.String())
+	}
+
+	if _, err := gqlGeneratedFile.Write(out); err != nil {
 		return err
 	}
 

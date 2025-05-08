@@ -89,7 +89,7 @@ func (r *integration{{.ResourceClassName}}Resource) Schema(_ context.Context, _ 
 		{{- range $key, $props := .Fields}}
 			"{{ toSnakeCase $key }}": {{ $props.TerraformSchemaType }}{
 				MarkdownDescription: "The {{$.ResourceClassName}} {{ $key }}",
-				Optional:            true,
+				{{ $props.AttributeOptionalOrRequired $key }},
 				{{- $props.AdditionalSchemaAttributes }}
 			},
 		{{- end}}

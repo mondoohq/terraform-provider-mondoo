@@ -40,12 +40,12 @@ resource "mondoo_integration_shodan" "shodan_integration" {
 ### Required
 
 - `name` (String) Name of the integration.
+- `token` (String) The Shodan Token
 
 ### Optional
 
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 - `targets` (List of String) The Shodan Targets
-- `token` (String) The Shodan Token
 
 ### Read-Only
 

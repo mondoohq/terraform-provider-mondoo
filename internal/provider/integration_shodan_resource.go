@@ -91,7 +91,7 @@ func (r *integrationShodanResource) Schema(_ context.Context, _ resource.SchemaR
 			},
 			"token": schema.StringAttribute{
 				MarkdownDescription: "The Shodan Token",
-				Optional:            true,
+				Required:            true,
 			},
 		},
 	}

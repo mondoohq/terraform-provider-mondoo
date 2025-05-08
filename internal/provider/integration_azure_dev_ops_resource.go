@@ -96,15 +96,15 @@ func (r *integrationAzureDevOpsResource) Schema(_ context.Context, _ resource.Sc
 			// AzureDevOps options
 			"auto_close_tickets": schema.BoolAttribute{
 				MarkdownDescription: "The AzureDevOps AutoCloseTickets",
-				Optional:            true,
+				Required:            true,
 			},
 			"auto_create_tickets": schema.BoolAttribute{
 				MarkdownDescription: "The AzureDevOps AutoCreateTickets",
-				Optional:            true,
+				Required:            true,
 			},
 			"client_secret": schema.StringAttribute{
 				MarkdownDescription: "The AzureDevOps ClientSecret",
-				Optional:            true,
+				Required:            true,
 			},
 			"default_project_name": schema.StringAttribute{
 				MarkdownDescription: "The AzureDevOps DefaultProjectName",
@@ -112,15 +112,15 @@ func (r *integrationAzureDevOpsResource) Schema(_ context.Context, _ resource.Sc
 			},
 			"organization_url": schema.StringAttribute{
 				MarkdownDescription: "The AzureDevOps OrganizationURL",
-				Optional:            true,
+				Required:            true,
 			},
 			"service_principal_id": schema.StringAttribute{
 				MarkdownDescription: "The AzureDevOps ServicePrincipalID",
-				Optional:            true,
+				Required:            true,
 			},
 			"tenant_id": schema.StringAttribute{
 				MarkdownDescription: "The AzureDevOps TenantID",
-				Optional:            true,
+				Required:            true,
 			},
 		},
 	}
@@ -183,7 +183,7 @@ func (r *integrationAzureDevOpsResource) Create(ctx context.Context, req resourc
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to create %s integration. Got error: %s", mondoov1.ClientIntegrationTypeTicketSystemAzureDevOps, err,
+					"Unable to create %s integration. Got error: %s", mondoov1.IntegrationTypeTicketSystemAzureDevOps, err,
 				),
 			)
 		return
@@ -256,7 +256,7 @@ func (r *integrationAzureDevOpsResource) Update(ctx context.Context, req resourc
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to update %s integration. Got error: %s", mondoov1.ClientIntegrationTypeTicketSystemAzureDevOps, err,
+					"Unable to update %s integration. Got error: %s", mondoov1.IntegrationTypeTicketSystemAzureDevOps, err,
 				),
 			)
 		return
@@ -283,7 +283,7 @@ func (r *integrationAzureDevOpsResource) Delete(ctx context.Context, req resourc
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to delete %s integration. Got error: %s", mondoov1.ClientIntegrationTypeTicketSystemAzureDevOps, err,
+					"Unable to delete %s integration. Got error: %s", mondoov1.IntegrationTypeTicketSystemAzureDevOps, err,
 				),
 			)
 		return
