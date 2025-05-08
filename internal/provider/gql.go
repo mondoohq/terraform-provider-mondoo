@@ -40,6 +40,7 @@ func (c *ExtendedGqlClient) ComputeSpace(spaceID types.String) (Space, error) {
 	if spaceID.ValueString() != "" {
 		return Space(spaceID.ValueString()), nil
 	}
+
 	if c.space != "" {
 		return c.space, nil
 	}
