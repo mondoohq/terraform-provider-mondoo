@@ -16,7 +16,7 @@ Continuously scan AWS organization and accounts for misconfigurations and vulner
 variable "origin_aws_account" {
   description = "Origin AWS Account"
   type        = string
-  default     = "764453172858"
+  default     = "123456789"
 }
 
 variable "mondoo_sns_handler" {

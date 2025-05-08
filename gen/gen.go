@@ -27,13 +27,82 @@ func main() {
 type IntegrationResource struct {
 	ResourceClassName     string
 	TerraformResourceName string
+	Fields                map[string]Field
 }
+
+type Field struct {
+	GoType              string
+	MondooType          string
+	TerraformType       string
+	TerraformSchemaType string
+}
+
+func (f Field) ConfigurationOption(name string) string {
+	switch f.MondooType {
+	case BooleanField.MondooType:
+		return fmt.Sprintf("mondoov1.Boolean(m.%s.ValueBool())", name)
+	case StringField.MondooType:
+		return fmt.Sprintf("mondoov1.String(m.%s.ValueString())", name)
+	case StringPtrField.MondooType:
+		return fmt.Sprintf("mondoov1.NewStringPtr(mondoov1.String(m.%s.ValueString()))", name)
+	case ArrayStringPtrField.MondooType:
+		return fmt.Sprintf("ToPtr(ConvertSliceStrings(m.%s))", name)
+	}
+	return "\"unimplemented: check gen/gen.go\""
+}
+
+func (f Field) ImportConvertion(resourceClassName, fieldName string) string {
+	attr := fmt.Sprintf("integration.ConfigurationOptions.%sConfigurationOptions.%s", resourceClassName, fieldName)
+	switch f.MondooType {
+	case BooleanField.MondooType:
+		return fmt.Sprintf("types.BoolValue(%s)", attr)
+	case StringField.MondooType:
+		return fmt.Sprintf("types.StringValue(%s)", attr)
+	case StringPtrField.MondooType:
+		return fmt.Sprintf("types.StringPointerValue(%s)", attr)
+	case ArrayStringPtrField.MondooType:
+		return fmt.Sprintf("ConvertListValue(%s)", attr)
+	}
+	return "\"unimplemented: check gen/gen.go\""
+}
+
+var (
+	BooleanField = Field{
+		GoType:              "bool",
+		MondooType:          "mondoov1.Boolean",
+		TerraformType:       "types.Bool",
+		TerraformSchemaType: "schema.BoolAttribute",
+	}
+	StringField = Field{
+		GoType:              "string",
+		MondooType:          "mondoov1.String",
+		TerraformType:       "types.String",
+		TerraformSchemaType: "schema.StringAttribute",
+	}
+	StringPtrField = Field{
+		GoType:              "*string",
+		MondooType:          "*mondoov1.String",
+		TerraformType:       "types.String",
+		TerraformSchemaType: "schema.StringAttribute",
+	}
+	ArrayStringPtrField = Field{
+		GoType:              "[]string",
+		MondooType:          "*[]mondoov1.String",
+		TerraformType:       "types.List",
+		TerraformSchemaType: "schema.ListAttribute",
+	}
+)
 
 // generateIntegrationResources generates Terraform resources for Mondoo's integrations.
 func generateIntegrationResources() error {
-	// Read the template file
+	funcMap := template.FuncMap{
+		"toSnakeCase": toSnakeCase,
+	}
+
 	resourceTemplateFile := filepath.Join("gen", "templates", "integration_resource.go.tmpl")
-	resourceTmpl, err := template.ParseFiles(resourceTemplateFile)
+	resourceTmpl, err := template.New("integration_resource.go.tmpl").
+		Funcs(funcMap).
+		ParseFiles(resourceTemplateFile)
 	if err != nil {
 		return err
 	}
@@ -50,6 +119,12 @@ func generateIntegrationResources() error {
 		return err
 	}
 
+	gqlGeneratedTemplateFile := filepath.Join("gen", "templates", "gql_generated.go.tmpl")
+	gqlTmpl, err := template.ParseFiles(gqlGeneratedTemplateFile)
+	if err != nil {
+		return err
+	}
+
 	// Ensure the output directory exists
 	outputDirPath := filepath.Join("gen", "generated")
 	if err := os.MkdirAll(outputDirPath, 0755); err != nil {
@@ -57,13 +132,17 @@ func generateIntegrationResources() error {
 	}
 
 	i := mondoov1.ClientIntegrationConfigurationInput{
-		ShodanConfigurationOptions: &mondoov1.ShodanConfigurationOptionsInput{},
+		ShodanConfigurationOptions:          &mondoov1.ShodanConfigurationOptionsInput{},
+		OktaConfigurationOptions:            &mondoov1.OktaConfigurationOptionsInput{},
+		GoogleWorkspaceConfigurationOptions: &mondoov1.GoogleWorkspaceConfigurationOptionsInput{},
+		AzureDevOpsConfigurationOptions:     &mondoov1.AzureDevopsConfigurationOptionsInput{},
 	}
 	output, err := structToMap(i)
 	if err != nil {
 		return err
 	}
 
+	resources := []string{}
 	for k, v := range output {
 		var (
 			className, _          = strings.CutSuffix(k, "ConfigurationOptions")
@@ -72,6 +151,7 @@ func generateIntegrationResources() error {
 			resource              = IntegrationResource{
 				ResourceClassName:     className,
 				TerraformResourceName: terraformResourceName,
+				Fields:                map[string]Field{},
 			}
 		)
 		mm, err := structToMap(v)
@@ -82,21 +162,28 @@ func generateIntegrationResources() error {
 			fmt.Printf("%s integration has no fields, skipping\n", className)
 			continue
 		}
-		fmt.Printf("generating code for '%s' integration (resource %s)\n", className, fullResourceName)
+		fmt.Printf(">> Generating code for '%s' integration (resource %s)\n", className, fullResourceName)
 
 		// TODO aprse the config options and try to generate a struct that can be passed to the template
 		// so that we know the schema of each integration
 		for kk, vv := range mm {
 			fmt.Println(kk)
-			switch vv.(type) {
+			switch t := vv.(type) {
+			case mondoov1.Boolean:
+				resource.Fields[kk] = BooleanField
 			case mondoov1.String:
-				fmt.Println("string")
+				resource.Fields[kk] = StringField
 			case *mondoov1.String:
-				fmt.Println("stringptr")
+				resource.Fields[kk] = StringPtrField
 			case *[]mondoov1.String:
-				fmt.Println("stringptr array")
+				resource.Fields[kk] = ArrayStringPtrField
+			default:
+				// when adding new types, we need to update all the templates
+				panic(fmt.Sprintf("unimplemented mondoo api type: %v", t))
 			}
 		}
+		// add the resource class name to the list of resources to use them in the gql_generated.go
+		resources = append(resources, className)
 
 		// Create the resource file
 		resourceOutputFilePath := filepath.Join(outputDirPath,
@@ -148,6 +235,18 @@ func generateIntegrationResources() error {
 		if err := resourceTFTmpl.Execute(resourceTFFile, resource); err != nil {
 			return err
 		}
+	}
+
+	// Create the gql_generated.go file
+	gqlGeneratedOutputFilePath := filepath.Join(outputDirPath, "gql_generated.go")
+	gqlGeneratedFile, err := os.Create(gqlGeneratedOutputFilePath)
+	if err != nil {
+		return err
+	}
+	defer gqlGeneratedFile.Close()
+
+	if err := gqlTmpl.Execute(gqlGeneratedFile, resources); err != nil {
+		return err
 	}
 
 	return nil
