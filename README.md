@@ -14,7 +14,6 @@ terraform {
     }
   }
 }
-
 provider "mondoo" {
   region = "us" # use "eu" for the European region
 }
