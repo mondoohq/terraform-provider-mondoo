@@ -87,6 +87,7 @@ func (r *integrationShodanResource) Schema(_ context.Context, _ resource.SchemaR
 			"targets": schema.ListAttribute{
 				MarkdownDescription: "The Shodan Targets",
 				Optional:            true,
+				ElementType:         types.StringType,
 			},
 			"token": schema.StringAttribute{
 				MarkdownDescription: "The Shodan Token",

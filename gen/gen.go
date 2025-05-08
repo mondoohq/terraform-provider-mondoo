@@ -35,6 +35,7 @@ type Field struct {
 	MondooType          string
 	TerraformType       string
 	TerraformSchemaType string
+	TerraformSubType    string
 }
 
 func (f Field) ConfigurationOption(name string) string {
@@ -66,6 +67,13 @@ func (f Field) ImportConvertion(resourceClassName, fieldName string) string {
 	return "\"unimplemented: check gen/gen.go\""
 }
 
+func (f Field) AdditionalSchemaAttributes() string {
+	if f.TerraformSubType != "" {
+		return fmt.Sprintf("\nElementType: %s,", f.TerraformSubType)
+	}
+	return ""
+}
+
 var (
 	BooleanField = Field{
 		GoType:              "bool",
@@ -89,6 +97,7 @@ var (
 		GoType:              "[]string",
 		MondooType:          "*[]mondoov1.String",
 		TerraformType:       "types.List",
+		TerraformSubType:    "types.StringType",
 		TerraformSchemaType: "schema.ListAttribute",
 	}
 )
