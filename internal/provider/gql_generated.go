@@ -20,9 +20,9 @@ type ClientIntegrationConfigurationOptions struct {
 	MicrosoftDefenderConfigurationOptionsInput MicrosoftDefenderConfigurationOptionsInput `graphql:"... on MicrosoftDefenderConfigurationOptions"`
 	CrowdstrikeFalconConfigurationOptionsInput CrowdstrikeFalconConfigurationOptionsInput `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
 	SentinelOneConfigurationOptions            SentinelOneConfigurationOptions            `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
+	ShodanConfigurationOptions                 ShodanConfigurationOptions                 `graphql:"... on ShodanConfigurationOptions"`
 	// Auto-generated resources
-	ShodanConfigurationOptions          ShodanConfigurationOptions          `graphql:"... on ShodanConfigurationOptions"`
+	GoogleWorkspaceConfigurationOptions GoogleWorkspaceConfigurationOptions `graphql:"... on GoogleWorkspaceConfigurationOptions"`
 	OktaConfigurationOptions            OktaConfigurationOptions            `graphql:"... on OktaConfigurationOptions"`
 	AzureDevopsConfigurationOptions     AzureDevopsConfigurationOptions     `graphql:"... on AzureDevopsConfigurationOptions"`
-	GoogleWorkspaceConfigurationOptions GoogleWorkspaceConfigurationOptions `graphql:"... on GoogleWorkspaceConfigurationOptions"`
 }

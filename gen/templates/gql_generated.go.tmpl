@@ -20,6 +20,7 @@ type ClientIntegrationConfigurationOptions struct {
 	MicrosoftDefenderConfigurationOptionsInput MicrosoftDefenderConfigurationOptionsInput `graphql:"... on MicrosoftDefenderConfigurationOptions"`
 	CrowdstrikeFalconConfigurationOptionsInput CrowdstrikeFalconConfigurationOptionsInput `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
 	SentinelOneConfigurationOptions            SentinelOneConfigurationOptions            `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
+	ShodanConfigurationOptions                 ShodanConfigurationOptions                 `graphql:"... on ShodanConfigurationOptions"`
 	// Auto-generated resources
 	{{- range .}}
 	{{.}}ConfigurationOptions {{.}}ConfigurationOptions `graphql:"... on {{.}}ConfigurationOptions"`
