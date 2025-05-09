@@ -145,7 +145,7 @@ func (r *integration{{.ResourceClassName}}Resource) Create(ctx context.Context, 
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationType{{.ResourceClassName}},
+		mondoov1.ClientIntegrationType{{ formatEnum .ResourceClassName }},
 		mondoov1.ClientIntegrationConfigurationInput{
 			{{.ResourceClassName}}ConfigurationOptions: data.GetConfigurationOptions(),
 		})
@@ -154,7 +154,7 @@ func (r *integration{{.ResourceClassName}}Resource) Create(ctx context.Context, 
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to create %s integration. Got error: %s", mondoov1.IntegrationType{{.ResourceClassName}}, err,
+					"Unable to create %s integration. Got error: %s", mondoov1.IntegrationType{{ formatEnum .ResourceClassName }}, err,
 				),
 			)
 		return
@@ -219,7 +219,7 @@ func (r *integration{{.ResourceClassName}}Resource) Update(ctx context.Context, 
 	_, err := r.client.UpdateIntegration(ctx,
 		data.Mrn.ValueString(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationType{{.ResourceClassName}},
+		mondoov1.ClientIntegrationType{{ formatEnum .ResourceClassName }},
 		opts,
 	)
 	if err != nil {
@@ -227,7 +227,7 @@ func (r *integration{{.ResourceClassName}}Resource) Update(ctx context.Context, 
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to update %s integration. Got error: %s", mondoov1.IntegrationType{{.ResourceClassName}}, err,
+					"Unable to update %s integration. Got error: %s", mondoov1.IntegrationType{{formatEnum .ResourceClassName }}, err,
 				),
 			)
 		return
@@ -254,7 +254,7 @@ func (r *integration{{.ResourceClassName}}Resource) Delete(ctx context.Context, 
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to delete %s integration. Got error: %s", mondoov1.IntegrationType{{.ResourceClassName}}, err,
+					"Unable to delete %s integration. Got error: %s", mondoov1.IntegrationType{{ formatEnum .ResourceClassName }}, err,
 				),
 			)
 		return

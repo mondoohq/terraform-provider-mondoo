@@ -144,8 +144,8 @@ func (r *integrationMs365Resource) Create(ctx context.Context, req resource.Crea
 		mondoov1.ClientIntegrationTypeMs365,
 		mondoov1.ClientIntegrationConfigurationInput{
 			Ms365ConfigurationOptions: &mondoov1.Ms365ConfigurationOptionsInput{
-				TenantID:    mondoov1.String(data.TenantId.ValueString()),
-				ClientID:    mondoov1.String(data.ClientId.ValueString()),
+				TenantId:    mondoov1.String(data.TenantId.ValueString()),
+				ClientId:    mondoov1.String(data.ClientId.ValueString()),
 				Certificate: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
 			},
 		})
@@ -206,8 +206,8 @@ func (r *integrationMs365Resource) Update(ctx context.Context, req resource.Upda
 	// Do GraphQL request to API to update the resource.
 	opts := mondoov1.ClientIntegrationConfigurationInput{
 		Ms365ConfigurationOptions: &mondoov1.Ms365ConfigurationOptionsInput{
-			TenantID:    mondoov1.String(data.TenantId.ValueString()),
-			ClientID:    mondoov1.String(data.ClientId.ValueString()),
+			TenantId:    mondoov1.String(data.TenantId.ValueString()),
+			ClientId:    mondoov1.String(data.ClientId.ValueString()),
 			Certificate: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
 		},
 	}

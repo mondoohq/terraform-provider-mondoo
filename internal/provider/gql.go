@@ -69,7 +69,7 @@ func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, orgID string, id st
 
 	createInput := mondoov1.CreateSpaceInput{
 		Name:   mondoov1.String(name),
-		ID:     spaceID,
+		Id:     spaceID,
 		OrgMrn: mondoov1.String(orgPrefix + orgID),
 	}
 
@@ -561,7 +561,7 @@ type GitlabConfigurationOptions struct {
 	DiscoverProjects     bool
 	DiscoverTerraform    bool
 	DiscoverK8sManifests bool
-	BaseURL              string
+	BaseUrl              string
 }
 
 type Ms365ConfigurationOptions struct {

@@ -37,7 +37,7 @@ type integrationGcpResourceModel struct {
 	// integration details
 	Mrn       types.String `tfsdk:"mrn"`
 	Name      types.String `tfsdk:"name"`
-	ProjectID types.String `tfsdk:"project_id"`
+	ProjectId types.String `tfsdk:"project_id"`
 
 	// credentials
 	Credential integrationGcpCredentialModel `tfsdk:"credentials"`
@@ -140,7 +140,7 @@ func (r *integrationGcpResource) Create(ctx context.Context, req resource.Create
 		mondoov1.ClientIntegrationTypeGcp,
 		mondoov1.ClientIntegrationConfigurationInput{
 			GcpConfigurationOptions: &mondoov1.GcpConfigurationOptionsInput{
-				ProjectID:      mondoov1.NewStringPtr(mondoov1.String(data.ProjectID.ValueString())),
+				ProjectId:      mondoov1.NewStringPtr(mondoov1.String(data.ProjectId.ValueString())),
 				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
 				DiscoverAll:    mondoov1.NewBooleanPtr(mondoov1.Boolean(true)),
 			},
@@ -202,7 +202,7 @@ func (r *integrationGcpResource) Update(ctx context.Context, req resource.Update
 	// Do GraphQL request to API to update the resource.
 	opts := mondoov1.ClientIntegrationConfigurationInput{
 		GcpConfigurationOptions: &mondoov1.GcpConfigurationOptionsInput{
-			ProjectID:      mondoov1.NewStringPtr(mondoov1.String(data.ProjectID.ValueString())),
+			ProjectId:      mondoov1.NewStringPtr(mondoov1.String(data.ProjectId.ValueString())),
 			ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
 			DiscoverAll:    mondoov1.NewBooleanPtr(mondoov1.Boolean(true)),
 		},
@@ -258,7 +258,7 @@ func (r *integrationGcpResource) ImportState(ctx context.Context, req resource.I
 		Mrn:       types.StringValue(integration.Mrn),
 		Name:      types.StringValue(integration.Name),
 		SpaceID:   types.StringValue(integration.SpaceID()),
-		ProjectID: types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.ProjectId),
+		ProjectId: types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.ProjectId),
 		Credential: integrationGcpCredentialModel{
 			PrivateKey: types.StringPointerValue(nil),
 		},

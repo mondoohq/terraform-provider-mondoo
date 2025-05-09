@@ -21,18 +21,18 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = (*integrationAzureDevOpsResource)(nil)
-var _ resource.ResourceWithImportState = (*integrationAzureDevOpsResource)(nil)
+var _ resource.Resource = (*integrationAzureDevopsResource)(nil)
+var _ resource.ResourceWithImportState = (*integrationAzureDevopsResource)(nil)
 
-func NewIntegrationAzureDevOpsResource() resource.Resource {
-	return &integrationAzureDevOpsResource{}
+func NewIntegrationAzureDevopsResource() resource.Resource {
+	return &integrationAzureDevopsResource{}
 }
 
-type integrationAzureDevOpsResource struct {
+type integrationAzureDevopsResource struct {
 	client *ExtendedGqlClient
 }
 
-type integrationAzureDevOpsResourceModel struct {
+type integrationAzureDevopsResourceModel struct {
 	// scope
 	SpaceID types.String `tfsdk:"space_id"`
 
@@ -40,36 +40,36 @@ type integrationAzureDevOpsResourceModel struct {
 	Mrn  types.String `tfsdk:"mrn"`
 	Name types.String `tfsdk:"name"`
 
-	// AzureDevOps options
+	// AzureDevops options
 	AutoCloseTickets   types.Bool   `tfsdk:"auto_close_tickets"`
 	AutoCreateTickets  types.Bool   `tfsdk:"auto_create_tickets"`
 	ClientSecret       types.String `tfsdk:"client_secret"`
 	DefaultProjectName types.String `tfsdk:"default_project_name"`
-	OrganizationURL    types.String `tfsdk:"organization_url"`
-	ServicePrincipalID types.String `tfsdk:"service_principal_id"`
-	TenantID           types.String `tfsdk:"tenant_id"`
+	OrganizationUrl    types.String `tfsdk:"organization_url"`
+	ServicePrincipalId types.String `tfsdk:"service_principal_id"`
+	TenantId           types.String `tfsdk:"tenant_id"`
 }
 
-func (m integrationAzureDevOpsResourceModel) GetConfigurationOptions() *mondoov1.AzureDevopsConfigurationOptionsInput {
+func (m integrationAzureDevopsResourceModel) GetConfigurationOptions() *mondoov1.AzureDevopsConfigurationOptionsInput {
 	return &mondoov1.AzureDevopsConfigurationOptionsInput{
-		// AzureDevOps options
+		// AzureDevops options
 		AutoCloseTickets:   mondoov1.Boolean(m.AutoCloseTickets.ValueBool()),
 		AutoCreateTickets:  mondoov1.Boolean(m.AutoCreateTickets.ValueBool()),
 		ClientSecret:       mondoov1.String(m.ClientSecret.ValueString()),
 		DefaultProjectName: mondoov1.NewStringPtr(mondoov1.String(m.DefaultProjectName.ValueString())),
-		OrganizationURL:    mondoov1.String(m.OrganizationURL.ValueString()),
-		ServicePrincipalID: mondoov1.String(m.ServicePrincipalID.ValueString()),
-		TenantID:           mondoov1.String(m.TenantID.ValueString()),
+		OrganizationUrl:    mondoov1.String(m.OrganizationUrl.ValueString()),
+		ServicePrincipalId: mondoov1.String(m.ServicePrincipalId.ValueString()),
+		TenantId:           mondoov1.String(m.TenantId.ValueString()),
 	}
 }
 
-func (r *integrationAzureDevOpsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_integration_azure_dev_ops"
+func (r *integrationAzureDevopsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_integration_azure_devops"
 }
 
-func (r *integrationAzureDevOpsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *integrationAzureDevopsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `AzureDevOps integration.`,
+		MarkdownDescription: `AzureDevops integration.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
@@ -93,40 +93,40 @@ func (r *integrationAzureDevOpsResource) Schema(_ context.Context, _ resource.Sc
 					stringvalidator.LengthAtMost(250),
 				},
 			},
-			// AzureDevOps options
+			// AzureDevops options
 			"auto_close_tickets": schema.BoolAttribute{
-				MarkdownDescription: "The AzureDevOps AutoCloseTickets",
+				MarkdownDescription: "The AzureDevops AutoCloseTickets",
 				Required:            true,
 			},
 			"auto_create_tickets": schema.BoolAttribute{
-				MarkdownDescription: "The AzureDevOps AutoCreateTickets",
+				MarkdownDescription: "The AzureDevops AutoCreateTickets",
 				Required:            true,
 			},
 			"client_secret": schema.StringAttribute{
-				MarkdownDescription: "The AzureDevOps ClientSecret",
+				MarkdownDescription: "The AzureDevops ClientSecret",
 				Required:            true,
 			},
 			"default_project_name": schema.StringAttribute{
-				MarkdownDescription: "The AzureDevOps DefaultProjectName",
+				MarkdownDescription: "The AzureDevops DefaultProjectName",
 				Optional:            true,
 			},
 			"organization_url": schema.StringAttribute{
-				MarkdownDescription: "The AzureDevOps OrganizationURL",
+				MarkdownDescription: "The AzureDevops OrganizationUrl",
 				Required:            true,
 			},
 			"service_principal_id": schema.StringAttribute{
-				MarkdownDescription: "The AzureDevOps ServicePrincipalID",
+				MarkdownDescription: "The AzureDevops ServicePrincipalId",
 				Required:            true,
 			},
 			"tenant_id": schema.StringAttribute{
-				MarkdownDescription: "The AzureDevOps TenantID",
+				MarkdownDescription: "The AzureDevops TenantId",
 				Required:            true,
 			},
 		},
 	}
 }
 
-func (r *integrationAzureDevOpsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *integrationAzureDevopsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -149,9 +149,9 @@ func (r *integrationAzureDevOpsResource) Configure(_ context.Context, req resour
 	r.client = client
 }
 
-func (r *integrationAzureDevOpsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *integrationAzureDevopsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 
-	var data integrationAzureDevOpsResourceModel
+	var data integrationAzureDevopsResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -174,16 +174,16 @@ func (r *integrationAzureDevOpsResource) Create(ctx context.Context, req resourc
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeTicketSystemAzureDevOps,
+		mondoov1.ClientIntegrationTypeTicketSystemAzureDevops,
 		mondoov1.ClientIntegrationConfigurationInput{
-			AzureDevOpsConfigurationOptions: data.GetConfigurationOptions(),
+			AzureDevopsConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to create %s integration. Got error: %s", mondoov1.IntegrationTypeTicketSystemAzureDevOps, err,
+					"Unable to create %s integration. Got error: %s", mondoov1.IntegrationTypeTicketSystemAzureDevops, err,
 				),
 			)
 		return
@@ -214,8 +214,8 @@ func (r *integrationAzureDevOpsResource) Create(ctx context.Context, req resourc
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *integrationAzureDevOpsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data integrationAzureDevOpsResourceModel
+func (r *integrationAzureDevopsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data integrationAzureDevopsResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -230,8 +230,8 @@ func (r *integrationAzureDevOpsResource) Read(ctx context.Context, req resource.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *integrationAzureDevOpsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data integrationAzureDevOpsResourceModel
+func (r *integrationAzureDevopsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data integrationAzureDevopsResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -242,13 +242,13 @@ func (r *integrationAzureDevOpsResource) Update(ctx context.Context, req resourc
 
 	// Do GraphQL request to API to update the resource.
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		AzureDevOpsConfigurationOptions: data.GetConfigurationOptions(),
+		AzureDevopsConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	_, err := r.client.UpdateIntegration(ctx,
 		data.Mrn.ValueString(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeTicketSystemAzureDevOps,
+		mondoov1.ClientIntegrationTypeTicketSystemAzureDevops,
 		opts,
 	)
 	if err != nil {
@@ -256,7 +256,7 @@ func (r *integrationAzureDevOpsResource) Update(ctx context.Context, req resourc
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to update %s integration. Got error: %s", mondoov1.IntegrationTypeTicketSystemAzureDevOps, err,
+					"Unable to update %s integration. Got error: %s", mondoov1.IntegrationTypeTicketSystemAzureDevops, err,
 				),
 			)
 		return
@@ -266,8 +266,8 @@ func (r *integrationAzureDevOpsResource) Update(ctx context.Context, req resourc
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *integrationAzureDevOpsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data integrationAzureDevOpsResourceModel
+func (r *integrationAzureDevopsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data integrationAzureDevopsResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -283,42 +283,42 @@ func (r *integrationAzureDevOpsResource) Delete(ctx context.Context, req resourc
 			Diagnostics.
 			AddError("Client Error",
 				fmt.Sprintf(
-					"Unable to delete %s integration. Got error: %s", mondoov1.IntegrationTypeTicketSystemAzureDevOps, err,
+					"Unable to delete %s integration. Got error: %s", mondoov1.IntegrationTypeTicketSystemAzureDevops, err,
 				),
 			)
 		return
 	}
 }
 
-func (r *integrationAzureDevOpsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *integrationAzureDevopsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	integration, ok := r.client.ImportIntegration(ctx, req, resp)
 	if !ok {
 		return
 	}
-	model := integrationAzureDevOpsResourceModel{
+	model := integrationAzureDevopsResourceModel{
 		Mrn:     types.StringValue(integration.Mrn),
 		Name:    types.StringValue(integration.Name),
 		SpaceID: types.StringValue(integration.SpaceID()),
-		// AzureDevOps options
-		AutoCloseTickets:   types.BoolValue(integration.ConfigurationOptions.AzureDevOpsConfigurationOptions.AutoCloseTickets),
-		AutoCreateTickets:  types.BoolValue(integration.ConfigurationOptions.AzureDevOpsConfigurationOptions.AutoCreateTickets),
-		ClientSecret:       types.StringValue(integration.ConfigurationOptions.AzureDevOpsConfigurationOptions.ClientSecret),
-		DefaultProjectName: types.StringPointerValue(integration.ConfigurationOptions.AzureDevOpsConfigurationOptions.DefaultProjectName),
-		OrganizationURL:    types.StringValue(integration.ConfigurationOptions.AzureDevOpsConfigurationOptions.OrganizationURL),
-		ServicePrincipalID: types.StringValue(integration.ConfigurationOptions.AzureDevOpsConfigurationOptions.ServicePrincipalID),
-		TenantID:           types.StringValue(integration.ConfigurationOptions.AzureDevOpsConfigurationOptions.TenantID),
+		// AzureDevops options
+		AutoCloseTickets:   types.BoolValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.AutoCloseTickets),
+		AutoCreateTickets:  types.BoolValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.AutoCreateTickets),
+		ClientSecret:       types.StringValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.ClientSecret),
+		DefaultProjectName: types.StringPointerValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.DefaultProjectName),
+		OrganizationUrl:    types.StringValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.OrganizationUrl),
+		ServicePrincipalId: types.StringValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.ServicePrincipalId),
+		TenantId:           types.StringValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.TenantId),
 	}
 
 	resp.State.Set(ctx, &model)
 }
 
-// AzureDevOps options for import state
-type AzureDevOpsConfigurationOptions struct {
+// AzureDevops options for import state
+type AzureDevopsConfigurationOptions struct {
 	AutoCloseTickets   bool    `json:"auto_close_tickets"`
 	AutoCreateTickets  bool    `json:"auto_create_tickets"`
 	ClientSecret       string  `json:"client_secret"`
 	DefaultProjectName *string `json:"default_project_name"`
-	OrganizationURL    string  `json:"organization_url"`
-	ServicePrincipalID string  `json:"service_principal_id"`
-	TenantID           string  `json:"tenant_id"`
+	OrganizationUrl    string  `json:"organization_url"`
+	ServicePrincipalId string  `json:"service_principal_id"`
+	TenantId           string  `json:"tenant_id"`
 }

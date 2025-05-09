@@ -36,7 +36,7 @@ type integrationGitlabResourceModel struct {
 	Name types.String `tfsdk:"name"`
 	// Configuration options
 	Group     types.String                     `tfsdk:"group"`
-	BaseURL   types.String                     `tfsdk:"base_url"`
+	BaseUrl   types.String                     `tfsdk:"base_url"`
 	Discovery *integrationGitlabDiscoveryModel `tfsdk:"discovery"`
 	// credentials
 	Credential *integrationGitlabCredentialModel `tfsdk:"credentials"`
@@ -60,7 +60,7 @@ func (r *integrationGitlabResource) Metadata(ctx context.Context, req resource.M
 func (m integrationGitlabResourceModel) GetConfigurationOptions() *mondoov1.GitlabConfigurationOptionsInput {
 	opts := &mondoov1.GitlabConfigurationOptionsInput{
 		Group:   mondoov1.NewStringPtr(mondoov1.String(m.Group.ValueString())),
-		BaseURL: mondoov1.NewStringPtr(mondoov1.String(m.BaseURL.ValueString())),
+		BaseUrl: mondoov1.NewStringPtr(mondoov1.String(m.BaseUrl.ValueString())),
 	}
 
 	gitlabType := mondoov1.GitlabIntegrationTypeNone
@@ -203,9 +203,9 @@ func (r *integrationGitlabResource) Create(ctx context.Context, req resource.Cre
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeGitLab,
+		mondoov1.ClientIntegrationTypeGitlab,
 		mondoov1.ClientIntegrationConfigurationInput{
-			GitLabConfigurationOptions: data.GetConfigurationOptions(),
+			GitlabConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -262,13 +262,13 @@ func (r *integrationGitlabResource) Update(ctx context.Context, req resource.Upd
 	}
 
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		GitLabConfigurationOptions: data.GetConfigurationOptions(),
+		GitlabConfigurationOptions: data.GetConfigurationOptions(),
 	}
 	// Update API call logic
 	_, err := r.client.UpdateIntegration(ctx,
 		data.Mrn.ValueString(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeGitLab,
+		mondoov1.ClientIntegrationTypeGitlab,
 		opts,
 	)
 	if err != nil {
@@ -315,7 +315,7 @@ func (r *integrationGitlabResource) ImportState(ctx context.Context, req resourc
 		Name:    types.StringValue(integration.Name),
 		SpaceID: types.StringValue(integration.SpaceID()),
 		Group:   types.StringValue(integration.ConfigurationOptions.GitlabConfigurationOptions.Group),
-		BaseURL: types.StringValue(integration.ConfigurationOptions.GitlabConfigurationOptions.BaseURL),
+		BaseUrl: types.StringValue(integration.ConfigurationOptions.GitlabConfigurationOptions.BaseUrl),
 		Discovery: &integrationGitlabDiscoveryModel{
 			Groups:       types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverGroups),
 			Projects:     types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverProjects),

@@ -162,6 +162,7 @@ var (
 func generateIntegrationResources() error {
 	funcMap := template.FuncMap{
 		"toSnakeCase": toSnakeCase,
+		"formatEnum":  formatEnum,
 	}
 
 	resourceTemplateFile := filepath.Join("gen", "templates", "integration_resource.go.tmpl")
@@ -200,7 +201,7 @@ func generateIntegrationResources() error {
 		ShodanConfigurationOptions:          &mondoov1.ShodanConfigurationOptionsInput{},
 		OktaConfigurationOptions:            &mondoov1.OktaConfigurationOptionsInput{},
 		GoogleWorkspaceConfigurationOptions: &mondoov1.GoogleWorkspaceConfigurationOptionsInput{},
-		AzureDevOpsConfigurationOptions:     &mondoov1.AzureDevopsConfigurationOptionsInput{},
+		AzureDevopsConfigurationOptions:     &mondoov1.AzureDevopsConfigurationOptionsInput{},
 	}
 	output, err := structToMap(i)
 	if err != nil {
@@ -344,6 +345,31 @@ func generateIntegrationResources() error {
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
 var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
 
+var ticketSystemIntegrations = []string{
+	"Jira",
+	"Email",
+	"Zendesk",
+	"Github",
+	"Gitlab",
+	"AzureDevops",
+}
+
+// @afiune we have to do this whole dance because we do NOT have consistent types.
+func formatEnum(enum string) string {
+	if isTicketIntegration(enum) {
+		return "TicketSystem" + enum
+	}
+	return enum
+}
+
+func isTicketIntegration(enum string) bool {
+	for _, iType := range ticketSystemIntegrations {
+		if strings.HasSuffix(strings.ToLower(enum), strings.ToLower(iType)) {
+			return true
+		}
+	}
+	return false
+}
 func toSnakeCase(str string) string {
 	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
@@ -361,8 +387,8 @@ func mainDotTFTestFile() []byte {
 }
 `)
 }
-func structToMap(input interface{}) (map[string]interface{}, error) {
-	output := make(map[string]interface{})
+func structToMap(input any) (map[string]any, error) {
+	output := make(map[string]any)
 	config := &mapstructure.DecoderConfig{
 		Metadata: nil,
 		Result:   &output,
