@@ -63,7 +63,7 @@ func (m integrationZendeskResourceModel) GetConfigurationOptions() *mondoov1.Zen
 		AutoCloseTickets:  mondoov1.Boolean(m.AutoClose.ValueBool()),
 		AutoCreateTickets: mondoov1.Boolean(m.AutoCreate.ValueBool()),
 		CustomFields:      convertCustomFields(m.CustomFields),
-		APIToken:          mondoov1.String(m.Credential.Token.ValueString()),
+		ApiToken:          mondoov1.String(m.Credential.Token.ValueString()),
 	}
 
 	return opts
@@ -178,7 +178,7 @@ func convertCustomFields(recipients *[]integrationZendeskCustomFieldModel) *[]mo
 	var result []mondoov1.ZendeskCustomFieldInput
 	for _, r := range *recipients {
 		result = append(result, mondoov1.ZendeskCustomFieldInput{
-			ID:    mondoov1.Int(r.ID.ValueInt64()),
+			Id:    mondoov1.Int(r.ID.ValueInt64()),
 			Value: mondoov1.String(r.Value.ValueString()),
 		})
 	}

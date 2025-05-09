@@ -191,8 +191,8 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 		mondoov1.ClientIntegrationTypeAzure,
 		mondoov1.ClientIntegrationConfigurationInput{
 			AzureConfigurationOptions: &mondoov1.AzureConfigurationOptionsInput{
-				TenantID:               mondoov1.String(data.TenantId.ValueString()),
-				ClientID:               mondoov1.String(data.ClientId.ValueString()),
+				TenantId:               mondoov1.String(data.TenantId.ValueString()),
+				ClientId:               mondoov1.String(data.ClientId.ValueString()),
 				SubscriptionsWhitelist: &listAllow,
 				SubscriptionsBlacklist: &listDeny,
 				ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
@@ -273,8 +273,8 @@ func (r *integrationAzureResource) Update(ctx context.Context, req resource.Upda
 
 	opts := mondoov1.ClientIntegrationConfigurationInput{
 		AzureConfigurationOptions: &mondoov1.AzureConfigurationOptionsInput{
-			TenantID:               mondoov1.String(data.TenantId.ValueString()),
-			ClientID:               mondoov1.String(data.ClientId.ValueString()),
+			TenantId:               mondoov1.String(data.TenantId.ValueString()),
+			ClientId:               mondoov1.String(data.ClientId.ValueString()),
 			SubscriptionsWhitelist: &listAllow,
 			SubscriptionsBlacklist: &listDeny,
 			ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),

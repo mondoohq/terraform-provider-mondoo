@@ -12,10 +12,10 @@ import (
 )
 
 // ConvertListValue converts a slice of strings to a types.List.
-func ConvertListValue(list []string) types.List {
+func ConvertListValue[S ~string](list []S) types.List {
 	var valueList []attr.Value
 	for _, str := range list {
-		valueList = append(valueList, types.StringValue(str))
+		valueList = append(valueList, types.StringValue(string(str)))
 	}
 	// Ensure the list is of type types.StringType
 	return types.ListValueMust(types.StringType, valueList)
@@ -53,4 +53,9 @@ func ConvertSlice[T any](list types.List) (slice []T) {
 	allowlist, _ := list.ToListValue(ctx)
 	allowlist.ElementsAs(ctx, &slice, true)
 	return
+}
+
+// ToPtr returns a pointer to the given value.
+func ToPtr[T any](v T) *T {
+	return &v
 }

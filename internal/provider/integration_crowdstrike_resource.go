@@ -42,7 +42,7 @@ type integrationCrowdstrikeResourceModel struct {
 
 func (m integrationCrowdstrikeResourceModel) GetConfigurationOptions() *mondoov1.CrowdstrikeFalconConfigurationOptionsInput {
 	return &mondoov1.CrowdstrikeFalconConfigurationOptionsInput{
-		ClientID:     mondoov1.String(m.ClientId.ValueString()),
+		ClientId:     mondoov1.String(m.ClientId.ValueString()),
 		ClientSecret: mondoov1.String(m.ClientSecret.ValueString()),
 		Cloud:        mondoov1.NewStringPtr(mondoov1.String(m.Cloud.ValueString())),
 		MemberCID:    mondoov1.NewStringPtr(mondoov1.String(m.MemberCID.ValueString())),

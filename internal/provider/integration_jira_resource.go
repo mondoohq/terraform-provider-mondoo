@@ -58,7 +58,7 @@ func (m integrationJiraResourceModel) GetConfigurationOptions() *mondoov1.JiraCo
 	opts := &mondoov1.JiraConfigurationOptionsInput{
 		Host:             mondoov1.String(m.Host.ValueString()),
 		Email:            mondoov1.String(m.Email.ValueString()),
-		APIToken:         mondoov1.String(m.Credential.Token.ValueString()),
+		ApiToken:         mondoov1.String(m.Credential.Token.ValueString()),
 		DefaultProject:   mondoov1.String(m.DefaultProject.ValueString()),
 		AutoCreateCases:  mondoov1.NewBooleanPtr(mondoov1.Boolean(m.AutoCreate.ValueBool())),
 		AutoCloseTickets: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.AutoClose.ValueBool())),

@@ -79,5 +79,6 @@ ignore$
 \.xpm$
 \.xz$
 \.zip$
+\.tmpl$
 ^\.github/actions/spelling/
 ^\Q.github/workflows/spelling.yml\E$

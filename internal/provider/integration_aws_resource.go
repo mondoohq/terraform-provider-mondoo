@@ -65,7 +65,7 @@ func (m integrationAwsResourceModel) GetConfigurationOptions() *mondoov1.HostedA
 
 	if m.Credential.Key != nil {
 		opts.KeyCredential = &mondoov1.AWSSecretKeyCredential{
-			AccessKeyID:     mondoov1.String(m.Credential.Key.AccessKey.ValueString()),
+			AccessKeyId:     mondoov1.String(m.Credential.Key.AccessKey.ValueString()),
 			SecretAccessKey: mondoov1.String(m.Credential.Key.SecretKey.ValueString()),
 		}
 	}
@@ -79,7 +79,7 @@ func (m integrationAwsResourceModel) GetConfigurationOptions() *mondoov1.HostedA
 
 		opts.RoleCredential = &mondoov1.AWSRoleCredential{
 			Role:       mondoov1.String(m.Credential.Role.RoleArn.ValueString()),
-			ExternalID: externalID,
+			ExternalId: externalID,
 		}
 	}
 
