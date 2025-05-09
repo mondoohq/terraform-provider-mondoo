@@ -579,6 +579,10 @@ type GcpConfigurationOptions struct {
 	DiscoverAll bool
 }
 
+type ShodanConfigurationOptions struct {
+	Targets []string
+}
+
 type ZendeskConfigurationOptions struct {
 	Subdomain         string
 	Email             string

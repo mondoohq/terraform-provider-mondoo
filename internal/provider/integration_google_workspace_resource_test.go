@@ -19,14 +19,14 @@ func TestAccGoogleWorkspaceIntegrationResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccGoogleWorkspaceIntegrationResourceConfig(accSpace.ID(), "one"),
+				Config: testAccGoogleWorkspaceIntegrationResourceConfig(accSpace.ID(), "one", "CustomerId_1", "ImpersonatedUserEmail_1", "ServiceAccount_1",),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_google_workspace.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_google_workspace.test", "space_id", accSpace.ID()),
 				),
 			},
 			{
-				Config: testAccGoogleWorkspaceIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two"),
+				Config: testAccGoogleWorkspaceIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "CustomerId_1", "ImpersonatedUserEmail_1", "ServiceAccount_1",),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_google_workspace.test", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_google_workspace.test", "space_id", accSpace.ID()),
@@ -34,14 +34,14 @@ func TestAccGoogleWorkspaceIntegrationResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccGoogleWorkspaceIntegrationResourceConfig(accSpace.ID(), "three"),
+				Config: testAccGoogleWorkspaceIntegrationResourceConfig(accSpace.ID(), "three", "CustomerId_2", "ImpersonatedUserEmail_2", "ServiceAccount_2",),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_google_workspace.test", "name", "three"),
 					resource.TestCheckResourceAttr("mondoo_integration_google_workspace.test", "space_id", accSpace.ID()),
 				),
 			},
 			{
-				Config: testAccGoogleWorkspaceIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four"),
+				Config: testAccGoogleWorkspaceIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", "CustomerId_2", "ImpersonatedUserEmail_2", "ServiceAccount_2",),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_google_workspace.test", "name", "four"),
 					resource.TestCheckResourceAttr("mondoo_integration_google_workspace.test", "space_id", accSpace.ID()),
@@ -52,22 +52,30 @@ func TestAccGoogleWorkspaceIntegrationResource(t *testing.T) {
 	})
 }
 
-func testAccGoogleWorkspaceIntegrationResourceConfig(spaceID, intName string) string {
+func testAccGoogleWorkspaceIntegrationResourceConfig(spaceID string, intName string, customer_id string, impersonated_user_email string, service_account string,) string {
 	return fmt.Sprintf(`
 resource "mondoo_integration_google_workspace" "test" {
-  space_id      = %[1]q
-  name          = %[2]q
+  space_id      = %q
+  name          = %q
+  customer_id = %q
+  impersonated_user_email = %q
+  service_account = %q
 }
-`, spaceID, intName)
+`, spaceID, intName, customer_id, impersonated_user_email, service_account,
+)
 }
 
-func testAccGoogleWorkspaceIntegrationResourceWithSpaceInProviderConfig(spaceID, intName string) string {
+func testAccGoogleWorkspaceIntegrationResourceWithSpaceInProviderConfig(spaceID string, intName string, customer_id string, impersonated_user_email string, service_account string,) string {
 	return fmt.Sprintf(`
 provider "mondoo" {
-  space = %[1]q
+  space = %q
 }
 resource "mondoo_integration_google_workspace" "test" {
-  name          = %[2]q
+  name          = %q
+  customer_id = %q
+  impersonated_user_email = %q
+  service_account = %q
 }
-`, spaceID, intName)
+`, spaceID, intName, customer_id, impersonated_user_email, service_account,
+)
 }

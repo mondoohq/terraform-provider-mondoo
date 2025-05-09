@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_shodan Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Shodan integration.
+  Continuously assess external risk for domains and IP addresses.
 ---
 
 # mondoo_integration_shodan (Resource)
 
-Shodan integration.
+Continuously assess external risk for domains and IP addresses.
 
 ## Example Usage
 
@@ -39,17 +39,24 @@ resource "mondoo_integration_shodan" "shodan_integration" {
 
 ### Required
 
+- `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
-- `token` (String) The Shodan Token
+- `targets` (List of String) Shodan scan targets.
 
 ### Optional
 
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
-- `targets` (List of String) The Shodan Targets
 
 ### Read-Only
 
 - `mrn` (String) Integration identifier
+
+<a id="nestedatt--credentials"></a>
+### Nested Schema for `credentials`
+
+Required:
+
+- `token` (String, Sensitive) Token for Shodan integration.
 
 ## Import
 

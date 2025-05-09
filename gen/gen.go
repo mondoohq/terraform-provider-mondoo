@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -46,6 +47,24 @@ type Field struct {
 	TerraformSchemaType string
 	TerraformSubType    string
 	HclType             string
+	GoFmtVerb           string
+}
+
+func (f Field) GoTestValue(name string, testcase int) string {
+	switch f.MondooType {
+	case BooleanField.MondooType:
+		if testcase%2 == 0 {
+			return "true"
+		}
+		return "false"
+	case StringField.MondooType:
+		return fmt.Sprintf("\"%s_%d\"", name, testcase)
+	case StringPtrField.MondooType:
+		return fmt.Sprintf("\"%s_%d\"", name, testcase)
+	case ArrayStringPtrField.MondooType:
+		return fmt.Sprintf("[]string{\"%s_%d\"}", name, testcase)
+	}
+	return "\"unimplemented: check gen/gen.go\""
 }
 
 func (f Field) ConfigurationOption(name string) string {
@@ -138,6 +157,7 @@ var (
 		TerraformType:       "types.Bool",
 		TerraformSchemaType: "schema.BoolAttribute",
 		HclType:             "bool",
+		GoFmtVerb:           "t",
 	}
 	StringField = Field{
 		GoType:              "string",
@@ -145,6 +165,7 @@ var (
 		TerraformType:       "types.String",
 		TerraformSchemaType: "schema.StringAttribute",
 		HclType:             "string",
+		GoFmtVerb:           "q",
 	}
 	StringPtrField = Field{
 		GoType:              "*string",
@@ -152,6 +173,7 @@ var (
 		TerraformType:       "types.String",
 		TerraformSchemaType: "schema.StringAttribute",
 		HclType:             "string",
+		GoFmtVerb:           "q",
 	}
 	ArrayStringPtrField = Field{
 		GoType:              "[]string",
@@ -160,6 +182,7 @@ var (
 		TerraformSubType:    "types.StringType",
 		TerraformSchemaType: "schema.ListAttribute",
 		HclType:             "list(string)",
+		GoFmtVerb:           "q",
 	}
 )
 
@@ -179,7 +202,7 @@ func generateIntegrationResources() error {
 	}
 
 	testTemplateFile := filepath.Join("gen", "templates", "integration_resource_test.go.tmpl")
-	testTmpl, err := template.ParseFiles(testTemplateFile)
+	testTmpl, err := template.New("integration_resource_test.go.tmpl").Funcs(funcMap).ParseFiles(testTemplateFile)
 	if err != nil {
 		return err
 	}
@@ -253,15 +276,16 @@ terraform import mondoo_integration_{{.TerraformResourceName}}.example "//captai
 	i := mondoov1.ClientIntegrationConfigurationInput{
 		OktaConfigurationOptions:            &mondoov1.OktaConfigurationOptionsInput{},
 		GoogleWorkspaceConfigurationOptions: &mondoov1.GoogleWorkspaceConfigurationOptionsInput{},
-		AzureDevopsConfigurationOptions:     &mondoov1.AzureDevopsConfigurationOptionsInput{},
+		// AzureDevopsConfigurationOptions:     &mondoov1.AzureDevopsConfigurationOptionsInput{},
 	}
-	output, err := structToMap(i)
+	mapStruct, keys, err := structToMap(i)
 	if err != nil {
 		return err
 	}
 
 	resources := []string{}
-	for k, v := range output {
+	for _, k := range keys {
+		v := mapStruct[k]
 		var (
 			className, _          = strings.CutSuffix(k, "ConfigurationOptions")
 			terraformResourceName = strings.ToLower(toSnakeCase(className))
@@ -272,7 +296,7 @@ terraform import mondoo_integration_{{.TerraformResourceName}}.example "//captai
 				Fields:                map[string]Field{},
 			}
 		)
-		mm, err := structToMap(v)
+		mm, mmKeys, err := structToMap(v)
 		if err != nil {
 			log.Fatalf("unable to conver struct %s to map", className)
 		}
@@ -284,7 +308,8 @@ terraform import mondoo_integration_{{.TerraformResourceName}}.example "//captai
 
 		// TODO aprse the config options and try to generate a struct that can be passed to the template
 		// so that we know the schema of each integration
-		for kk, vv := range mm {
+		for _, kk := range mmKeys {
+			vv := mm[kk]
 			switch t := vv.(type) {
 			case mondoov1.Boolean:
 				resource.Fields[kk] = NewField(BooleanField, v)
@@ -473,7 +498,7 @@ func mainDotTFTestFile() []byte {
 }
 `)
 }
-func structToMap(input any) (map[string]any, error) {
+func structToMap(input any) (map[string]any, []string, error) {
 	output := make(map[string]any)
 	config := &mapstructure.DecoderConfig{
 		Metadata: nil,
@@ -482,9 +507,20 @@ func structToMap(input any) (map[string]any, error) {
 
 	decoder, err := mapstructure.NewDecoder(config)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = decoder.Decode(input)
-	return output, err
+	if err != nil {
+		return output, nil, err
+	}
+
+	keys := make([]string, 0, len(output))
+	for k := range output {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	return output, keys, err
 }
