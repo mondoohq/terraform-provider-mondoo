@@ -43,7 +43,7 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
-      - run: go generate ./...
+      - run: make generate
       - name: git diff
         run: |
           git diff --compact-summary --exit-code || \
