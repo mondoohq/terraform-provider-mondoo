@@ -45,6 +45,7 @@ type Field struct {
 	TerraformType       string
 	TerraformSchemaType string
 	TerraformSubType    string
+	HclType             string
 }
 
 func (f Field) ConfigurationOption(name string) string {
@@ -136,18 +137,21 @@ var (
 		MondooType:          "mondoov1.Boolean",
 		TerraformType:       "types.Bool",
 		TerraformSchemaType: "schema.BoolAttribute",
+		HclType:             "bool",
 	}
 	StringField = Field{
 		GoType:              "string",
 		MondooType:          "mondoov1.String",
 		TerraformType:       "types.String",
 		TerraformSchemaType: "schema.StringAttribute",
+		HclType:             "string",
 	}
 	StringPtrField = Field{
 		GoType:              "*string",
 		MondooType:          "*mondoov1.String",
 		TerraformType:       "types.String",
 		TerraformSchemaType: "schema.StringAttribute",
+		HclType:             "string",
 	}
 	ArrayStringPtrField = Field{
 		GoType:              "[]string",
@@ -155,6 +159,7 @@ var (
 		TerraformType:       "types.List",
 		TerraformSubType:    "types.StringType",
 		TerraformSchemaType: "schema.ListAttribute",
+		HclType:             "list(string)",
 	}
 )
 
@@ -180,7 +185,7 @@ func generateIntegrationResources() error {
 	}
 
 	resourceDotTFTemplateFile := filepath.Join("gen", "templates", "resource.tf.tmpl")
-	resourceTFTmpl, err := template.ParseFiles(resourceDotTFTemplateFile)
+	resourceTFTmpl, err := template.New("resource.tf.tmpl").Funcs(funcMap).ParseFiles(resourceDotTFTemplateFile)
 	if err != nil {
 		return err
 	}

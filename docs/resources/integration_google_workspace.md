@@ -13,8 +13,16 @@ GoogleWorkspace integration.
 ## Example Usage
 
 ```terraform
-variable "foo" {
-  description = "The foo variable"
+variable "customer_id" {
+  description = "The GoogleWorkspace CustomerId"
+  type        = string
+}
+variable "impersonated_user_email" {
+  description = "The GoogleWorkspace ImpersonatedUserEmail"
+  type        = string
+}
+variable "service_account" {
+  description = "The GoogleWorkspace ServiceAccount"
   type        = string
 }
 
@@ -24,8 +32,11 @@ provider "mondoo" {
 
 # Setup the GoogleWorkspace integration
 resource "mondoo_integration_google_workspace" "example" {
-  name = "GoogleWorkspace Integration"
-  foo  = var.foo
+  name                    = "GoogleWorkspace Integration"
+  foo                     = var.foo
+  customer_id             = var.customer_id
+  impersonated_user_email = var.impersonated_user_email
+  service_account         = var.service_account
 }
 ```
 

@@ -1,7 +1,9 @@
-variable "foo" {
-  description = "The foo variable"
-  type        = string
+{{- range $key, $props := .Fields}}
+variable "{{ toSnakeCase $key }}" {
+  description = "The {{$.ResourceClassName}} {{ $key }}"
+  type        = {{ $props.HclType }}
 }
+{{- end}}
 
 provider "mondoo" {
   space = "hungry-poet-123456"
@@ -11,4 +13,7 @@ provider "mondoo" {
 resource "mondoo_integration_{{.TerraformResourceName}}" "example" {
   name = "{{.ResourceClassName}} Integration"
   foo  = var.foo
+{{- range $key, $props := .Fields}}
+  {{ toSnakeCase $key }} = var.{{ toSnakeCase $key }}
+{{- end}}
 }
