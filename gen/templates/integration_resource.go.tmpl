@@ -160,6 +160,7 @@ func (r *integration{{.ResourceClassName}}Resource) Create(ctx context.Context, 
 		return
 	}
 
+	{{- if shouldTrigger .ResourceClassName }}
 	// trigger integration to gather results quickly after the first setup
 	_, err = r.client.TriggerAction(ctx,
 		string(integration.Mrn),
@@ -175,6 +176,7 @@ func (r *integration{{.ResourceClassName}}Resource) Create(ctx context.Context, 
 			)
 		return
 	}
+	{{- end }}
 
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))

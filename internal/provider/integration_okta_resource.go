@@ -158,7 +158,6 @@ func (r *integrationOktaResource) Create(ctx context.Context, req resource.Creat
 			)
 		return
 	}
-
 	// trigger integration to gather results quickly after the first setup
 	_, err = r.client.TriggerAction(ctx,
 		string(integration.Mrn),

@@ -187,8 +187,9 @@ var (
 )
 
 var funcMap = template.FuncMap{
-	"toSnakeCase": toSnakeCase,
-	"formatEnum":  formatEnum,
+	"toSnakeCase":   toSnakeCase,
+	"formatEnum":    formatEnum,
+	"shouldTrigger": shouldTrigger,
 }
 
 var templates = map[string]*template.Template{
@@ -418,6 +419,10 @@ var ticketSystemIntegrations = []string{
 	"Github",
 	"Gitlab",
 	"AzureDevops",
+}
+
+func shouldTrigger(enum string) bool {
+	return !isTicketIntegration(enum)
 }
 
 // @afiune we have to do this whole dance because we do not have consistent types.

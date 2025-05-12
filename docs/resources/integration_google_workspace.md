@@ -33,7 +33,6 @@ provider "mondoo" {
 # Setup the GoogleWorkspace integration
 resource "mondoo_integration_google_workspace" "example" {
   name                    = "GoogleWorkspace Integration"
-  foo                     = var.foo
   customer_id             = var.customer_id
   impersonated_user_email = var.impersonated_user_email
   service_account         = var.service_account

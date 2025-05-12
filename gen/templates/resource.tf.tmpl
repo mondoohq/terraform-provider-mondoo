@@ -12,7 +12,6 @@ provider "mondoo" {
 # Setup the {{.ResourceClassName}} integration
 resource "mondoo_integration_{{.TerraformResourceName}}" "example" {
   name = "{{.ResourceClassName}} Integration"
-  foo  = var.foo
 {{- range $key, $props := .Fields}}
   {{ toSnakeCase $key }} = var.{{ toSnakeCase $key }}
 {{- end}}
