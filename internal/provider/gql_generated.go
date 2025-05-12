@@ -22,6 +22,7 @@ type ClientIntegrationConfigurationOptions struct {
 	SlackConfigurationOptions                  SlackConfigurationOptions                  `graphql:"... on SlackConfigurationOptions"`
 	ZendeskConfigurationOptions                ZendeskConfigurationOptions                `graphql:"... on ZendeskConfigurationOptions"`
 	// Auto-generated resources
+	AzureDevopsConfigurationOptions     AzureDevopsConfigurationOptions     `graphql:"... on AzureDevopsConfigurationOptions"`
 	GoogleWorkspaceConfigurationOptions GoogleWorkspaceConfigurationOptions `graphql:"... on GoogleWorkspaceConfigurationOptions"`
 	OktaConfigurationOptions            OktaConfigurationOptions            `graphql:"... on OktaConfigurationOptions"`
 }

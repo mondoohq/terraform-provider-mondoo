@@ -298,7 +298,7 @@ func generateIntegrationResources() error {
 	i := mondoov1.ClientIntegrationConfigurationInput{
 		OktaConfigurationOptions:            &mondoov1.OktaConfigurationOptionsInput{},
 		GoogleWorkspaceConfigurationOptions: &mondoov1.GoogleWorkspaceConfigurationOptionsInput{},
-		// AzureDevopsConfigurationOptions:     &mondoov1.AzureDevopsConfigurationOptionsInput{},
+		AzureDevopsConfigurationOptions:     &mondoov1.AzureDevopsConfigurationOptionsInput{},
 	}
 	mapStruct, keys, err := structToMap(i)
 	if err != nil {
