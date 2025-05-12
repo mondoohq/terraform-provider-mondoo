@@ -197,6 +197,7 @@ func (p *MondooProvider) Resources(_ context.Context) []func() resource.Resource
 		NewExceptionResource,
 		NewIAMWorkloadIdentityBindingResource,
 		NewWorkspaceResource,
+		NewOrganizationResource,
 	}...)
 }
 
