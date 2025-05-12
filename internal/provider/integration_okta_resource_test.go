@@ -19,14 +19,14 @@ func TestAccOktaIntegrationResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccOktaIntegrationResourceConfig(accSpace.ID(), "one", "Organization_1", "Token_1",),
+				Config: testAccOktaIntegrationResourceConfig(accSpace.ID(), "one", "Organization_1", "Token_1"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_okta.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_okta.test", "space_id", accSpace.ID()),
 				),
 			},
 			{
-				Config: testAccOktaIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "Organization_1", "Token_1",),
+				Config: testAccOktaIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "Organization_1", "Token_1"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_okta.test", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_okta.test", "space_id", accSpace.ID()),
@@ -34,14 +34,14 @@ func TestAccOktaIntegrationResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccOktaIntegrationResourceConfig(accSpace.ID(), "three", "Organization_2", "Token_2",),
+				Config: testAccOktaIntegrationResourceConfig(accSpace.ID(), "three", "Organization_2", "Token_2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_okta.test", "name", "three"),
 					resource.TestCheckResourceAttr("mondoo_integration_okta.test", "space_id", accSpace.ID()),
 				),
 			},
 			{
-				Config: testAccOktaIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", "Organization_2", "Token_2",),
+				Config: testAccOktaIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", "Organization_2", "Token_2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_okta.test", "name", "four"),
 					resource.TestCheckResourceAttr("mondoo_integration_okta.test", "space_id", accSpace.ID()),
@@ -52,7 +52,7 @@ func TestAccOktaIntegrationResource(t *testing.T) {
 	})
 }
 
-func testAccOktaIntegrationResourceConfig(spaceID string, intName string, organization string, token string,) string {
+func testAccOktaIntegrationResourceConfig(spaceID string, intName string, organization string, token string) string {
 	return fmt.Sprintf(`
 resource "mondoo_integration_okta" "test" {
   space_id      = %q
@@ -61,10 +61,10 @@ resource "mondoo_integration_okta" "test" {
   token = %q
 }
 `, spaceID, intName, organization, token,
-)
+	)
 }
 
-func testAccOktaIntegrationResourceWithSpaceInProviderConfig(spaceID string, intName string, organization string, token string,) string {
+func testAccOktaIntegrationResourceWithSpaceInProviderConfig(spaceID string, intName string, organization string, token string) string {
 	return fmt.Sprintf(`
 provider "mondoo" {
   space = %q
@@ -75,5 +75,5 @@ resource "mondoo_integration_okta" "test" {
   token = %q
 }
 `, spaceID, intName, organization, token,
-)
+	)
 }
