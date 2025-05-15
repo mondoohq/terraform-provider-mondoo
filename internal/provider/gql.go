@@ -683,16 +683,15 @@ type EmailRecipient struct {
 	ReferenceURL string
 }
 
-type MicrosoftDefenderConfigurationOptionsInput struct {
+type MicrosoftDefenderConfigurationOptions struct {
 	TenantId               string
 	ClientId               string
 	SubscriptionsAllowlist []string
 	SubscriptionsDenylist  []string
 }
-type CrowdstrikeFalconConfigurationOptionsInput struct {
-	ClientId  string
-	Cloud     string
-	MemberCID string
+type CrowdstrikeFalconConfigurationOptions struct {
+	ClientId string
+	Cloud    string
 }
 type SentinelOneConfigurationOptions struct {
 	Host    string
@@ -700,21 +699,21 @@ type SentinelOneConfigurationOptions struct {
 }
 
 type ClientIntegrationConfigurationOptions struct {
-	AzureConfigurationOptions                  AzureConfigurationOptions                  `graphql:"... on AzureConfigurationOptions"`
-	HostConfigurationOptions                   HostConfigurationOptions                   `graphql:"... on HostConfigurationOptions"`
-	Ms365ConfigurationOptions                  Ms365ConfigurationOptions                  `graphql:"... on Ms365ConfigurationOptions"`
-	GcpConfigurationOptions                    GcpConfigurationOptions                    `graphql:"... on GcpConfigurationOptions"`
-	SlackConfigurationOptions                  SlackConfigurationOptions                  `graphql:"... on SlackConfigurationOptions"`
-	GithubConfigurationOptions                 GithubConfigurationOptions                 `graphql:"... on GithubConfigurationOptions"`
-	HostedAwsConfigurationOptions              HostedAwsConfigurationOptions              `graphql:"... on HostedAwsConfigurationOptions"`
-	ShodanConfigurationOptions                 ShodanConfigurationOptions                 `graphql:"... on ShodanConfigurationOptions"`
-	ZendeskConfigurationOptions                ZendeskConfigurationOptions                `graphql:"... on ZendeskConfigurationOptions"`
-	JiraConfigurationOptions                   JiraConfigurationOptions                   `graphql:"... on JiraConfigurationOptions"`
-	EmailConfigurationOptions                  EmailConfigurationOptions                  `graphql:"... on EmailConfigurationOptions"`
-	GitlabConfigurationOptions                 GitlabConfigurationOptions                 `graphql:"... on GitlabConfigurationOptions"`
-	MicrosoftDefenderConfigurationOptionsInput MicrosoftDefenderConfigurationOptionsInput `graphql:"... on MicrosoftDefenderConfigurationOptions"`
-	CrowdstrikeFalconConfigurationOptionsInput CrowdstrikeFalconConfigurationOptionsInput `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
-	SentinelOneConfigurationOptions            SentinelOneConfigurationOptions            `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
+	AzureConfigurationOptions             AzureConfigurationOptions             `graphql:"... on AzureConfigurationOptions"`
+	HostConfigurationOptions              HostConfigurationOptions              `graphql:"... on HostConfigurationOptions"`
+	Ms365ConfigurationOptions             Ms365ConfigurationOptions             `graphql:"... on Ms365ConfigurationOptions"`
+	GcpConfigurationOptions               GcpConfigurationOptions               `graphql:"... on GcpConfigurationOptions"`
+	SlackConfigurationOptions             SlackConfigurationOptions             `graphql:"... on SlackConfigurationOptions"`
+	GithubConfigurationOptions            GithubConfigurationOptions            `graphql:"... on GithubConfigurationOptions"`
+	HostedAwsConfigurationOptions         HostedAwsConfigurationOptions         `graphql:"... on HostedAwsConfigurationOptions"`
+	ShodanConfigurationOptions            ShodanConfigurationOptions            `graphql:"... on ShodanConfigurationOptions"`
+	ZendeskConfigurationOptions           ZendeskConfigurationOptions           `graphql:"... on ZendeskConfigurationOptions"`
+	JiraConfigurationOptions              JiraConfigurationOptions              `graphql:"... on JiraConfigurationOptions"`
+	EmailConfigurationOptions             EmailConfigurationOptions             `graphql:"... on EmailConfigurationOptions"`
+	GitlabConfigurationOptions            GitlabConfigurationOptions            `graphql:"... on GitlabConfigurationOptions"`
+	MicrosoftDefenderConfigurationOptions MicrosoftDefenderConfigurationOptions `graphql:"... on MicrosoftDefenderConfigurationOptions"`
+	CrowdstrikeFalconConfigurationOptions CrowdstrikeFalconConfigurationOptions `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
+	SentinelOneConfigurationOptions       SentinelOneConfigurationOptions       `graphql:"... on SentinelOneConfigurationOptions"`
 	// Add other configuration options here
 }
 
