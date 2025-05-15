@@ -294,15 +294,15 @@ func (r *integrationMsDefenderResource) ImportState(ctx context.Context, req res
 		return
 	}
 
-	allowList := ConvertListValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.SubscriptionsAllowlist)
-	denyList := ConvertListValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.SubscriptionsDenylist)
+	allowList := ConvertListValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptions.SubscriptionsAllowlist)
+	denyList := ConvertListValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptions.SubscriptionsDenylist)
 
 	model := integrationMsDefenderResourceModel{
 		Mrn:                   types.StringValue(integration.Mrn),
 		Name:                  types.StringValue(integration.Name),
 		SpaceID:               types.StringValue(integration.SpaceID()),
-		ClientId:              types.StringValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.ClientId),
-		TenantId:              types.StringValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptionsInput.TenantId),
+		ClientId:              types.StringValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptions.ClientId),
+		TenantId:              types.StringValue(integration.ConfigurationOptions.MicrosoftDefenderConfigurationOptions.TenantId),
 		SubscriptionAllowList: allowList,
 		SubscriptionDenyList:  denyList,
 		Credential: integrationMsDefenderCredentialModel{

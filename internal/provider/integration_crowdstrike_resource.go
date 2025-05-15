@@ -253,10 +253,10 @@ func (r *integrationCrowdstrikeResource) ImportState(ctx context.Context, req re
 		Mrn:          types.StringValue(integration.Mrn),
 		Name:         types.StringValue(integration.Name),
 		SpaceID:      types.StringValue(integration.SpaceID()),
-		ClientId:     types.StringValue(integration.ConfigurationOptions.CrowdstrikeFalconConfigurationOptionsInput.ClientId),
+		ClientId:     types.StringValue(integration.ConfigurationOptions.CrowdstrikeFalconConfigurationOptions.ClientId),
 		ClientSecret: types.StringPointerValue(nil),
-		Cloud:        types.StringValue(integration.ConfigurationOptions.CrowdstrikeFalconConfigurationOptionsInput.Cloud),
-		MemberCID:    types.StringValue(integration.ConfigurationOptions.CrowdstrikeFalconConfigurationOptionsInput.MemberCID),
+		Cloud:        types.StringValue(integration.ConfigurationOptions.CrowdstrikeFalconConfigurationOptions.Cloud),
+		MemberCID:    types.StringPointerValue(nil),
 	}
 
 	resp.State.Set(ctx, &model)

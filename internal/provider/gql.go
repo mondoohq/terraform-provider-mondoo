@@ -683,16 +683,15 @@ type EmailRecipient struct {
 	ReferenceURL string
 }
 
-type MicrosoftDefenderConfigurationOptionsInput struct {
+type MicrosoftDefenderConfigurationOptions struct {
 	TenantId               string
 	ClientId               string
 	SubscriptionsAllowlist []string
 	SubscriptionsDenylist  []string
 }
-type CrowdstrikeFalconConfigurationOptionsInput struct {
-	ClientId  string
-	Cloud     string
-	MemberCID string
+type CrowdstrikeFalconConfigurationOptions struct {
+	ClientId string
+	Cloud    string
 }
 type SentinelOneConfigurationOptions struct {
 	Host    string
@@ -730,9 +729,12 @@ func (c *ExtendedGqlClient) GetClientIntegration(ctx context.Context, mrn string
 	}
 
 	err := c.Query(ctx, &q, variables)
+	fmt.Println("Err:", err)
+
 	if err != nil {
 		return Integration{}, err
 	}
+	fmt.Printf("Integration: %+v\n", q.ClientIntegration.Integration)
 
 	return q.ClientIntegration.Integration, nil
 }
