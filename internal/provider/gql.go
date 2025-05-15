@@ -729,12 +729,9 @@ func (c *ExtendedGqlClient) GetClientIntegration(ctx context.Context, mrn string
 	}
 
 	err := c.Query(ctx, &q, variables)
-	fmt.Println("Err:", err)
-
 	if err != nil {
 		return Integration{}, err
 	}
-	fmt.Printf("Integration: %+v\n", q.ClientIntegration.Integration)
 
 	return q.ClientIntegration.Integration, nil
 }
