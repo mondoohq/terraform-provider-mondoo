@@ -274,7 +274,7 @@ func (r *integration{{.ResourceClassName}}Resource) ImportState(ctx context.Cont
 		SpaceID:      types.StringValue(integration.SpaceID()),
 		// {{.ResourceClassName}} options
 		{{- range $key, $props := .Fields}}
-		{{$key}}: {{$props.ImportConvertion $.ResourceClassName $key }},
+		{{$key}}: {{$props.ImportConversion $.ResourceClassName $key }},
 		{{- end}}
 	}
 
