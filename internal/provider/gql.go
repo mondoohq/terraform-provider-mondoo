@@ -69,7 +69,7 @@ func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, orgID string, id st
 
 	createInput := mondoov1.CreateSpaceInput{
 		Name:   mondoov1.String(name),
-		ID:     spaceID,
+		Id:     spaceID,
 		OrgMrn: mondoov1.String(orgPrefix + orgID),
 	}
 
@@ -154,7 +154,7 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 		Name: mondoov1.String(name),
 	}
 	if orgID != nil {
-		createInput.ID = mondoov1.NewStringPtr(mondoov1.String(*orgID))
+		createInput.Id = mondoov1.NewStringPtr(mondoov1.String(*orgID))
 	}
 
 	if description != nil {
@@ -627,7 +627,7 @@ type GitlabConfigurationOptions struct {
 	DiscoverProjects     bool
 	DiscoverTerraform    bool
 	DiscoverK8sManifests bool
-	BaseURL              string
+	BaseUrl              string
 }
 
 type Ms365ConfigurationOptions struct {
@@ -697,25 +697,6 @@ type CrowdstrikeFalconConfigurationOptionsInput struct {
 type SentinelOneConfigurationOptions struct {
 	Host    string
 	Account string
-}
-
-type ClientIntegrationConfigurationOptions struct {
-	AzureConfigurationOptions                  AzureConfigurationOptions                  `graphql:"... on AzureConfigurationOptions"`
-	HostConfigurationOptions                   HostConfigurationOptions                   `graphql:"... on HostConfigurationOptions"`
-	Ms365ConfigurationOptions                  Ms365ConfigurationOptions                  `graphql:"... on Ms365ConfigurationOptions"`
-	GcpConfigurationOptions                    GcpConfigurationOptions                    `graphql:"... on GcpConfigurationOptions"`
-	SlackConfigurationOptions                  SlackConfigurationOptions                  `graphql:"... on SlackConfigurationOptions"`
-	GithubConfigurationOptions                 GithubConfigurationOptions                 `graphql:"... on GithubConfigurationOptions"`
-	HostedAwsConfigurationOptions              HostedAwsConfigurationOptions              `graphql:"... on HostedAwsConfigurationOptions"`
-	ShodanConfigurationOptions                 ShodanConfigurationOptions                 `graphql:"... on ShodanConfigurationOptions"`
-	ZendeskConfigurationOptions                ZendeskConfigurationOptions                `graphql:"... on ZendeskConfigurationOptions"`
-	JiraConfigurationOptions                   JiraConfigurationOptions                   `graphql:"... on JiraConfigurationOptions"`
-	EmailConfigurationOptions                  EmailConfigurationOptions                  `graphql:"... on EmailConfigurationOptions"`
-	GitlabConfigurationOptions                 GitlabConfigurationOptions                 `graphql:"... on GitlabConfigurationOptions"`
-	MicrosoftDefenderConfigurationOptionsInput MicrosoftDefenderConfigurationOptionsInput `graphql:"... on MicrosoftDefenderConfigurationOptions"`
-	CrowdstrikeFalconConfigurationOptionsInput CrowdstrikeFalconConfigurationOptionsInput `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
-	SentinelOneConfigurationOptions            SentinelOneConfigurationOptions            `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
-	// Add other configuration options here
 }
 
 type Integration struct {

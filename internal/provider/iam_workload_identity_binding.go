@@ -229,7 +229,7 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 		Name:             mondoov1.String(data.Name.ValueString()),
 		Description:      mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
 		Roles:            &roles,
-		IssuerURI:        mondoov1.String(data.IssuerURI.ValueString()),
+		IssuerUri:        mondoov1.String(data.IssuerURI.ValueString()),
 		Subject:          mondoov1.String(data.Subject.ValueString()),
 		AllowedAudiences: &allowedAudiences,
 		Mappings:         &mappings,

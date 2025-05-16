@@ -304,7 +304,7 @@ func convertRecipients(recipients *[]integrationEmailRecipientInput) []mondoov1.
 			Name:         mondoov1.String(r.Name.ValueString()),
 			Email:        mondoov1.String(r.Email.ValueString()),
 			IsDefault:    mondoov1.Boolean(r.IsDefault.ValueBool()),
-			ReferenceURL: mondoov1.NewStringPtr(mondoov1.String(r.ReferenceURL.ValueString())),
+			ReferenceUrl: mondoov1.NewStringPtr(mondoov1.String(r.ReferenceURL.ValueString())),
 		})
 	}
 	return result

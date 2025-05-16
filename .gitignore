@@ -9,6 +9,7 @@ bin/
 dist/
 modules-dev/
 /pkg/
+gen/generated
 website/.vagrant
 website/.bundle
 website/build

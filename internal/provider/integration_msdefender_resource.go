@@ -51,8 +51,8 @@ type integrationMsDefenderCredentialModel struct {
 
 func (m integrationMsDefenderResourceModel) GetConfigurationOptions() *mondoov1.MicrosoftDefenderConfigurationOptionsInput {
 	opts := &mondoov1.MicrosoftDefenderConfigurationOptionsInput{
-		TenantID:    mondoov1.String(m.TenantId.ValueString()),
-		ClientID:    mondoov1.String(m.ClientId.ValueString()),
+		TenantId:    mondoov1.String(m.TenantId.ValueString()),
+		ClientId:    mondoov1.String(m.ClientId.ValueString()),
 		Certificate: mondoov1.NewStringPtr(mondoov1.String(m.Credential.PEMFile.ValueString())),
 	}
 

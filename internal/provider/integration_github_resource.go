@@ -236,9 +236,9 @@ func (r *integrationGithubResource) Create(ctx context.Context, req resource.Cre
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeGitHub,
+		mondoov1.ClientIntegrationTypeGithub,
 		mondoov1.ClientIntegrationConfigurationInput{
-			GitHubConfigurationOptions: data.GetConfigurationOptions(),
+			GithubConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -296,13 +296,13 @@ func (r *integrationGithubResource) Update(ctx context.Context, req resource.Upd
 
 	// Do GraphQL request to API to update the resource.
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		GitHubConfigurationOptions: data.GetConfigurationOptions(),
+		GithubConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	_, err := r.client.UpdateIntegration(ctx,
 		data.Mrn.ValueString(),
 		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeGitHub,
+		mondoov1.ClientIntegrationTypeGithub,
 		opts,
 	)
 	if err != nil {

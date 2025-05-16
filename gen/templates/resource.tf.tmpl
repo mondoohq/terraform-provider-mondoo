@@ -1,0 +1,18 @@
+{{- range $key, $props := .Fields}}
+variable "{{ toSnakeCase $key }}" {
+  description = "The {{$.ResourceClassName}} {{ $key }}"
+  type        = {{ $props.HclType }}
+}
+{{- end}}
+
+provider "mondoo" {
+  space = "hungry-poet-123456"
+}
+
+# Setup the {{.ResourceClassName}} integration
+resource "mondoo_integration_{{.TerraformResourceName}}" "example" {
+  name = "{{.ResourceClassName}} Integration"
+{{- range $key, $props := .Fields}}
+  {{ toSnakeCase $key }} = var.{{ toSnakeCase $key }}
+{{- end}}
+}

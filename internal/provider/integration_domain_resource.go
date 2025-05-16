@@ -132,8 +132,8 @@ func (r *integrationDomainResource) Create(ctx context.Context, req resource.Cre
 		mondoov1.ClientIntegrationConfigurationInput{
 			HostConfigurationOptions: &mondoov1.HostConfigurationOptionsInput{
 				Host:  mondoov1.String(data.Host.ValueString()),
-				HTTPS: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Https.ValueBool())),
-				HTTP:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Http.ValueBool())),
+				Https: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Https.ValueBool())),
+				Http:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Http.ValueBool())),
 			},
 		})
 	if err != nil {
@@ -194,8 +194,8 @@ func (r *integrationDomainResource) Update(ctx context.Context, req resource.Upd
 	opts := mondoov1.ClientIntegrationConfigurationInput{
 		HostConfigurationOptions: &mondoov1.HostConfigurationOptionsInput{
 			Host:  mondoov1.String(data.Host.ValueString()),
-			HTTPS: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Https.ValueBool())),
-			HTTP:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Http.ValueBool())),
+			Https: mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Https.ValueBool())),
+			Http:  mondoov1.NewBooleanPtr(mondoov1.Boolean(data.Http.ValueBool())),
 		},
 	}
 
