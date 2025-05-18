@@ -35,7 +35,7 @@ locals {
 
 resource "mondoo_exception" "exception" {
   scope_mrn     = "//assets.api.mondoo.app/spaces/${var.space_id}/assets/${local.asset_id}"
-  valid_until   = "2024-12-11"
+  valid_until   = "2025-12-11"
   justification = "testing"
   action        = "SNOOZE"
   check_mrns    = ["//policy.api.mondoo.app/queries/mondoo-tls-security-mitigate-beast"]
@@ -47,7 +47,7 @@ resource "mondoo_exception" "exception" {
 
 ### Optional
 
-- `action` (String) The action to perform. Default is `SNOOZE`. Other options are `ENABLE`, `DISABLE`, and `OUT_OF_SCOPE`.
+- `action` (String) The action to perform. Default is `SNOOZE` because of backwards compatibility, but it's deprecated, in it's place you can use `RISK_ACCEPTED`,`WORKAROUND` or `FALSE_POSITIVE`. Other options are `ENABLE`, `DISABLE`, and `OUT_OF_SCOPE`.
 - `check_mrns` (List of String) List of check MRNs to set exceptions for. If set, `vulnerability_mrns` must not be set.
 - `justification` (String) Description why the exception is required.
 - `scope_mrn` (String) The MRN of the scope (either asset mrn or space mrn).

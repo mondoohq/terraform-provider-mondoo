@@ -602,6 +602,12 @@ go.mondoo.com/cnquery/v11 v11.40.0 h1:nqVVz2ECIChemM7rl0NwbyCtJSgct4zNRQnPRJjnh6
 go.mondoo.com/cnquery/v11 v11.40.0/go.mod h1:kSnnow+FANisAAubIWu3ZfdbZXgvnH0IfW6f6LR1ChI=
 go.mondoo.com/mondoo-go v0.0.0-20250516231106-a2d61592d8cc h1:0ZBkMdTiDHcSMLA7BR+hRTqON34rGlYDd/BuBEQs/xA=
 go.mondoo.com/mondoo-go v0.0.0-20250516231106-a2d61592d8cc/go.mod h1:0HMHhLaS0V1himFIJQxABmvqEAdWv1NUScXpSjrhxqo=
+go.mondoo.com/mondoo-go v0.0.0-20250518202243-44b60ab77903 h1:d1QyDgk1tn9gPs8pMJWv6X6mE+DmjjiRzSBBj/3uS2M=
+go.mondoo.com/mondoo-go v0.0.0-20250518202243-44b60ab77903/go.mod h1:0HMHhLaS0V1himFIJQxABmvqEAdWv1NUScXpSjrhxqo=
+go.mondoo.com/mondoo-go v0.0.0-20250520083422-f84a1f7325e1 h1:5DpaFp++SgQztvkyK/HJ0LS4ONs4btTvYNC6nmxt3wg=
+go.mondoo.com/mondoo-go v0.0.0-20250520083422-f84a1f7325e1/go.mod h1:0HMHhLaS0V1himFIJQxABmvqEAdWv1NUScXpSjrhxqo=
+go.mondoo.com/mondoo-go v0.0.0-20250521000422-a1a55448b223 h1:yNa6Sjk2gINbmrjQzjWwK717CBKkDSgY7K81cz5nmVI=
+go.mondoo.com/mondoo-go v0.0.0-20250521000422-a1a55448b223/go.mod h1:0HMHhLaS0V1himFIJQxABmvqEAdWv1NUScXpSjrhxqo=
 go.mondoo.com/ranger-rpc v0.6.5 h1:KKoeTGPonJI3T6lrT9oxdH9eNlZC6pdqYvsuWZWyB6w=
 go.mondoo.com/ranger-rpc v0.6.5/go.mod h1:kwPJSYj32vZJjWoQSKEao5YoUO/ZRcjVGxBOL4tApf0=
 go.mongodb.org/mongo-driver v1.10.0 h1:UtV6N5k14upNp4LTduX0QCufG124fSu25Wz9tu94GLg=

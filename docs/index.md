@@ -76,7 +76,7 @@ resource "mondoo_policy_assignment" "cis_policy_assignment_enabled" {
 resource "mondoo_exception" "windows_defender_exception" {
   scope_mrn     = mondoo_space.my_space.mrn
   justification = "Windows Defender is disabled. Other EDR is used/configured instead."
-  action        = "SNOOZE"
+  action        = "RISK_ACCEPTED"
   check_mrns = [
     "//policy.api.mondoo.app/queries/cis-microsoft-windows-10--18.10.42.5.1",
     "//policy.api.mondoo.app/queries/cis-microsoft-windows-11--18.10.42.5.1",

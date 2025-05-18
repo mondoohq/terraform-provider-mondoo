@@ -20,7 +20,7 @@ locals {
 
 resource "mondoo_exception" "exception" {
   scope_mrn     = "//assets.api.mondoo.app/spaces/${var.space_id}/assets/${local.asset_id}"
-  valid_until   = "2024-12-11"
+  valid_until   = "2025-12-11"
   justification = "testing"
   action        = "SNOOZE"
   check_mrns    = ["//policy.api.mondoo.app/queries/mondoo-tls-security-mitigate-beast"]
