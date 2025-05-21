@@ -26,13 +26,10 @@ msdefender
 myorg
 NATGW
 NCIs
-nestedatt
 NHar
 ocid
 Ooe
-plainmarkdown
 Plutx
-prefixlines
 QFKc
 Qhgn
 qpbi
@@ -44,10 +41,8 @@ startswith
 Tcy
 testacc
 TEzu
-tffile
 tfplugingen
 Tjgl
-trimspace
 TSIm
 UZx
 wescoff

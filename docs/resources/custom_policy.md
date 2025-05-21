@@ -51,5 +51,5 @@ resource "mondoo_policy_assignment" "space" {
 
 ### Read-Only
 
-- `crc32c` (String) Base 64 CRC32 hash of the uploaded data.
+- `crc32c` (String) Base64 CRC32 hash of the uploaded data.
 - `mrns` (List of String) The Mondoo Resource Name (MRN) of the created policies

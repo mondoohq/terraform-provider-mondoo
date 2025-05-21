@@ -87,7 +87,7 @@ func deleteSpace() error {
 
 func mondooClient() (*mondoov1.Client, error) {
 	if configBase64 := os.Getenv("MONDOO_CONFIG_BASE64"); configBase64 != "" {
-		// extract base 64 encoded string
+		// extract Base64 encoded string
 		data, err := base64.StdEncoding.DecodeString(configBase64)
 		if err != nil {
 			return nil, errors.New("MONDOO_CONFIG_BASE64 must be a valid service account")

@@ -95,7 +95,7 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	token := os.Getenv("MONDOO_API_TOKEN")
 
 	if configBase64 != "" {
-		// extract base 64 encoded string
+		// extract Base64 encoded string
 		data, err := base64.StdEncoding.DecodeString(configBase64)
 		if err != nil {
 			resp.Diagnostics.AddError(

@@ -111,7 +111,7 @@ func (r *customPolicyResource) Schema(ctx context.Context, req resource.SchemaRe
 				Default:             booldefault.StaticBool(true),
 			},
 			"crc32c": schema.StringAttribute{
-				MarkdownDescription: "Base 64 CRC32 hash of the uploaded data.",
+				MarkdownDescription: "Base64 CRC32 hash of the uploaded data.",
 				Computed:            true,
 			},
 		},
