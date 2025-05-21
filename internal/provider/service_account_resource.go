@@ -61,7 +61,7 @@ type ServiceAccountResourceModel struct {
 	Description types.String `tfsdk:"description"`
 	Roles       types.List   `tfsdk:"roles"`
 
-	// base 64 encoded service account credential
+	// Base64 encoded service account credential
 	Credential types.String `tfsdk:"credential"`
 }
 
@@ -261,7 +261,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	// set base 64 encoded credential
+	// set Base64 encoded credential
 	data.Credential = types.StringValue(base64.StdEncoding.EncodeToString(jsonData))
 
 	// Write logs using the tflog package

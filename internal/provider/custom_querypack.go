@@ -100,7 +100,7 @@ func (r *customQueryPackResource) Schema(_ context.Context, _ resource.SchemaReq
 				Default:             booldefault.StaticBool(true),
 			},
 			"crc32c": schema.StringAttribute{
-				MarkdownDescription: "Base 64 CRC32 hash of the uploaded data.",
+				MarkdownDescription: "Base64 CRC32 hash of the uploaded data.",
 				Computed:            true,
 			},
 		},
