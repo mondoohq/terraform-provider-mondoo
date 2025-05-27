@@ -171,6 +171,15 @@ Optional:
 - `cidr_block` (String) CIDR block for the Mondoo VPC.
 - `use_mondoo_vpc` (Boolean, Deprecated) Use Mondoo VPC.
 - `vpc_flavour` (String) VPC flavour, one of: DEFAULT_VPC, MONDOO_NATGW, MONDOO_IGW
+- `vpc_tag` (Attributes) VPC tag to use when vpc_flavour is set to CUSTOM_VPC. (see [below for nested schema](#nestedatt--scan_configuration--vpc_configuration--vpc_tag))
+
+<a id="nestedatt--scan_configuration--vpc_configuration--vpc_tag"></a>
+### Nested Schema for `scan_configuration.vpc_configuration.vpc_tag`
+
+Required:
+
+- `key` (String) Key of the VPC tag.
+- `value` (String) Value of the VPC tag.
 
 ## Import
 
