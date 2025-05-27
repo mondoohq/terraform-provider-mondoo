@@ -73,7 +73,7 @@ func TestIntegrationAwsServerlessResourceValidateConfig_VPCFlavour(t *testing.T)
 	})
 
 	t.Run("custom vpc flavor that requires VpcTag", func(t *testing.T) {
-		d.ScanConfiguration.VpcConfiguration.VPCFlavour = types.StringValue("MONDOO_CUSTOM_VPC")
+		d.ScanConfiguration.VpcConfiguration.VPCFlavour = types.StringValue("CUSTOM_VPC")
 		diagnostics := validateIntegrationAwsServerlessResourceModel(d)
 		if assert.True(t, diagnostics.HasError(), "expected errors") {
 			assert.Equal(t, "MissingAttributeError", diagnostics[0].Summary())
