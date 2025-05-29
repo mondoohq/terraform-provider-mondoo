@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -89,11 +90,16 @@ func (r *exceptionResource) GetConfigurationOptions(ctx context.Context, data *e
 	return scopeMrn, checks, vulnerabilities, validUntilStr, nil
 }
 
-// ValidUntilValidator ensures the "valid_until" attribute is only set when "action" is "SNOOZE".
-type ValidUntilValidator struct{}
+// ValidUntilActionValidator ensures the "valid_until" attribute is only set when "action" is "SNOOZE", "RISK_ACCEPTED", "WORKAROUND" or "FALSE_POSITIVE".
+type ValidUntilActionValidator struct{}
+
+// NewValidUntilActionValidator is a convenience function for creating an instance of the validator.
+func NewValidUntilActionValidator() validator.String {
+	return &ValidUntilActionValidator{}
+}
 
 // ValidateString performs the validation for the "valid_until" attribute.
-func (v ValidUntilValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+func (v ValidUntilActionValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 	// Retrieve the "action" attribute value from the attribute path
 	var actionAttr types.String
 	err := req.Config.GetAttribute(ctx, path.Root("action"), &actionAttr)
@@ -101,28 +107,62 @@ func (v ValidUntilValidator) ValidateString(ctx context.Context, req validator.S
 		return // If "action" is not set or there's an error, nothing to validate
 	}
 
-	if actionAttr.ValueString() != "SNOOZE" && !req.ConfigValue.IsNull() {
+	validUntilActions := []string{"RISK_ACCEPTED", "WORKAROUND", "FALSE_POSITIVE", "SNOOZE"}
+	if !slices.Contains(validUntilActions, actionAttr.ValueString()) && !req.ConfigValue.IsNull() {
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
-			"'valid_until' Can Only Be Set with 'action' as 'SNOOZE'",
-			"To use 'valid_until', the 'action' attribute must be set to 'SNOOZE'. Either remove 'valid_until' or change 'action' to 'SNOOZE'.",
+			"'valid_until' Can Only Be Set with 'action' as `SNOOZE`, 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'",
+			"To use 'valid_until', the 'action' attribute must be set to one of the above. Either remove 'valid_until' or change 'action'.",
 		)
 	}
 }
 
 // Description returns a plain-text description of the validator's purpose.
-func (v ValidUntilValidator) Description(ctx context.Context) string {
-	return "'valid_until' can only be set if 'action' is set to 'SNOOZE'."
+func (v ValidUntilActionValidator) Description(ctx context.Context) string {
+	return "'valid_until' can only be set if 'action' is set to 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'."
 }
 
 // MarkdownDescription returns a markdown-formatted description of the validator's purpose.
-func (v ValidUntilValidator) MarkdownDescription(ctx context.Context) string {
-	return "'valid_until' can only be set if 'action' is set to `SNOOZE`."
+func (v ValidUntilActionValidator) MarkdownDescription(ctx context.Context) string {
+	return "'valid_until' can only be set if 'action' is set to 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'."
 }
 
-// NewValidUntilValidator is a convenience function for creating an instance of the validator.
-func NewValidUntilValidator() validator.String {
-	return &ValidUntilValidator{}
+// ValidUntilPresentValidator ensures the "valid_until" attribute is only set when "action" is "SNOOZE", "RISK_ACCEPTED", "WORKAROUND" or "FALSE_POSITIVE".
+type ValidUntilPresentValidator struct{}
+
+// NewValidUntilPresentValidator is a convenience function for creating an instance of the validator.
+func NewValidUntilPresentValidator() validator.String {
+	return &ValidUntilPresentValidator{}
+}
+
+// ValidateString performs the validation for the "valid_until" attribute.
+func (v ValidUntilPresentValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	// Retrieve the "action" attribute value from the attribute path
+	var actionAttr types.String
+	err := req.Config.GetAttribute(ctx, path.Root("action"), &actionAttr)
+	if err != nil || actionAttr.IsNull() {
+		return // If "action" is not set or there's an error, nothing to validate
+	}
+
+	validUntilActions := []string{"RISK_ACCEPTED", "WORKAROUND", "FALSE_POSITIVE", "SNOOZE"}
+
+	if slices.Contains(validUntilActions, actionAttr.ValueString()) && req.ConfigValue.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"'valid_until' Must be supplied when 'actions' is 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'",
+			fmt.Sprintf("'valid_until' Must be supplied when 'actions' is %s", actionAttr.ValueString()),
+		)
+	}
+}
+
+// Description returns a plain-text description of the validator's purpose.
+func (v ValidUntilPresentValidator) Description(ctx context.Context) string {
+	return "'valid_until' must be supplied when 'actions' is 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'"
+}
+
+// MarkdownDescription returns a markdown-formatted description of the validator's purpose.
+func (v ValidUntilPresentValidator) MarkdownDescription(ctx context.Context) string {
+	return "'valid_until' must be supplied when 'actions' is 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'"
 }
 
 func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -142,7 +182,8 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(regexp.MustCompile(`[1-9][0-9][0-9]{2}-([0][1-9]|[1][0-2])-([1-2][0-9]|[0][1-9]|[3][0-1])`), "Date must be in the format 'YYYY-MM-DD'"),
-					NewValidUntilValidator(),
+					NewValidUntilActionValidator(),
+					NewValidUntilPresentValidator(),
 				},
 			},
 			"justification": schema.StringAttribute{
@@ -150,12 +191,12 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 				Optional:            true,
 			},
 			"action": schema.StringAttribute{
-				MarkdownDescription: "The action to perform. Default is `SNOOZE`. Other options are `ENABLE`, `DISABLE`, and `OUT_OF_SCOPE`.",
+				MarkdownDescription: "The action to perform. Default is `RISK_ACCEPTED`. Other valid values are `WORKAROUND`, `FALSE_POSITIVE`, `ENABLE`, `DISABLE`, `OUT_OF_SCOPE` and `SNOOZE`.",
 				Optional:            true,
 				Computed:            true,
-				Default:             stringdefault.StaticString("SNOOZE"),
+				Default:             stringdefault.StaticString("RISK_ACCEPTED"),
 				Validators: []validator.String{
-					stringvalidator.OneOf("SNOOZE", "ENABLE", "DISABLE", "OUT_OF_SCOPE"),
+					stringvalidator.OneOf("SNOOZE", "RISK_ACCEPTED", "FALSE_POSITIVE", "WORKAROUND", "ENABLE", "DISABLE", "OUT_OF_SCOPE"),
 				},
 			},
 			"check_mrns": schema.ListAttribute{
@@ -209,6 +250,13 @@ func (r *exceptionResource) Create(ctx context.Context, req resource.CreateReque
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if data.Action.ValueString() == "SNOOZE" {
+		resp.Diagnostics.AddWarning(
+			"use of deprecated exception action",
+			`exception action 'SNOOZE' is deprecated, please use 'RISK_ACCEPTED', 'WORKAROUND' OR 'FALSE_POSITIVE'`,
+		)
+	}
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -279,6 +327,13 @@ func (r *exceptionResource) Update(ctx context.Context, req resource.UpdateReque
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
 		return
+	}
+
+	if data.Action.ValueString() == "SNOOZE" {
+		resp.Diagnostics.AddWarning(
+			"use of deprecated exception action",
+			`exception action 'SNOOZE' is deprecated, please use 'RISK_ACCEPTED', 'WORKAROUND' OR 'FALSE_POSITIVE'`,
+		)
 	}
 
 	// Update API call logic
