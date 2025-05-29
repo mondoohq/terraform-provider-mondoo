@@ -3,6 +3,7 @@ package provider
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -80,10 +81,18 @@ func TestIntegrationAwsServerlessResourceValidateConfig_VPCFlavour(t *testing.T)
 		}
 
 		t.Run("with VpcTag", func(t *testing.T) {
-			d.ScanConfiguration.VpcConfiguration.VPCTag = VPCTagInput{
-				Key:   types.StringValue("Mondoo"),
-				Value: types.StringValue("true"),
-			}
+			vpcTag, diags := types.ObjectValue(
+				map[string]attr.Type{
+					"key":   types.StringType,
+					"value": types.StringType,
+				},
+				map[string]attr.Value{
+					"key":   types.StringValue("Mondoo"),
+					"value": types.StringValue("true"),
+				},
+			)
+			assert.False(t, diags.HasError())
+			d.ScanConfiguration.VpcConfiguration.VPCTag = vpcTag
 			diagnostics := validateIntegrationAwsServerlessResourceModel(d)
 			assert.False(t, diagnostics.HasError(), "expected NO errors")
 		})

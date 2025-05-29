@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -87,7 +88,7 @@ type VPCConfigurationInput struct {
 	// (Optional.)
 	VPCFlavour types.String `tfsdk:"vpc_flavour"`
 	// (Optional.)
-	VPCTag VPCTagInput `tfsdk:"vpc_tag"`
+	VPCTag types.Object `tfsdk:"vpc_tag"`
 }
 
 type AWSEventPatternInput struct {
@@ -219,10 +220,15 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 		}
 
 		var vpcTagPtr *mondoov1.VPCTagInput
-		if vpcTag := m.ScanConfiguration.VpcConfiguration.VPCTag; vpcTag.Key.ValueString() != "" && vpcTag.Value.ValueString() != "" {
-			vpcTagPtr = &mondoov1.VPCTagInput{
-				Key:   mondoov1.String(vpcTag.Key.ValueString()),
-				Value: mondoov1.String(vpcTag.Value.ValueString()),
+		if !m.ScanConfiguration.VpcConfiguration.VPCTag.IsNull() && !m.ScanConfiguration.VpcConfiguration.VPCTag.IsUnknown() {
+			var vpcTag VPCTagInput
+			if diags := m.ScanConfiguration.VpcConfiguration.VPCTag.As(context.Background(), &vpcTag, basetypes.ObjectAsOptions{}); !diags.HasError() {
+				if !vpcTag.Key.IsNull() && !vpcTag.Value.IsNull() {
+					vpcTagPtr = &mondoov1.VPCTagInput{
+						Key:   mondoov1.String(vpcTag.Key.ValueString()),
+						Value: mondoov1.String(vpcTag.Value.ValueString()),
+					}
+				}
 			}
 		}
 
@@ -325,6 +331,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 							"vpc_tag": schema.SingleNestedAttribute{
 								MarkdownDescription: "VPC tag to use when vpc_flavour is set to CUSTOM_VPC.",
 								Optional:            true,
+								Computed:            true,
 								Attributes: map[string]schema.Attribute{
 									"key": schema.StringAttribute{
 										MarkdownDescription: "Key of the VPC tag.",
@@ -480,11 +487,23 @@ func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerles
 			)
 		}
 
-		if vpcTag := data.ScanConfiguration.VpcConfiguration.VPCTag; vpcFlavour == mondoov1.VPCFlavourCustomVpc && (vpcTag.Key.ValueString() == "" || vpcTag.Value.ValueString() == "") {
-			diagnostics.AddError(
-				"MissingAttributeError",
-				"Attribute vpc_tag must not be empty when vpc_flavour is set to CUSTOM_VPC.",
-			)
+		if vpcFlavour == mondoov1.VPCFlavourCustomVpc {
+			if data.ScanConfiguration.VpcConfiguration.VPCTag.IsNull() || data.ScanConfiguration.VpcConfiguration.VPCTag.IsUnknown() {
+				diagnostics.AddError(
+					"MissingAttributeError",
+					"Attribute vpc_tag must be set when vpc_flavour is set to CUSTOM_VPC.",
+				)
+			} else {
+				var vpcTag VPCTagInput
+				if diags := data.ScanConfiguration.VpcConfiguration.VPCTag.As(context.Background(), &vpcTag, basetypes.ObjectAsOptions{}); !diags.HasError() {
+					if vpcTag.Key.ValueString() == "" || vpcTag.Value.ValueString() == "" {
+						diagnostics.AddError(
+							"MissingAttributeError",
+							"Both key and value must be set in vpc_tag when vpc_flavour is set to CUSTOM_VPC.",
+						)
+					}
+				}
+			}
 		}
 	}
 
