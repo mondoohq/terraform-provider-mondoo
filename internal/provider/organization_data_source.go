@@ -32,6 +32,7 @@ type OrganizationDataSourceModel struct {
 	OrgID  types.String `tfsdk:"id"`
 	OrgMrn types.String `tfsdk:"mrn"`
 	Name   types.String `tfsdk:"name"`
+	Spaces types.List   `tfsdk:"spaces"`
 }
 
 func (d *OrganizationDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -67,6 +68,11 @@ func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.Sche
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Organization name",
+				Computed:            true,
+			},
+			"spaces": schema.ListAttribute{
+				MarkdownDescription: "List of spaces (MRNs) in the organization",
+				ElementType:         types.StringType,
 				Computed:            true,
 			},
 		},
@@ -125,6 +131,7 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 	data.OrgID = types.StringValue(payload.Id)
 	data.OrgMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)
+	data.Spaces = ConvertListValue(payload.Spaces())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
