@@ -481,11 +481,14 @@ func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerles
 			)
 		}
 
-		if vpcTag := data.ScanConfiguration.VpcConfiguration.VPCTag; vpcFlavour == mondoov1.VPCFlavourCustomVpc && (vpcTag.Key.ValueString() == "" || vpcTag.Value.ValueString() == "") {
-			diagnostics.AddError(
-				"MissingAttributeError",
-				"Attribute vpc_tag must not be empty when vpc_flavour is set to CUSTOM_VPC.",
-			)
+		if vpcFlavour == mondoov1.VPCFlavourCustomVpc {
+			vpcTag := data.ScanConfiguration.VpcConfiguration.VPCTag
+			if vpcTag == nil || vpcTag.Key.ValueString() == "" || vpcTag.Value.ValueString() == "" {
+				diagnostics.AddError(
+					"MissingAttributeError",
+					"Attribute vpc_tag must not be empty when vpc_flavour is set to CUSTOM_VPC.",
+				)
+			}
 		}
 	}
 
