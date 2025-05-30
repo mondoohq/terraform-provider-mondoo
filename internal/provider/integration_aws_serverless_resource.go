@@ -87,7 +87,7 @@ type VPCConfigurationInput struct {
 	// (Optional.)
 	VPCFlavour types.String `tfsdk:"vpc_flavour"`
 	// (Optional.)
-	VPCTag VPCTagInput `tfsdk:"vpc_tag"`
+	VPCTag *VPCTagInput `tfsdk:"vpc_tag"`
 }
 
 type AWSEventPatternInput struct {
@@ -219,7 +219,8 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 		}
 
 		var vpcTagPtr *mondoov1.VPCTagInput
-		if vpcTag := m.ScanConfiguration.VpcConfiguration.VPCTag; vpcTag.Key.ValueString() != "" && vpcTag.Value.ValueString() != "" {
+		if vpcTag := m.ScanConfiguration.VpcConfiguration.VPCTag; vpcTag != nil && 
+		   vpcTag.Key.ValueString() != "" && vpcTag.Value.ValueString() != "" {
 			vpcTagPtr = &mondoov1.VPCTagInput{
 				Key:   mondoov1.String(vpcTag.Key.ValueString()),
 				Value: mondoov1.String(vpcTag.Value.ValueString()),
