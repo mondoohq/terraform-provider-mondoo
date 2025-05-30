@@ -80,7 +80,7 @@ func TestIntegrationAwsServerlessResourceValidateConfig_VPCFlavour(t *testing.T)
 		}
 
 		t.Run("with VpcTag", func(t *testing.T) {
-			d.ScanConfiguration.VpcConfiguration.VPCTag = VPCTagInput{
+			d.ScanConfiguration.VpcConfiguration.VPCTag = &VPCTagInput{
 				Key:   types.StringValue("Mondoo"),
 				Value: types.StringValue("true"),
 			}
