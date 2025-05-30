@@ -18,3 +18,8 @@ output "org_id" {
   description = "ID of the organization"
   value       = data.mondoo_organization.org.id
 }
+
+output "spaces" {
+  description = "List of spaces (MRNs) in the organization"
+  value       = data.mondoo_organization.org.spaces
+}

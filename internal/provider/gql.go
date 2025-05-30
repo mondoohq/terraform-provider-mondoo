@@ -127,6 +127,22 @@ type orgPayload struct {
 	Mrn         string
 	Name        string
 	Description string
+	SpacesCount int
+	SpacesList  struct {
+		Edges []struct {
+			Node struct {
+				Mrn  string
+				Name string
+			}
+		}
+	}
+}
+
+func (o orgPayload) Spaces() (mrns []string) {
+	for _, node := range o.SpacesList.Edges {
+		mrns = append(mrns, node.Node.Mrn)
+	}
+	return
 }
 
 func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayload, error) {
