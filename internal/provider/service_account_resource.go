@@ -152,7 +152,8 @@ func (r *ServiceAccountResource) Configure(ctx context.Context, req resource.Con
 }
 
 func (r *ServiceAccountResource) getScope(ctx context.Context, data ServiceAccountResourceModel) string {
-	scopeMrn := ""
+	// default to platform level
+	scopeMrn := "//platform.api.mondoo.app"
 	// Give presedence to the org id
 	if data.OrgID.ValueString() != "" {
 		scopeMrn = orgPrefix + data.OrgID.ValueString()
