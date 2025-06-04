@@ -127,11 +127,16 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch organization. Got error: %s", err))
 		return
 	}
+	spaces, err := payload.Spaces(ctx, d.client)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch all spaces. Got error: %s", err))
+		return
+	}
 
 	data.OrgID = types.StringValue(payload.Id)
 	data.OrgMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)
-	data.Spaces = ConvertListValue(payload.Spaces())
+	data.Spaces = ConvertListValue(spaces)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

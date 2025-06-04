@@ -129,20 +129,41 @@ type orgPayload struct {
 	Description string
 	SpacesCount int
 	SpacesList  struct {
-		Edges []struct {
-			Node struct {
+		TotalCount int
+		Edges      []struct {
+			Cursor string
+			Node   struct {
 				Mrn  string
 				Name string
 			}
 		}
-	}
+		PageInfo struct {
+			StartCursor string
+			EndCursor   string
+			HasNextPage bool
+		}
+	} `graphql:"spacesList(after: $after)"`
 }
 
-func (o orgPayload) Spaces() (mrns []string) {
+func (o orgPayload) Spaces(ctx context.Context, c *ExtendedGqlClient) ([]string, error) {
+	mrns := []string{}
 	for _, node := range o.SpacesList.Edges {
 		mrns = append(mrns, node.Node.Mrn)
 	}
-	return
+
+	if o.SpacesList.PageInfo.HasNextPage {
+		payload, err := c.GetOrganizationWithCursor(ctx, o.Mrn, o.SpacesList.PageInfo.StartCursor)
+		if err != nil {
+			return mrns, err
+		}
+		next, err := payload.Spaces(ctx, c)
+		if err != nil {
+			return mrns, err
+		}
+		mrns = append(mrns, next...)
+	}
+
+	return mrns, nil
 }
 
 func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayload, error) {
@@ -150,7 +171,8 @@ func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayl
 		Space spacePayload `graphql:"space(mrn: $mrn)"`
 	}
 	variables := map[string]interface{}{
-		"mrn": mondoov1.String(mrn),
+		"mrn":   mondoov1.String(mrn),
+		"after": mondoov1.String(""),
 	}
 
 	err := c.Query(ctx, &q, variables)
@@ -212,13 +234,21 @@ func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn strin
 }
 
 func (c *ExtendedGqlClient) GetOrganization(ctx context.Context, mrn string) (orgPayload, error) {
+	return c.GetOrganizationWithCursor(ctx, mrn, "")
+}
+
+func (c *ExtendedGqlClient) GetOrganizationWithCursor(ctx context.Context, mrn, cursor string) (orgPayload, error) {
 	var q struct {
 		Organization orgPayload `graphql:"organization(mrn: $mrn)"`
 	}
 	variables := map[string]interface{}{
-		"mrn": mondoov1.String(mrn),
+		"mrn":   mondoov1.String(mrn),
+		"after": mondoov1.String(cursor),
 	}
 
+	tflog.Trace(ctx, "GetOrganization", map[string]interface{}{
+		"variables": fmt.Sprintf("%+v", variables),
+	})
 	err := c.Query(ctx, &q, variables)
 	if err != nil {
 		return orgPayload{}, err
