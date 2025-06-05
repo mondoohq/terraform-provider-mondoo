@@ -66,7 +66,11 @@ func createSpace() error {
 	}
 	extendedC := ExtendedGqlClient{client, ""}
 
-	payload, err := extendedC.CreateSpace(context.Background(), orgID, "", "acceptance-test")
+	input := mondoov1.CreateSpaceInput{
+		Name:   mondoov1.String("acceptance-test"),
+		OrgMrn: mondoov1.String(orgPrefix + orgID),
+	}
+	payload, err := extendedC.CreateSpace(context.Background(), input)
 	if err != nil {
 		return err
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -34,10 +35,11 @@ type SpaceResource struct {
 
 // ProjectResourceModel describes the resource data model.
 type ProjectResourceModel struct {
-	SpaceID  types.String `tfsdk:"id"`
-	Name     types.String `tfsdk:"name"`
-	OrgID    types.String `tfsdk:"org_id"`
-	SpaceMrn types.String `tfsdk:"mrn"`
+	SpaceID     types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	OrgID       types.String `tfsdk:"org_id"`
+	SpaceMrn    types.String `tfsdk:"mrn"`
 }
 
 func (r *SpaceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -59,6 +61,10 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						"must contain 2 to 30 characters, where each character can be a letter (uppercase or lowercase), a space, a dash, an underscore, or a digit",
 					),
 				},
+			},
+			"description": schema.StringAttribute{
+				MarkdownDescription: "Description of the space.",
+				Optional:            true,
 			},
 			"id": schema.StringAttribute{
 				MarkdownDescription: "ID of the space. Must be globally unique. If the provider has a space configured and this field is empty, the provider space is used.",
@@ -124,19 +130,25 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 
 	// Compute and validate the space
+	var spaceID *mondoov1.String
 	space, err := r.client.ComputeSpace(data.SpaceID)
 	if err != nil {
-		// we do not fail if there the user doesn't specify an id
+		// we do not fail if the user doesn't specify an id
 		// because we are creating one, still log the error
 		tflog.Debug(ctx, err.Error())
+	} else {
+		spaceID = mondoov1.NewStringPtr(mondoov1.String(space.ID()))
+	}
+
+	createInput := mondoov1.CreateSpaceInput{
+		Name:        mondoov1.String(data.Name.ValueString()),
+		Description: mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
+		Id:          spaceID,
+		OrgMrn:      mondoov1.String(orgPrefix + data.OrgID.ValueString()),
 	}
 
 	// Do GraphQL request to API to create the resource.
-	payload, err := r.client.CreateSpace(ctx,
-		data.OrgID.ValueString(),
-		space.ID(),
-		data.Name.ValueString(),
-	)
+	payload, err := r.client.CreateSpace(ctx, createInput)
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
@@ -147,6 +159,7 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	// Save space mrn into the Terraform state.
 	data.Name = types.StringValue(string(payload.Name))
+	data.Description = types.StringValue(string(payload.Description))
 
 	id, ok := payload.Id.(string)
 	if ok {
@@ -212,7 +225,7 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	// Do GraphQL request to API to update the resource.
 	tflog.Debug(ctx, "Updating space")
-	err = r.client.UpdateSpace(ctx, planSpaceID, data.Name.ValueString())
+	err = r.client.UpdateSpace(ctx, planSpaceID, data.Name.ValueString(), data.Description.ValueString())
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error", fmt.Sprintf("Unable to update space. Got error: %s", err))
@@ -256,10 +269,11 @@ func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStat
 	}
 
 	model := ProjectResourceModel{
-		SpaceID:  types.StringValue(spacePayload.Id),
-		SpaceMrn: types.StringValue(spacePayload.Mrn),
-		Name:     types.StringValue(spacePayload.Name),
-		OrgID:    types.StringValue(spacePayload.Organization.Id),
+		SpaceID:     types.StringValue(spacePayload.Id),
+		SpaceMrn:    types.StringValue(spacePayload.Mrn),
+		Name:        types.StringValue(spacePayload.Name),
+		Description: types.StringValue(spacePayload.Description),
+		OrgID:       types.StringValue(spacePayload.Organization.Id),
 	}
 
 	resp.State.Set(ctx, &model)
