@@ -276,7 +276,7 @@ func (c *ExtendedGqlClient) SetCustomPolicy(ctx context.Context, scopeMrn string
 	}
 
 	setCustomPolicyInput := mondoov1.SetCustomPolicyInput{
-		SpaceMrn:  mondoov1.NewStringPtr(mondoov1.String(scopeMrn)),
+		ScopeMrn:  mondoov1.NewStringPtr(mondoov1.String(scopeMrn)),
 		Overwrite: overwrite,
 		Dataurl:   mondoov1.String(newDataUrl(policyBundleData)),
 	}
