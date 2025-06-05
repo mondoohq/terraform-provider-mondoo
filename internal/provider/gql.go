@@ -52,47 +52,39 @@ func newDataUrl(content []byte) string {
 }
 
 type createSpacePayload struct {
-	Id   mondoov1.ID
-	Mrn  mondoov1.String
-	Name mondoov1.String
+	Id          mondoov1.ID
+	Mrn         mondoov1.String
+	Name        mondoov1.String
+	Description mondoov1.String
 }
 
-func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, orgID string, id string, name string) (createSpacePayload, error) {
+func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, input mondoov1.CreateSpaceInput) (createSpacePayload, error) {
 	var createMutation struct {
 		CreateSpace createSpacePayload `graphql:"createSpace(input: $input)"`
 	}
 
-	var spaceID *mondoov1.String
-	if id != "" {
-		spaceID = mondoov1.NewStringPtr(mondoov1.String(id))
-	}
-
-	createInput := mondoov1.CreateSpaceInput{
-		Name:   mondoov1.String(name),
-		Id:     spaceID,
-		OrgMrn: mondoov1.String(orgPrefix + orgID),
-	}
-
 	tflog.Trace(ctx, "CreateSpaceInput", map[string]interface{}{
-		"input": fmt.Sprintf("%+v", createInput),
+		"input": fmt.Sprintf("%+v", input),
 	})
 
-	err := c.Mutate(ctx, &createMutation, createInput, nil)
+	err := c.Mutate(ctx, &createMutation, input, nil)
 	return createMutation.CreateSpace, err
 }
 
-func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID string, name string) error {
+func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, description string) error {
 	var updateMutation struct {
 		UpdateSpace struct {
 			Space struct {
-				Mrn  mondoov1.String
-				Name mondoov1.String
+				Mrn         mondoov1.String
+				Name        mondoov1.String
+				Description mondoov1.String
 			}
 		} `graphql:"updateSpace(input: $input)"`
 	}
 	updateInput := mondoov1.UpdateSpaceInput{
-		Mrn:  mondoov1.String(spacePrefix + spaceID),
-		Name: mondoov1.String(name),
+		Mrn:         mondoov1.String(spacePrefix + spaceID),
+		Name:        mondoov1.String(name),
+		Description: mondoov1.NewStringPtr(mondoov1.String(description)),
 	}
 	tflog.Trace(ctx, "UpdateSpaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
@@ -119,6 +111,7 @@ type spacePayload struct {
 	Id           string
 	Mrn          string
 	Name         string
+	Description  string
 	Organization orgPayload
 }
 

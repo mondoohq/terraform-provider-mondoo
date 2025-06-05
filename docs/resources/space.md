@@ -21,7 +21,8 @@ variable "org_id" {
 provider "mondoo" {}
 
 resource "mondoo_space" "my_space" {
-  name = "My New Space"
+  name        = "My New Space"
+  description = "A space used to secure my environment"
   # optional id otherwise it will be auto-generated
   # id = "your-space-id"
   org_id = var.org_id
@@ -37,6 +38,7 @@ resource "mondoo_space" "my_space" {
 
 ### Optional
 
+- `description` (String) Description of the space.
 - `id` (String) ID of the space. Must be globally unique. If the provider has a space configured and this field is empty, the provider space is used.
 - `name` (String) Name of the space.
 
