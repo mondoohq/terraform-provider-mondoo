@@ -175,7 +175,7 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	scopeMrn := "//platform.api.mondoo.app"
+	scopeMrn := "//policy.api.mondoo.app"
 	if !data.ScopeMrn.IsNull() {
 		scopeMrn = data.ScopeMrn.ValueString()
 	} else if space, err := r.client.ComputeSpace(data.SpaceID); err == nil {
