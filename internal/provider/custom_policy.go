@@ -175,18 +175,12 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	var scopeMrn string
+	scopeMrn := "//platform.api.mondoo.app"
 	if !data.ScopeMrn.IsNull() {
 		scopeMrn = data.ScopeMrn.ValueString()
-	} else {
+	} else if space, err := r.client.ComputeSpace(data.SpaceID); err == nil {
 		// Compute and validate the space
-		space, err := r.client.ComputeSpace(data.SpaceID)
-		if err != nil {
-			resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-			return
-		} else {
-			scopeMrn = space.MRN()
-		}
+		scopeMrn = space.MRN()
 	}
 
 	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
