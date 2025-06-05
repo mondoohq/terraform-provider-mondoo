@@ -69,7 +69,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^[a-z\d]([\d-_]|[a-z]){4,48}[a-z\d]$`),
+						regexp.MustCompile(`^[a-z\d]([\d-_]|[a-z]){2,48}[a-z\d]$`),
 						"must contain 4 to 50 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
 					),
 				},
