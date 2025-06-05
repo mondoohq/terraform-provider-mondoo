@@ -159,7 +159,6 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	// Save space mrn into the Terraform state.
 	data.Name = types.StringValue(string(payload.Name))
-	data.Description = types.StringValue(string(payload.Description))
 
 	id, ok := payload.Id.(string)
 	if ok {
@@ -269,11 +268,14 @@ func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStat
 	}
 
 	model := ProjectResourceModel{
-		SpaceID:     types.StringValue(spacePayload.Id),
-		SpaceMrn:    types.StringValue(spacePayload.Mrn),
-		Name:        types.StringValue(spacePayload.Name),
-		Description: types.StringValue(spacePayload.Description),
-		OrgID:       types.StringValue(spacePayload.Organization.Id),
+		SpaceID:  types.StringValue(spacePayload.Id),
+		SpaceMrn: types.StringValue(spacePayload.Mrn),
+		Name:     types.StringValue(spacePayload.Name),
+		OrgID:    types.StringValue(spacePayload.Organization.Id),
+	}
+
+	if spacePayload.Description != "" {
+		model.Description = types.StringValue(spacePayload.Description)
 	}
 
 	resp.State.Set(ctx, &model)
