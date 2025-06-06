@@ -722,16 +722,15 @@ type EmailRecipient struct {
 	ReferenceURL string
 }
 
-type MicrosoftDefenderConfigurationOptionsInput struct {
+type MicrosoftDefenderConfigurationOptions struct {
 	TenantId               string
 	ClientId               string
 	SubscriptionsAllowlist []string
 	SubscriptionsDenylist  []string
 }
-type CrowdstrikeFalconConfigurationOptionsInput struct {
-	ClientId  string
-	Cloud     string
-	MemberCID string
+type CrowdstrikeFalconConfigurationOptions struct {
+	ClientId string
+	Cloud    string
 }
 type SentinelOneConfigurationOptions struct {
 	Host    string
