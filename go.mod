@@ -8,11 +8,11 @@ require (
 	github.com/hashicorp/terraform-plugin-docs v0.21.0
 	github.com/hashicorp/terraform-plugin-framework v1.15.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.18.0
-	github.com/hashicorp/terraform-plugin-go v0.27.0
+	github.com/hashicorp/terraform-plugin-go v0.28.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.13.1
 	github.com/stretchr/testify v1.10.0
-	go.mondoo.com/cnquery/v11 v11.56.0
+	go.mondoo.com/cnquery/v11 v11.57.2
 	go.mondoo.com/mondoo-go v0.0.0-20250522185717-94d957f2e271
 	gopkg.in/yaml.v2 v2.4.0
 )
