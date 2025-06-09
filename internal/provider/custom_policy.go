@@ -165,6 +165,17 @@ func (r *customPolicyResource) getContent(data customPolicyResourceModel) ([]byt
 	return policyBundleData, newCrc32Checksum(policyBundleData), nil
 }
 
+func (r *customPolicyResource) getScope(data *customPolicyResourceModel) string {
+	scopeMrn := "//platform.api.mondoo.app"
+	if !data.ScopeMrn.IsNull() {
+		scopeMrn = data.ScopeMrn.ValueString()
+	} else if space, err := r.client.ComputeSpace(data.SpaceID); err == nil {
+		// Compute and validate the space
+		scopeMrn = space.MRN()
+	}
+	return scopeMrn
+}
+
 func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data customPolicyResourceModel
 
@@ -175,14 +186,7 @@ func (r *customPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	scopeMrn := "//policy.api.mondoo.app"
-	if !data.ScopeMrn.IsNull() {
-		scopeMrn = data.ScopeMrn.ValueString()
-	} else if space, err := r.client.ComputeSpace(data.SpaceID); err == nil {
-		// Compute and validate the space
-		scopeMrn = space.MRN()
-	}
-
+	scopeMrn := r.getScope(&data)
 	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource
@@ -265,16 +269,8 @@ func (r *customPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	var scopeMrn string
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
-	} else {
-		scopeMrn = space.MRN()
-	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	scopeMrn := r.getScope(&data)
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	//  check if the local content has changed, if so, update the policy
 	policyBundleData, checksum, err := r.getContent(data)
