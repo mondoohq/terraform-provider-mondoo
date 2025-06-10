@@ -81,7 +81,7 @@ func (f Field) ConfigurationOption(name string) string {
 	return "\"unimplemented: check gen/gen.go\""
 }
 
-// Check if a field name indicates it contains sensitive data
+// Check if a field name indicates it contains sensitive data.
 func isSensitiveField(fieldName string) bool {
 	lowerFieldName := strings.ToLower(fieldName)
 	sensitivePatterns := []string{
