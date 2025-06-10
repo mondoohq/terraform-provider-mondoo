@@ -275,3 +275,8 @@ func (r *integrationOktaResource) ImportState(ctx context.Context, req resource.
 
 	resp.State.Set(ctx, &model)
 }
+
+// Okta options for import state
+type OktaConfigurationOptions struct {
+	Organization string `json:"organization" graphql:"oktaOrganization: organization"`
+}

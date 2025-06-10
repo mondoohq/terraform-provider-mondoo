@@ -286,7 +286,7 @@ func (r *integrationAzureDevopsResource) ImportState(ctx context.Context, req re
 		// AzureDevops options
 		AutoCloseTickets:   types.BoolValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.AutoCloseTickets),
 		AutoCreateTickets:  types.BoolValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.AutoCreateTickets),
-		ClientSecret:       types.StringPointerValue(nil),
+		ClientSecret:       types.StringValue(""),
 		DefaultProjectName: types.StringPointerValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.DefaultProjectName),
 		OrganizationUrl:    types.StringValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.OrganizationUrl),
 		ServicePrincipalId: types.StringValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.ServicePrincipalId),
@@ -294,4 +294,14 @@ func (r *integrationAzureDevopsResource) ImportState(ctx context.Context, req re
 	}
 
 	resp.State.Set(ctx, &model)
+}
+
+// AzureDevops options for import state
+type AzureDevopsConfigurationOptions struct {
+	AutoCloseTickets   bool    `json:"auto_close_tickets"`
+	AutoCreateTickets  bool    `json:"auto_create_tickets"`
+	DefaultProjectName *string `json:"default_project_name"`
+	OrganizationUrl    string  `json:"organization_url"`
+	ServicePrincipalId string  `json:"service_principal_id"`
+	TenantId           string  `json:"tenant_id"`
 }

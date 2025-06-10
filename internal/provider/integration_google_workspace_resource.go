@@ -282,3 +282,9 @@ func (r *integrationGoogleWorkspaceResource) ImportState(ctx context.Context, re
 
 	resp.State.Set(ctx, &model)
 }
+
+// GoogleWorkspace options for import state
+type GoogleWorkspaceConfigurationOptions struct {
+	CustomerId            string `json:"customer_id"`
+	ImpersonatedUserEmail string `json:"impersonated_user_email"`
+}

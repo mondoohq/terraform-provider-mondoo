@@ -616,7 +616,7 @@ type SlackConfigurationOptions struct {
 type GithubConfigurationOptions struct {
 	Owner          string
 	Repository     string
-	Organization   string
+	Organization   string `graphql:"githubOrganization: organization"`
 	ReposAllowList []string
 	ReposDenyList  []string
 }
@@ -698,24 +698,6 @@ type CrowdstrikeFalconConfigurationOptions struct {
 type SentinelOneConfigurationOptions struct {
 	Host    string
 	Account string
-}
-
-type OktaConfigurationOptions struct {
-	Organization string
-}
-
-type AzureDevopsConfigurationOptions struct {
-	AutoCloseTickets   bool
-	AutoCreateTickets  bool
-	DefaultProjectName *string
-	OrganizationUrl    string
-	ServicePrincipalId string
-	TenantId           string
-}
-
-type GoogleWorkspaceConfigurationOptions struct {
-	CustomerId            string
-	ImpersonatedUserEmail string
 }
 
 type Integration struct {
