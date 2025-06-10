@@ -270,14 +270,8 @@ func (r *integrationOktaResource) ImportState(ctx context.Context, req resource.
 		SpaceID: types.StringValue(integration.SpaceID()),
 		// Okta options
 		Organization: types.StringValue(integration.ConfigurationOptions.OktaConfigurationOptions.Organization),
-		Token:        types.StringPointerValue(integration.ConfigurationOptions.OktaConfigurationOptions.Token),
+		Token:        types.StringPointerValue(nil),
 	}
 
 	resp.State.Set(ctx, &model)
-}
-
-// Okta options for import state
-type OktaConfigurationOptions struct {
-	Organization string  `json:"organization"`
-	Token        *string `json:"token"`
 }

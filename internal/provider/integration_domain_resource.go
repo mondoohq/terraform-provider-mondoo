@@ -75,12 +75,12 @@ func (v OneRequiredValidator) ValidateBool(ctx context.Context, req validator.Bo
 
 // Description returns a plain-text description of the validator's purpose.
 func (v OneRequiredValidator) Description(ctx context.Context) string {
-	return "Ensures that at only one of 'http' or 'https' is set to true."
+	return "Ensures that only one of 'http' or 'https' is set to true."
 }
 
 // MarkdownDescription returns a markdown-formatted description of the validator's purpose.
 func (v OneRequiredValidator) MarkdownDescription(ctx context.Context) string {
-	return "Ensures that at only one of `http` or `https` is set to `true`."
+	return "Ensures that only one of `http` or `https` is set to `true`."
 }
 
 // NewOneRequiredValidator is a convenience function to create an instance of the validator.
@@ -233,6 +233,8 @@ func (r *integrationDomainResource) Read(ctx context.Context, req resource.ReadR
 
 	// Read API call logic
 	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+	fmt.Println("Read integration domain mrn:", data.Mrn.ValueString())
+	fmt.Println("Read Error:", err)
 	if err != nil {
 		resp.State.RemoveResource(ctx)
 		return
@@ -245,6 +247,8 @@ func (r *integrationDomainResource) Read(ctx context.Context, req resource.ReadR
 		Https:   types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTPS),
 		Http:    types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTP),
 	}
+
+	fmt.Println("Read integration domain resource:", model)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)

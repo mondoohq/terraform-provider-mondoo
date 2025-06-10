@@ -689,13 +689,33 @@ type MicrosoftDefenderConfigurationOptions struct {
 	SubscriptionsAllowlist []string
 	SubscriptionsDenylist  []string
 }
+
 type CrowdstrikeFalconConfigurationOptions struct {
 	ClientId string
 	Cloud    string
 }
+
 type SentinelOneConfigurationOptions struct {
 	Host    string
 	Account string
+}
+
+type OktaConfigurationOptions struct {
+	Organization string
+}
+
+type AzureDevopsConfigurationOptions struct {
+	AutoCloseTickets   bool
+	AutoCreateTickets  bool
+	DefaultProjectName *string
+	OrganizationUrl    string
+	ServicePrincipalId string
+	TenantId           string
+}
+
+type GoogleWorkspaceConfigurationOptions struct {
+	CustomerId            string
+	ImpersonatedUserEmail string
 }
 
 type Integration struct {

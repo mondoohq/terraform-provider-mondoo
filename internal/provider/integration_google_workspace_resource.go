@@ -277,15 +277,8 @@ func (r *integrationGoogleWorkspaceResource) ImportState(ctx context.Context, re
 		// GoogleWorkspace options
 		CustomerId:            types.StringValue(integration.ConfigurationOptions.GoogleWorkspaceConfigurationOptions.CustomerId),
 		ImpersonatedUserEmail: types.StringValue(integration.ConfigurationOptions.GoogleWorkspaceConfigurationOptions.ImpersonatedUserEmail),
-		ServiceAccount:        types.StringPointerValue(integration.ConfigurationOptions.GoogleWorkspaceConfigurationOptions.ServiceAccount),
+		ServiceAccount:        types.StringPointerValue(nil),
 	}
 
 	resp.State.Set(ctx, &model)
-}
-
-// GoogleWorkspace options for import state
-type GoogleWorkspaceConfigurationOptions struct {
-	CustomerId            string  `json:"customer_id"`
-	ImpersonatedUserEmail string  `json:"impersonated_user_email"`
-	ServiceAccount        *string `json:"service_account"`
 }
