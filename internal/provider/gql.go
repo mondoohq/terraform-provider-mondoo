@@ -56,6 +56,7 @@ type createSpacePayload struct {
 	Mrn         mondoov1.String
 	Name        mondoov1.String
 	Description mondoov1.String
+	Settings    *MondooSpaceSettingsInput
 }
 
 func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, input mondoov1.CreateSpaceInput) (createSpacePayload, error) {
@@ -71,13 +72,14 @@ func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, input mondoov1.Crea
 	return createMutation.CreateSpace, err
 }
 
-func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, description string) error {
+func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, description string, settings *mondoov1.SpaceSettingsInput) error {
 	var updateMutation struct {
 		UpdateSpace struct {
 			Space struct {
 				Mrn         mondoov1.String
 				Name        mondoov1.String
 				Description mondoov1.String
+				Settings    *MondooSpaceSettingsInput
 			}
 		} `graphql:"updateSpace(input: $input)"`
 	}
@@ -85,6 +87,10 @@ func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, desc
 		Mrn:         mondoov1.String(spacePrefix + spaceID),
 		Name:        mondoov1.String(name),
 		Description: mondoov1.NewStringPtr(mondoov1.String(description)),
+	}
+
+	if settings != nil {
+		updateInput.Settings = settings
 	}
 	tflog.Trace(ctx, "UpdateSpaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
@@ -113,6 +119,17 @@ type spacePayload struct {
 	Name         string
 	Description  string
 	Organization orgPayload
+	Settings     *MondooSpaceSettingsInput
+}
+
+type MondooSpaceSettingsInput struct {
+	TerminatedAssetsConfiguration      *mondoov1.TerminatedAssetsConfigurationInput      `graphql:"terminatedAssetsConfiguration"`
+	UnusedServiceAccountsConfiguration *mondoov1.UnusedServiceAccountsConfigurationInput `graphql:"unusedServiceAccountsConfiguration"`
+	GarbageCollectAssetsConfiguration  *mondoov1.GarbageCollectAssetsConfigurationInput  `graphql:"garbageCollectAssetsConfiguration"`
+	PlatformVulnerabilityConfiguration *mondoov1.PlatformVulnerabilityConfigurationInput `graphql:"platformVulnerabilityConfiguration"`
+	EolAssetsConfiguration             *mondoov1.EolAssetsConfigurationInput             `graphql:"eolAssetsConfiguration"`
+	CasesConfiguration                 *mondoov1.CasesConfigurationInput                 `graphql:"casesConfiguration"`
+	MvdV2ScanningConfiguration         *mondoov1.MvdV2ScanningConfigurationInput         `graphql:"mvdV2ScanningConfiguration"`
 }
 
 type orgPayload struct {
