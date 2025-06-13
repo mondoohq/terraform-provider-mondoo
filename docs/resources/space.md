@@ -26,6 +26,31 @@ resource "mondoo_space" "my_space" {
   # optional id otherwise it will be auto-generated
   # id = "your-space-id"
   org_id = var.org_id
+
+  # All space settings are optional
+  space_settings = {
+    terminated_assets_configuration = {
+      cleanup = true
+    }
+    unused_service_accounts_configuration = {
+      cleanup = true
+    }
+    garbage_collect_assets_configuration = {
+      enabled    = true
+      after_days = 30
+    }
+    platform_vulnerability_configuration = {
+      enabled = true
+    }
+    eol_assets_configuration = {
+      enabled           = true
+      months_in_advance = 6
+    }
+    cases_configuration = {
+      auto_create        = false
+      aggregation_window = 0
+    }
+  }
 }
 ```
 
@@ -41,10 +66,73 @@ resource "mondoo_space" "my_space" {
 - `description` (String) Description of the space.
 - `id` (String) ID of the space. Must be globally unique. If the provider has a space configured and this field is empty, the provider space is used.
 - `name` (String) Name of the space.
+- `space_settings` (Attributes) Space settings. (see [below for nested schema](#nestedatt--space_settings))
 
 ### Read-Only
 
 - `mrn` (String) Mrn of the space.
+
+<a id="nestedatt--space_settings"></a>
+### Nested Schema for `space_settings`
+
+Optional:
+
+- `cases_configuration` (Attributes) Cases configuration for the space. (see [below for nested schema](#nestedatt--space_settings--cases_configuration))
+- `eol_assets_configuration` (Attributes) EOL platform configuration for the space. (see [below for nested schema](#nestedatt--space_settings--eol_assets_configuration))
+- `garbage_collect_assets_configuration` (Attributes) Garbage collect assets configuration for the space. (see [below for nested schema](#nestedatt--space_settings--garbage_collect_assets_configuration))
+- `platform_vulnerability_configuration` (Attributes) Platform vulnerability configuration for the space. (see [below for nested schema](#nestedatt--space_settings--platform_vulnerability_configuration))
+- `terminated_assets_configuration` (Attributes) Terminated assets configuration for the space. (see [below for nested schema](#nestedatt--space_settings--terminated_assets_configuration))
+- `unused_service_accounts_configuration` (Attributes) Unused service accounts configuration for the space. (see [below for nested schema](#nestedatt--space_settings--unused_service_accounts_configuration))
+
+<a id="nestedatt--space_settings--cases_configuration"></a>
+### Nested Schema for `space_settings.cases_configuration`
+
+Optional:
+
+- `aggregation_window` (Number) Aggregate findings for the same asset within this window. The value is specified in hours. 0 means no aggregation.
+- `auto_create` (Boolean) Whether to enable auto-create cases on drift.
+
+
+<a id="nestedatt--space_settings--eol_assets_configuration"></a>
+### Nested Schema for `space_settings.eol_assets_configuration`
+
+Optional:
+
+- `enabled` (Boolean) Whether to enable EOL assets analysis.
+- `months_in_advance` (Number) How many months in advance should EOL be applied as risk factor.
+
+
+<a id="nestedatt--space_settings--garbage_collect_assets_configuration"></a>
+### Nested Schema for `space_settings.garbage_collect_assets_configuration`
+
+Optional:
+
+- `after_days` (Number) After how many days to garbage collect.
+- `enabled` (Boolean) Whether to enable garbage collection.
+
+
+<a id="nestedatt--space_settings--platform_vulnerability_configuration"></a>
+### Nested Schema for `space_settings.platform_vulnerability_configuration`
+
+Required:
+
+- `enabled` (Boolean) Whether to enable platform vulnerability analysis.
+
+
+<a id="nestedatt--space_settings--terminated_assets_configuration"></a>
+### Nested Schema for `space_settings.terminated_assets_configuration`
+
+Required:
+
+- `cleanup` (Boolean) Whether to cleanup terminated assets.
+
+
+<a id="nestedatt--space_settings--unused_service_accounts_configuration"></a>
+### Nested Schema for `space_settings.unused_service_accounts_configuration`
+
+Required:
+
+- `cleanup` (Boolean) Whether to cleanup unused service accounts.
 
 ## Import
 
