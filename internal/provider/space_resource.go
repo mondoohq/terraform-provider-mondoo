@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -37,12 +39,12 @@ type SpaceResource struct {
 
 // SpaceModel describes the resource data model.
 type SpaceModel struct {
-	SpaceID       types.String        `tfsdk:"id"`
-	Name          types.String        `tfsdk:"name"`
-	Description   types.String        `tfsdk:"description"`
-	OrgID         types.String        `tfsdk:"org_id"`
-	SpaceMrn      types.String        `tfsdk:"mrn"`
-	SpaceSettings *SpaceSettingsInput `tfsdk:"space_settings"`
+	SpaceID       types.String `tfsdk:"id"`
+	Name          types.String `tfsdk:"name"`
+	Description   types.String `tfsdk:"description"`
+	OrgID         types.String `tfsdk:"org_id"`
+	SpaceMrn      types.String `tfsdk:"mrn"`
+	SpaceSettings types.Object `tfsdk:"space_settings"`
 }
 
 type SpaceSettingsInput struct {
@@ -88,6 +90,37 @@ type MvdV2ScanningConfiguration struct {
 
 func (r *SpaceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_space"
+}
+
+func SpaceSettingsInputAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"terminated_assets_configuration":       types.ObjectType{AttrTypes: map[string]attr.Type{"cleanup": types.BoolType}},
+		"unused_service_accounts_configuration": types.ObjectType{AttrTypes: map[string]attr.Type{"cleanup": types.BoolType}},
+		"garbage_collect_assets_configuration":  types.ObjectType{AttrTypes: map[string]attr.Type{"enabled": types.BoolType, "after_days": types.Int32Type}},
+		"platform_vulnerability_configuration":  types.ObjectType{AttrTypes: map[string]attr.Type{"enabled": types.BoolType}},
+		"eol_assets_configuration":              types.ObjectType{AttrTypes: map[string]attr.Type{"enabled": types.BoolType, "months_in_advance": types.Int32Type}},
+		"cases_configuration":                   types.ObjectType{AttrTypes: map[string]attr.Type{"auto_create": types.BoolType, "aggregation_window": types.Int32Type}},
+		// "mvd_v2_scanning_configuration":         types.ObjectType{AttrTypes: map[string]attr.Type{"disabled_ecosystems": types.ListType{ElemType: types.StringType}}},
+	}
+}
+
+func SpaceSettingsInputToObject(ctx context.Context, input *SpaceSettingsInput) (types.Object, diag.Diagnostics) {
+	if input == nil {
+		return types.ObjectNull(SpaceSettingsInputAttrTypes()), nil
+	}
+	return types.ObjectValueFrom(ctx, SpaceSettingsInputAttrTypes(), input)
+}
+
+func ObjectToSpaceSettingsInput(ctx context.Context, obj types.Object) (*SpaceSettingsInput, diag.Diagnostics) {
+	if obj.IsNull() || obj.IsUnknown() {
+		return nil, nil
+	}
+	var result SpaceSettingsInput
+	diags := obj.As(ctx, &result, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &result, nil
 }
 
 func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -246,7 +279,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 					},
 					// This setting is currently not working properly
 					// "mvd_v2_scanning_configuration": schema.SingleNestedAttribute{
-					// Optional: true,
+					// Optional:            true,
 					// Computed:            true,
 					// MarkdownDescription: "MVD v2 scanning configuration.",
 					// PlanModifiers: []planmodifier.Object{
@@ -257,7 +290,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 					// ElementType:         types.StringType,
 					// MarkdownDescription: "List of disabled ecosystems.",
 					// Optional:            true,
-					// // Computed: true,
+					// Computed:            true,
 					// PlanModifiers: []planmodifier.List{
 					// listplanmodifier.UseStateForUnknown(),
 					// },
@@ -309,12 +342,18 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 		spaceID = mondoov1.NewStringPtr(mondoov1.String(space.ID()))
 	}
 
+	spaceSettings, diags := ObjectToSpaceSettingsInput(ctx, data.SpaceSettings)
+	if diags.HasError() {
+		resp.Diagnostics = append(resp.Diagnostics, diags...)
+		return
+	}
+
 	createInput := mondoov1.CreateSpaceInput{
 		Name:        mondoov1.String(data.Name.ValueString()),
 		Description: mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
 		Id:          spaceID,
 		OrgMrn:      mondoov1.String(orgPrefix + data.OrgID.ValueString()),
-		Settings:    ExpandSpaceSettings(data.SpaceSettings),
+		Settings:    ExpandSpaceSettings(spaceSettings),
 	}
 
 	// Do GraphQL request to API to create the resource.
@@ -342,6 +381,12 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 	// Write logs using the tflog package
 	tflog.Debug(ctx, "Created a space resource")
 
+	data.SpaceSettings, diags = SpaceSettingsInputToObject(ctx, FlattenSpaceSettingsInput(payload.Settings))
+	if diags.HasError() {
+		resp.Diagnostics = append(resp.Diagnostics, diags...)
+		return
+	}
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -365,12 +410,18 @@ func (r *SpaceResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
+	spaceSettings, diags := SpaceSettingsInputToObject(ctx, FlattenSpaceSettingsInput(spacePayload.Settings))
+	if diags.HasError() {
+		resp.Diagnostics = append(resp.Diagnostics, diags...)
+		return
+	}
+
 	model := SpaceModel{
 		SpaceID:       types.StringValue(spacePayload.Id),
 		SpaceMrn:      types.StringValue(spacePayload.Mrn),
 		Name:          types.StringValue(spacePayload.Name),
 		OrgID:         types.StringValue(spacePayload.Organization.Id),
-		SpaceSettings: FlattenSpaceSettingsInput(spacePayload.Settings),
+		SpaceSettings: spaceSettings,
 	}
 
 	if spacePayload.Description != "" {
@@ -413,13 +464,19 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 	ctx = tflog.SetField(ctx, "space_id_from_plan", planSpaceID)
 
+	spaceSettings, diags := ObjectToSpaceSettingsInput(ctx, data.SpaceSettings)
+	if diags.HasError() {
+		resp.Diagnostics = append(resp.Diagnostics, diags...)
+		return
+	}
+
 	// Do GraphQL request to API to update the resource.
 	tflog.Debug(ctx, "Updating space")
 	err = r.client.UpdateSpace(ctx,
 		planSpaceID,
 		data.Name.ValueString(),
 		data.Description.ValueString(),
-		ExpandSpaceSettings(data.SpaceSettings),
+		ExpandSpaceSettings(spaceSettings),
 	)
 	if err != nil {
 		resp.Diagnostics.
@@ -463,12 +520,18 @@ func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStat
 		return
 	}
 
+	spaceSettings, diags := SpaceSettingsInputToObject(ctx, FlattenSpaceSettingsInput(spacePayload.Settings))
+	if diags.HasError() {
+		resp.Diagnostics = append(resp.Diagnostics, diags...)
+		return
+	}
+
 	model := SpaceModel{
 		SpaceID:       types.StringValue(spacePayload.Id),
 		SpaceMrn:      types.StringValue(spacePayload.Mrn),
 		Name:          types.StringValue(spacePayload.Name),
 		OrgID:         types.StringValue(spacePayload.Organization.Id),
-		SpaceSettings: FlattenSpaceSettingsInput(spacePayload.Settings),
+		SpaceSettings: spaceSettings,
 	}
 
 	if spacePayload.Description != "" {
@@ -614,7 +677,7 @@ func expandMvdV2ScanningConfig(in *MvdV2ScanningConfiguration) *mondoov1.MvdV2Sc
 
 func FlattenSpaceSettingsInput(input *MondooSpaceSettingsInput) *SpaceSettingsInput {
 	if input == nil {
-		return nil
+		return &SpaceSettingsInput{}
 	}
 
 	return &SpaceSettingsInput{
@@ -710,7 +773,7 @@ func flattenCasesConfig(in *mondoov1.CasesConfigurationInput) *CasesConfiguratio
 }
 
 //lint:ignore U1000 will use later
-func _flattenMvdV2ScanningConfig(in *mondoov1.MvdV2ScanningConfigurationInput) *MvdV2ScanningConfiguration {
+func flattenMvdV2ScanningConfig(in *mondoov1.MvdV2ScanningConfigurationInput) *MvdV2ScanningConfiguration {
 	if in == nil || in.DisabledEcosystems == nil {
 		return nil
 	}

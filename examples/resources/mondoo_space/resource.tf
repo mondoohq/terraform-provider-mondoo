@@ -5,12 +5,22 @@ variable "org_id" {
 
 provider "mondoo" {}
 
-resource "mondoo_space" "my_space" {
+resource "mondoo_space" "new_space" {
   name        = "My New Space"
   description = "A space used to secure my environment"
+  org_id      = var.org_id
+
   # optional id otherwise it will be auto-generated
   # id = "your-space-id"
-  org_id = var.org_id
+}
+
+resource "mondoo_space" "custom_space" {
+  name        = "My Custom Space"
+  description = "A space used to secure my environment"
+  org_id      = var.org_id
+
+  # optional id otherwise it will be auto-generated
+  id = "your-space-id"
 
   # All space settings are optional
   space_settings = {
