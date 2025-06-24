@@ -196,7 +196,9 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 		"input": fmt.Sprintf("%+v", createInput),
 	})
 
-	err := c.Mutate(ctx, &createMutation, createInput, nil)
+	err := c.Mutate(ctx, &createMutation, createInput, map[string]interface{}{
+		"after": mondoov1.String(""),
+	})
 	return createMutation.CreateOrganization, err
 }
 
