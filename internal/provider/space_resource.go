@@ -54,7 +54,6 @@ type SpaceSettingsInput struct {
 	PlatformVulnerabilityConfiguration *PlatformVulnerabilityConfiguration `tfsdk:"platform_vulnerability_configuration"`
 	EolAssetsConfiguration             *EolAssetsConfiguration             `tfsdk:"eol_assets_configuration"`
 	CasesConfiguration                 *CasesConfiguration                 `tfsdk:"cases_configuration"`
-	// MvdV2ScanningConfiguration         *MvdV2ScanningConfiguration         `tfsdk:"mvd_v2_scanning_configuration"`
 }
 
 type TerminatedAssetsConfiguration struct {
@@ -84,10 +83,6 @@ type CasesConfiguration struct {
 	AggregationWindow types.Int32 `tfsdk:"aggregation_window"`
 }
 
-type MvdV2ScanningConfiguration struct {
-	DisabledEcosystems types.List `tfsdk:"disabled_ecosystems"`
-}
-
 func (r *SpaceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_space"
 }
@@ -100,7 +95,6 @@ func SpaceSettingsInputAttrTypes() map[string]attr.Type {
 		"platform_vulnerability_configuration":  types.ObjectType{AttrTypes: map[string]attr.Type{"enabled": types.BoolType}},
 		"eol_assets_configuration":              types.ObjectType{AttrTypes: map[string]attr.Type{"enabled": types.BoolType, "months_in_advance": types.Int32Type}},
 		"cases_configuration":                   types.ObjectType{AttrTypes: map[string]attr.Type{"auto_create": types.BoolType, "aggregation_window": types.Int32Type}},
-		// "mvd_v2_scanning_configuration":         types.ObjectType{AttrTypes: map[string]attr.Type{"disabled_ecosystems": types.ListType{ElemType: types.StringType}}},
 	}
 }
 
@@ -277,26 +271,6 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							},
 						},
 					},
-					// This setting is currently not working properly
-					// "mvd_v2_scanning_configuration": schema.SingleNestedAttribute{
-					// Optional:            true,
-					// Computed:            true,
-					// MarkdownDescription: "MVD v2 scanning configuration.",
-					// PlanModifiers: []planmodifier.Object{
-					// objectplanmodifier.UseStateForUnknown(),
-					// },
-					// Attributes: map[string]schema.Attribute{
-					// "disabled_ecosystems": schema.ListAttribute{
-					// ElementType:         types.StringType,
-					// MarkdownDescription: "List of disabled ecosystems.",
-					// Optional:            true,
-					// Computed:            true,
-					// PlanModifiers: []planmodifier.List{
-					// listplanmodifier.UseStateForUnknown(),
-					// },
-					// },
-					// },
-					// },
 				},
 			},
 		},
@@ -553,7 +527,6 @@ func ExpandSpaceSettings(settings *SpaceSettingsInput) *mondoov1.SpaceSettingsIn
 		PlatformVulnerabilityConfiguration: expandPlatformVulnConfig(settings.PlatformVulnerabilityConfiguration),
 		EolAssetsConfiguration:             expandEolAssetsConfig(settings.EolAssetsConfiguration),
 		CasesConfiguration:                 expandCasesConfig(settings.CasesConfiguration),
-		// MvdV2ScanningConfiguration:         expandMvdV2ScanningConfig(settings.MvdV2ScanningConfiguration),
 	}
 }
 
@@ -653,28 +626,6 @@ func expandCasesConfig(cfg *CasesConfiguration) *mondoov1.CasesConfigurationInpu
 	return input
 }
 
-//lint:ignore U1000 will use later
-func expandMvdV2ScanningConfig(in *MvdV2ScanningConfiguration) *mondoov1.MvdV2ScanningConfigurationInput {
-	if in == nil || in.DisabledEcosystems.IsNull() || in.DisabledEcosystems.IsUnknown() {
-		return nil
-	}
-
-	var ecosystemStrings []string
-	diags := in.DisabledEcosystems.ElementsAs(context.Background(), &ecosystemStrings, false)
-	if diags.HasError() {
-		return nil
-	}
-
-	ecosystems := make([]mondoov1.MvdEcosystem, len(ecosystemStrings))
-	for i, e := range ecosystemStrings {
-		ecosystems[i] = mondoov1.MvdEcosystem(e)
-	}
-
-	return &mondoov1.MvdV2ScanningConfigurationInput{
-		DisabledEcosystems: &ecosystems,
-	}
-}
-
 func FlattenSpaceSettingsInput(input *MondooSpaceSettingsInput) *SpaceSettingsInput {
 	if input == nil {
 		return &SpaceSettingsInput{}
@@ -687,7 +638,6 @@ func FlattenSpaceSettingsInput(input *MondooSpaceSettingsInput) *SpaceSettingsIn
 		PlatformVulnerabilityConfiguration: flattenPlatformVulnConfig(input.PlatformVulnerabilityConfiguration),
 		EolAssetsConfiguration:             flattenEolAssetsConfig(input.EolAssetsConfiguration),
 		CasesConfiguration:                 flattenCasesConfig(input.CasesConfiguration),
-		// MvdV2ScanningConfiguration:         flattenMvdV2ScanningConfig(input.MvdV2ScanningConfiguration),
 	}
 }
 
@@ -770,19 +720,4 @@ func flattenCasesConfig(in *mondoov1.CasesConfigurationInput) *CasesConfiguratio
 		out.AggregationWindow = types.Int32Null()
 	}
 	return out
-}
-
-//lint:ignore U1000 will use later
-func flattenMvdV2ScanningConfig(in *mondoov1.MvdV2ScanningConfigurationInput) *MvdV2ScanningConfiguration {
-	if in == nil || in.DisabledEcosystems == nil {
-		return nil
-	}
-	elements := make([]attr.Value, len(*in.DisabledEcosystems))
-	for i, e := range *in.DisabledEcosystems {
-		elements[i] = types.StringValue(string(e))
-	}
-
-	return &MvdV2ScanningConfiguration{
-		DisabledEcosystems: types.ListValueMust(types.StringType, elements),
-	}
 }
