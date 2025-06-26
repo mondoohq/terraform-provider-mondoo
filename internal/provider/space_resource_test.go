@@ -100,3 +100,80 @@ resource "mondoo_space" "test" {
 }
 `, resourceOrgID, id, name)
 }
+
+func TestAccSpaceResourceWithSettings(t *testing.T) {
+	orgID, err := getOrgId()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccSpaceResourceConfigWithSettings(orgID, "one",
+					true, true, true, true, true, true,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_space.test", "name", "one"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "org_id", orgID),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName:      "mondoo_space.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Update and Read testing
+			{
+				Config: testAccSpaceResourceConfigWithSettings(orgID, "two",
+					false, false, false, false, false, false,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_space.test", "name", "two"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccSpaceResourceConfigWithSettings(resourceOrgID string, name string,
+	terminated, unused, garbage, vuln, eol, cases bool,
+) string {
+	return fmt.Sprintf(`
+resource "mondoo_space" "test" {
+  org_id = %[1]q
+  name = %[2]q
+
+  space_settings = {
+    terminated_assets_configuration = {
+      cleanup = %[3]t
+    }
+    unused_service_accounts_configuration = {
+      cleanup = %[4]t
+    }
+    garbage_collect_assets_configuration = {
+      enabled    = %[5]t
+      after_days = 30
+    }
+    platform_vulnerability_configuration = {
+      enabled = %[6]t
+    }
+    eol_assets_configuration = {
+      enabled           = %[7]t
+      months_in_advance = 6
+    }
+    cases_configuration = {
+      auto_create        = %[8]t
+      aggregation_window = 0
+    }
+  }
+}
+`, resourceOrgID, name,
+		terminated, unused, garbage, vuln, eol, cases,
+	)
+}
