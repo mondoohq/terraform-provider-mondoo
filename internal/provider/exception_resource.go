@@ -268,14 +268,6 @@ func (r *exceptionResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	// disable existing exceptions
-	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
-	err = r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
-		return
-	}
-
 	// Create API call logic
 	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
 	err = r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
