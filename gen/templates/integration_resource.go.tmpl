@@ -284,6 +284,14 @@ func (r *integration{{.ResourceClassName}}Resource) ImportState(ctx context.Cont
 // {{.ResourceClassName}} options for import state
 type {{.ResourceClassName}}ConfigurationOptions struct {
 	{{- range $key, $props := .Fields}}
+	{{- if not (isSensitiveField $key)}}
+	{{- if and (eq $.ResourceClassName "Okta") (eq $key "Organization")}}
+	{{$key}} {{$props.GoType}} `json:"{{ toSnakeCase $key }}" graphql:"oktaOrganization: organization"`
+	{{- else if and (eq $.ResourceClassName "Github") (eq $key "Organization")}}
+	{{$key}} {{$props.GoType}} `json:"{{ toSnakeCase $key }}" graphql:"githubOrganization: organization"`
+	{{- else}}
 	{{$key}} {{$props.GoType}} `json:"{{ toSnakeCase $key }}"`
+	{{- end}}
+	{{- end}}
 	{{- end}}
 }
