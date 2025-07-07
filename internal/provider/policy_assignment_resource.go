@@ -115,15 +115,16 @@ func (r *policyAssignmentResource) Create(ctx context.Context, req resource.Crea
 	state := data.State.ValueString()
 	tflog.Debug(ctx, "Creating policy assignment")
 	// default action is active
-	if state == "" || state == "enabled" {
+	switch state {
+	case "", "enabled":
 		action := mondoov1.PolicyActionActive
 		err = r.client.AssignPolicy(ctx, space.MRN(), action, policyMrns)
-	} else if state == "preview" {
+	case "preview":
 		action := mondoov1.PolicyActionIgnore
 		err = r.client.AssignPolicy(ctx, space.MRN(), action, policyMrns)
-	} else if state == "disabled" {
+	case "disabled":
 		err = r.client.UnassignPolicy(ctx, space.MRN(), policyMrns)
-	} else {
+	default:
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
 			"Invalid state "+state+", use one of: enabled, preview, disabled",
@@ -184,15 +185,16 @@ func (r *policyAssignmentResource) Update(ctx context.Context, req resource.Upda
 	state := data.State.ValueString()
 	tflog.Debug(ctx, "Updating policy assignment")
 	// default action is active
-	if state == "" || state == "enabled" {
+	switch state {
+	case "", "enabled":
 		action := mondoov1.PolicyActionActive
 		err = r.client.AssignPolicy(ctx, space.MRN(), action, policyMrns)
-	} else if state == "preview" {
+	case "preview":
 		action := mondoov1.PolicyActionIgnore
 		err = r.client.AssignPolicy(ctx, space.MRN(), action, policyMrns)
-	} else if state == "disabled" {
+	case "disabled":
 		err = r.client.UnassignPolicy(ctx, space.MRN(), policyMrns)
-	} else {
+	default:
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
 			"Invalid state "+state+". Valid states are enabled, preview, and disabled",

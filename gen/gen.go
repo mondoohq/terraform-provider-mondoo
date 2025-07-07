@@ -256,7 +256,7 @@ func renderTemplate(filePath string, tmpl *template.Template, data any) error {
 	if err != nil {
 		return err
 	}
-	defer resourceFile.Close() // done
+	defer resourceFile.Close() //nolint:errcheck
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
