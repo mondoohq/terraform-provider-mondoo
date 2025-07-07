@@ -125,12 +125,13 @@ func (r *queryPackAssignmentResource) Create(ctx context.Context, req resource.C
 	state := data.State.ValueString()
 	tflog.Debug(ctx, "Creating query pack assignment")
 	// default action is active
-	if state == "" || state == "enabled" {
+	switch state {
+	case "", "enabled":
 		action := mondoov1.PolicyActionActive
 		err = r.client.AssignPolicy(ctx, space.MRN(), action, queryPackMrns)
-	} else if state == "disabled" {
+	case "disabled":
 		err = r.client.UnassignPolicy(ctx, space.MRN(), queryPackMrns)
-	} else {
+	default:
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
 			"Invalid state "+state+", use one of: enabled, disabled",
@@ -194,12 +195,13 @@ func (r *queryPackAssignmentResource) Update(ctx context.Context, req resource.U
 	state := data.State.ValueString()
 	tflog.Debug(ctx, "Updating query pack assignment")
 	// default action is active
-	if state == "" || state == "enabled" {
+	switch state {
+	case "", "enabled":
 		action := mondoov1.PolicyActionActive
 		err = r.client.AssignPolicy(ctx, space.MRN(), action, queryPackMrns)
-	} else if state == "disabled" {
+	case "disabled":
 		err = r.client.UnassignPolicy(ctx, space.MRN(), queryPackMrns)
-	} else {
+	default:
 		resp.Diagnostics.AddError(
 			"Invalid state: "+state,
 			"Invalid state "+state+". Valid states are enabled and disabled",
