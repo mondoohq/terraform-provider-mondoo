@@ -81,7 +81,45 @@ func (f Field) ConfigurationOption(name string) string {
 	return "\"unimplemented: check gen/gen.go\""
 }
 
+// Check if a field name indicates it contains sensitive data.
+func isSensitiveField(fieldName string) bool {
+	lowerFieldName := strings.ToLower(fieldName)
+	sensitivePatterns := []string{
+		"token",
+		"secret",
+		"key",
+		"password",
+		"credential",
+		"pemfile",
+		"pem",
+		"certificate",
+		"accesskey",
+		"secretkey",
+		"clientsecret",
+		"serviceaccount",
+		"account",
+	}
+
+	for _, pattern := range sensitivePatterns {
+		if strings.Contains(lowerFieldName, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
 func (f Field) ImportConversion(resourceClassName, fieldName string) string {
+	// Handle sensitive fields by setting them to nil during import
+	if isSensitiveField(fieldName) {
+		switch f.MondooType {
+		case StringField.MondooType:
+			return "types.StringValue(\"\")" // Empty string for required sensitive fields
+		case StringPtrField.MondooType:
+			return "types.StringPointerValue(nil)" // Nil for optional sensitive fields
+		}
+	}
+
+	// Handle non-sensitive fields normally
 	attr := fmt.Sprintf("integration.ConfigurationOptions.%sConfigurationOptions.%s", resourceClassName, fieldName)
 	switch f.MondooType {
 	case BooleanField.MondooType:
@@ -187,9 +225,10 @@ var (
 )
 
 var funcMap = template.FuncMap{
-	"toSnakeCase":   toSnakeCase,
-	"formatEnum":    formatEnum,
-	"shouldTrigger": shouldTrigger,
+	"toSnakeCase":      toSnakeCase,
+	"formatEnum":       formatEnum,
+	"shouldTrigger":    shouldTrigger,
+	"isSensitiveField": isSensitiveField,
 }
 
 var templates = map[string]*template.Template{
