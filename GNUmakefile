@@ -61,6 +61,7 @@ hcl/lint: ## Runs terraform linter
 
 # Run acceptance tests
 testacc:
+	@echo "** Warning: \n  This requires an _organization_ level service account. \n Please set MONDOO_CONFIG_BASE64 env var to your local dev base64 encoded json service account when running tests locally**\n\n"
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
 license: license/headers/check
