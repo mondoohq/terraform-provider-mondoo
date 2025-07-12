@@ -47,6 +47,7 @@ type exceptionResourceModel struct {
 	Action            types.String `tfsdk:"action"`
 	CheckMrns         types.List   `tfsdk:"check_mrns"`
 	VulnerabilityMrns types.List   `tfsdk:"vulnerability_mrns"`
+	ExceptionId       types.String `tfsdk:"exception_id"`
 }
 
 func (r *exceptionResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -221,6 +222,14 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 					listvalidator.ExactlyOneOf(path.MatchRoot("check_mrns"), path.MatchRoot("vulnerability_mrns")),
 				},
 			},
+			"exception_id": schema.StringAttribute{
+				MarkdownDescription: "The ID of the exception",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -268,22 +277,14 @@ func (r *exceptionResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	// disable existing exceptions
-	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
-	err = r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
-		return
-	}
-
 	// Create API call logic
 	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
-	err = r.client.ApplyException(ctx, scopeMrn, mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
+	id, err := r.client.CreateException(ctx, scopeMrn, mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create exception", err.Error())
 		return
 	}
-
+	data.ExceptionId = types.StringValue(id)
 	data.ScopeMrn = types.StringValue(scopeMrn)
 
 	// Save data into Terraform state
@@ -323,7 +324,7 @@ func (r *exceptionResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Deleting exception for scope %s", data.ScopeMrn.ValueString()))
-	err = r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
+	err = r.client.DeleteExceptions(ctx, []string{data.ExceptionId.ValueString()}, data.ScopeMrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
 		return
@@ -338,7 +339,7 @@ func (r *exceptionResource) Update(ctx context.Context, req resource.UpdateReque
 
 	// Update API call logic
 	tflog.Debug(ctx, fmt.Sprintf("Creating exception for scope %s", data.ScopeMrn.ValueString()))
-	err = r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
+	_, err = r.client.CreateException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationAction(data.Action.ValueString()), checks, []string{}, []string{}, vulnerabilities, data.Justification.ValueStringPointer(), &validUntilStr, (*bool)(mondoov1.NewBooleanPtr(false)))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update exception", err.Error())
 		return
@@ -358,15 +359,9 @@ func (r *exceptionResource) Delete(ctx context.Context, req resource.DeleteReque
 		return
 	}
 
-	_, checks, vulnerabilities, _, err := r.GetConfigurationOptions(ctx, &data)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
-	}
-
 	// Delete API call logic
 	tflog.Debug(ctx, fmt.Sprintf("Deleting exception for scope %s", data.ScopeMrn.ValueString()))
-	err = r.client.ApplyException(ctx, data.ScopeMrn.ValueString(), mondoov1.ExceptionMutationActionEnable, checks, []string{}, []string{}, vulnerabilities, (*string)(mondoov1.NewStringPtr("")), (*string)(mondoov1.NewStringPtr("")), (*bool)(mondoov1.NewBooleanPtr(false)))
+	err := r.client.DeleteExceptions(ctx, []string{data.ExceptionId.ValueString()}, data.ScopeMrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to delete exception", err.Error())
 		return
