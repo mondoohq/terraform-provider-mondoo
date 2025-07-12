@@ -1111,3 +1111,65 @@ func (c *ExtendedGqlClient) ApplyException(
 
 	return c.Mutate(ctx, &applyException, input, nil)
 }
+
+func (c *ExtendedGqlClient) CreateException(
+	ctx context.Context,
+	scopeMrn string,
+	action mondoov1.ExceptionMutationAction,
+	checkMrns, controlMrns, cveMrns, vulnerabilityMrns []string,
+	justification *string,
+	validUntil *string,
+	applyToCves *bool,
+) (string, error) {
+	var createException struct {
+		ExceptionGroup CreateExceptionResponse `graphql:"createException(input: $input)"`
+	}
+
+	// Prepare input fields
+	input := mondoov1.ExceptionMutationInput{
+		ScopeMrn:      mondoov1.String(scopeMrn),
+		Action:        action,
+		QueryMrns:     ToPtr(ConvertSliceStrings(ConvertListValue(checkMrns))),
+		ControlMrns:   ToPtr(ConvertSliceStrings(ConvertListValue(controlMrns))),
+		CveMrns:       ToPtr(ConvertSliceStrings(ConvertListValue(cveMrns))),
+		AdvisoryMrns:  ToPtr(ConvertSliceStrings(ConvertListValue(vulnerabilityMrns))),
+		Justification: (*mondoov1.String)(justification),
+		ValidUntil:    (*mondoov1.String)(validUntil),
+		ApplyToCves:   mondoov1.NewBooleanPtr(mondoov1.Boolean(*applyToCves)),
+	}
+
+	err := c.Mutate(ctx, &createException, input, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create exception: %w", err)
+	}
+
+	if createException.ExceptionGroup.ExceptionGroup == nil {
+		return "", fmt.Errorf("failed to create exception, no exception group returned")
+	}
+
+	return createException.ExceptionGroup.ExceptionGroup.ExceptionID, nil
+}
+
+type CreateExceptionResponse struct {
+	ExceptionGroup *ExceptionGroup `graphql:"exceptionGroup"`
+}
+
+type ExceptionGroup struct {
+	ExceptionID string `graphql:"exceptionId"`
+}
+
+func (c *ExtendedGqlClient) DeleteExceptions(ctx context.Context, exceptionIds []string, spaceMrn string) error {
+	var deleteExceptions struct {
+		DeleteExceptions bool `graphql:"deleteExceptions(input: $input)"`
+	}
+
+	ids := []mondoov1.String{}
+	for _, id := range exceptionIds {
+		ids = append(ids, mondoov1.String(id))
+	}
+	input := mondoov1.ExceptionsDeleteInput{
+		ExceptionIDs: &ids,
+		SpaceMrn:     mondoov1.String(spaceMrn),
+	}
+	return c.Mutate(ctx, &deleteExceptions, input, nil)
+}
