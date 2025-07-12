@@ -1110,3 +1110,58 @@ func (c *ExtendedGqlClient) ApplyException(
 
 	return c.Mutate(ctx, &applyException, input, nil)
 }
+
+func (c *ExtendedGqlClient) CreateException(
+	ctx context.Context,
+	scopeMrn string,
+	action mondoov1.ExceptionMutationAction,
+	checkMrns, controlMrns, cveMrns, vulnerabilityMrns []string,
+	justification *string,
+	validUntil *string,
+	applyToCves *bool,
+) error {
+	var createException struct {
+		ExceptionGroup CreateExceptionResponse `graphql:"createException(input: $input)"`
+	}
+
+	// Prepare input fields
+	input := mondoov1.ExceptionMutationInput{
+		ScopeMrn:      mondoov1.String(scopeMrn),
+		Action:        action,
+		QueryMrns:     ConvertSliceStringsPointer(ConvertListValue(checkMrns)),
+		ControlMrns:   ConvertSliceStringsPointer(ConvertListValue(controlMrns)),
+		CveMrns:       ConvertSliceStringsPointer(ConvertListValue(cveMrns)),
+		AdvisoryMrns:  ConvertSliceStringsPointer(ConvertListValue(vulnerabilityMrns)),
+		Justification: (*mondoov1.String)(justification),
+		ValidUntil:    (*mondoov1.String)(validUntil),
+		ApplyToCves:   mondoov1.NewBooleanPtr(mondoov1.Boolean(*applyToCves)),
+	}
+
+	return c.Mutate(ctx, &createException, input, nil)
+}
+
+type CreateExceptionResponse struct {
+	ExceptionGroup *ExceptionGroup `graphql:"exceptionGroup"`
+}
+
+type ExceptionGroup struct {
+	ID string `graphql:"id"`
+}
+
+func (c *ExtendedGqlClient) DeleteExceptions(ctx context.Context, exceptionIds []string, spaceMrn string) error {
+	var deleteExceptions struct {
+		DeleteException bool `graphql:"deleteExceptions(input: $input)"`
+	}
+
+	input := ExceptionsDeleteInput{
+		ExceptionIds: ConvertSliceStrings(ConvertListValue(exceptionIds)),
+		SpaceMrn:     mondoov1.String(spaceMrn),
+	}
+
+	return c.Mutate(ctx, &deleteExceptions, input, nil)
+}
+
+type ExceptionsDeleteInput struct {
+	ExceptionIds []mondoov1.String `graphql:"exceptionIds"`
+	SpaceMrn     mondoov1.String   `graphql:"spaceMrn"`
+}

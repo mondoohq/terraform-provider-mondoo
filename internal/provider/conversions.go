@@ -28,6 +28,13 @@ func ConvertSliceStrings(list types.List) (slice []mondoov1.String) {
 	allowlist.ElementsAs(ctx, &slice, true)
 	return
 }
+func ConvertSliceStringsPointer(list types.List) *[]mondoov1.String {
+	slice := ConvertSliceStrings(list)
+	if len(slice) == 0 {
+		return nil
+	}
+	return &slice
+}
 
 // ConvertListValueInt32 converts a slice of int32 to a types.List.
 func ConvertListValueInt32(list []int32) types.List {
