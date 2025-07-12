@@ -48,6 +48,7 @@ resource "mondoo_exception" "exception" {
 ### Optional
 
 - `action` (String) The action to perform. Default is `RISK_ACCEPTED`. Other valid values are `WORKAROUND`, `FALSE_POSITIVE`, `ENABLE`, `DISABLE`, `OUT_OF_SCOPE` and `SNOOZE`.
+- `advisory_mrns` (List of String) List of advisory MRNs to set exceptions for. If set, `check_mrns` and `cve_mrns` must not be set.
 - `check_mrns` (List of String) List of check MRNs to set exceptions for. If set, `vulnerability_mrns` must not be set.
 - `justification` (String) Description why the exception is required.
 - `scope_mrn` (String) The MRN of the scope (either asset mrn or space mrn).
