@@ -6,21 +6,21 @@
 package provider
 
 type ClientIntegrationConfigurationOptions struct {
-	AzureConfigurationOptions                  AzureConfigurationOptions                  `graphql:"... on AzureConfigurationOptions"`
-	CrowdstrikeFalconConfigurationOptionsInput CrowdstrikeFalconConfigurationOptionsInput `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
-	EmailConfigurationOptions                  EmailConfigurationOptions                  `graphql:"... on EmailConfigurationOptions"`
-	GcpConfigurationOptions                    GcpConfigurationOptions                    `graphql:"... on GcpConfigurationOptions"`
-	GithubConfigurationOptions                 GithubConfigurationOptions                 `graphql:"... on GithubConfigurationOptions"`
-	GitlabConfigurationOptions                 GitlabConfigurationOptions                 `graphql:"... on GitlabConfigurationOptions"`
-	HostConfigurationOptions                   HostConfigurationOptions                   `graphql:"... on HostConfigurationOptions"`
-	HostedAwsConfigurationOptions              HostedAwsConfigurationOptions              `graphql:"... on HostedAwsConfigurationOptions"`
-	JiraConfigurationOptions                   JiraConfigurationOptions                   `graphql:"... on JiraConfigurationOptions"`
-	MicrosoftDefenderConfigurationOptionsInput MicrosoftDefenderConfigurationOptionsInput `graphql:"... on MicrosoftDefenderConfigurationOptions"`
-	Ms365ConfigurationOptions                  Ms365ConfigurationOptions                  `graphql:"... on Ms365ConfigurationOptions"`
-	SentinelOneConfigurationOptions            SentinelOneConfigurationOptions            `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
-	ShodanConfigurationOptions                 ShodanConfigurationOptions                 `graphql:"... on ShodanConfigurationOptions"`
-	SlackConfigurationOptions                  SlackConfigurationOptions                  `graphql:"... on SlackConfigurationOptions"`
-	ZendeskConfigurationOptions                ZendeskConfigurationOptions                `graphql:"... on ZendeskConfigurationOptions"`
+	AzureConfigurationOptions             AzureConfigurationOptions             `graphql:"... on AzureConfigurationOptions"`
+	CrowdstrikeFalconConfigurationOptions CrowdstrikeFalconConfigurationOptions `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
+	EmailConfigurationOptions             EmailConfigurationOptions             `graphql:"... on EmailConfigurationOptions"`
+	GcpConfigurationOptions               GcpConfigurationOptions               `graphql:"... on GcpConfigurationOptions"`
+	GithubConfigurationOptions            GithubConfigurationOptions            `graphql:"... on GithubConfigurationOptions"`
+	GitlabConfigurationOptions            GitlabConfigurationOptions            `graphql:"... on GitlabConfigurationOptions"`
+	HostConfigurationOptions              HostConfigurationOptions              `graphql:"... on HostConfigurationOptions"`
+	HostedAwsConfigurationOptions         HostedAwsConfigurationOptions         `graphql:"... on HostedAwsConfigurationOptions"`
+	JiraConfigurationOptions              JiraConfigurationOptions              `graphql:"... on JiraConfigurationOptions"`
+	MicrosoftDefenderConfigurationOptions MicrosoftDefenderConfigurationOptions `graphql:"... on MicrosoftDefenderConfigurationOptions"`
+	Ms365ConfigurationOptions             Ms365ConfigurationOptions             `graphql:"... on Ms365ConfigurationOptions"`
+	SentinelOneConfigurationOptions       SentinelOneConfigurationOptions       `graphql:"... on SentinelOneConfigurationOptions"`
+	ShodanConfigurationOptions            ShodanConfigurationOptions            `graphql:"... on ShodanConfigurationOptions"`
+	SlackConfigurationOptions             SlackConfigurationOptions             `graphql:"... on SlackConfigurationOptions"`
+	ZendeskConfigurationOptions           ZendeskConfigurationOptions           `graphql:"... on ZendeskConfigurationOptions"`
 	// Auto-generated resources
 	AzureDevopsConfigurationOptions     AzureDevopsConfigurationOptions     `graphql:"... on AzureDevopsConfigurationOptions"`
 	GoogleWorkspaceConfigurationOptions GoogleWorkspaceConfigurationOptions `graphql:"... on GoogleWorkspaceConfigurationOptions"`
