@@ -19,15 +19,15 @@ func TestAccWorkspaceResource(t *testing.T) {
 			{
 				Config: testAccWorkspaceResourceConfig(accSpace.ID(), "my test workspace", "development"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", "my test workspace"),
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_workspace.test_with_space_id", "name", "my test workspace"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test_with_space_id", "space_id", accSpace.ID()),
 				),
 			},
 			{
 				Config: testAccWorkspaceResourceWithSpaceInProviderConfig(accSpace.ID(), "some workspace", "qa"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", "some workspace"),
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_workspace.test_without_space_id", "name", "some workspace"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test_without_space_id", "space_id", accSpace.ID()),
 				),
 			},
 			// ImportState testing
@@ -42,15 +42,15 @@ func TestAccWorkspaceResource(t *testing.T) {
 			{
 				Config: testAccWorkspaceResourceConfig(accSpace.ID(), "my updated workspace", "production"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", "my updated workspace"),
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_workspace.test_with_space_id", "name", "my updated workspace"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test_with_space_id", "space_id", accSpace.ID()),
 				),
 			},
 			{
 				Config: testAccWorkspaceResourceWithSpaceInProviderConfig(accSpace.ID(), "updated workspace", "production"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", "updated workspace"),
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_workspace.test_without_space_id", "name", "updated workspace"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test_without_space_id", "space_id", accSpace.ID()),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -60,7 +60,7 @@ func TestAccWorkspaceResource(t *testing.T) {
 
 func testAccWorkspaceResourceConfig(spaceID, name, env string) string {
 	return fmt.Sprintf(`
-resource "mondoo_workspace" "test" {
+resource "mondoo_workspace" "test_with_space_id" {
   space_id         = %[1]q
   name             = %[2]q
   asset_selections = [
@@ -92,7 +92,7 @@ provider "mondoo" {
   space = %[1]q
 }
 
-resource "mondoo_workspace" "test" {
+resource "mondoo_workspace" "test_without_space_id" {
   name             = %[2]q
   asset_selections = [
     {
