@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccIAMWorkloadIdentityBindingResource(t *testing.T) {
@@ -27,13 +28,16 @@ func TestAccIAMWorkloadIdentityBindingResource(t *testing.T) {
 				),
 			},
 			// ImportState testing
-			// @afiune this doesn't work since most of our resources doesn't have the `id` attribute
-			// if we add it, instead of the `mrn` or as a copy, this import test will work
-			// {
-			// ResourceName:      "mondoo_iam_workload_identity_binding.test",
-			// ImportState:       true,
-			// ImportStateVerify: true,
-			// },
+			{
+				ResourceName: "mondoo_iam_workload_identity_binding.test",
+				// setting the next two attributes allows the import to work in test, bc we use mrn instead of id
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_iam_workload_identity_binding.test"].Primary.Attributes["mrn"], nil
+				},
+				ImportStateVerifyIdentifierAttribute: "mrn",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+			},
 			// Update is NOT allowed for this resource
 			// Delete testing automatically occurs in TestCase
 		},
