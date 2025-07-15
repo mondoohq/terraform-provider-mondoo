@@ -55,6 +55,8 @@ resource "mondoo_integration_okta" "example" {
 
 Import is supported using the following syntax:
 
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
 ```shell
 # Import using integration MRN.
 terraform import mondoo_integration_okta.example "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
