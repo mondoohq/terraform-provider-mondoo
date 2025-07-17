@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -402,4 +404,68 @@ func getFindingType(data exceptionResourceModel) (string, mondoov1.ExceptionType
 		}
 	}
 	return "", ""
+}
+func (r *exceptionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	var data exceptionResourceModel
+
+	// Read the import ID into the model
+	data.ExceptionId = types.StringValue(req.ID)
+
+	exception, ok := r.client.ImportException(ctx, req, resp, r.client.space.MRN())
+	if !ok {
+		resp.Diagnostics.AddError("Failed to import exception", "Please check the import ID and try again.")
+		return
+	}
+	// set the state with the imported exception data
+	data.ScopeMrn = types.StringValue(exception.ScopeMrn)
+	if exception.ValidUntil != nil {
+		t, _ := time.Parse(time.RFC3339, *exception.ValidUntil)
+		st := t.UTC().Format("2006-01-02") // Ensure the date is parsed correctly
+		data.ValidUntil = types.StringValue(st)
+	}
+	if exception.Justification != nil {
+		data.Justification = types.StringValue(*exception.Justification)
+	}
+	data.Action = types.StringValue(exception.Action)
+	checkMrns := make(map[string]bool)
+	vulnMrns := make(map[string]bool)
+	advisoryMrns := make(map[string]bool)
+	if len(exception.Exceptions) > 0 {
+		for _, mrn := range exception.Exceptions {
+			// @vj: i dont understand why the items are being marshalled into both structs,
+			// but they seem to be, so im filtering by the mrn prefix to ensure we dont double up
+			if strings.HasPrefix(mrn.CheckMrns.Mrn, "//policy.api.mondoo.app/queries") {
+				checkMrns[mrn.CheckMrns.Mrn] = true
+			} else if strings.HasPrefix(mrn.VulnerabilityMrns.Mrn, "//vadvisor.api.mondoo.app/cves") {
+				vulnMrns[mrn.VulnerabilityMrns.Mrn] = true
+			} else if strings.HasPrefix(mrn.AdvisoryMrns.Mrn, "//vadvisor.api.mondoo.app/advisories") {
+				advisoryMrns[mrn.AdvisoryMrns.Mrn] = true
+			}
+		}
+	}
+	if len(checkMrns) > 0 {
+		l := mapToListValue(checkMrns)
+		sort.Strings(l)
+		data.CheckMrns = ConvertListValue(l)
+	} else {
+		data.CheckMrns = ConvertListValue([]string{})
+	}
+	if len(vulnMrns) > 0 {
+		l := mapToListValue(vulnMrns)
+		sort.Strings(l)
+		data.VulnerabilityMrns = ConvertListValue(l)
+	} else {
+		data.VulnerabilityMrns = ConvertListValue([]string{})
+	}
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func mapToListValue(m map[string]bool) []string {
+	vals := []string{}
+	for k := range m {
+		vals = append(vals, k)
+	}
+	return vals
 }
