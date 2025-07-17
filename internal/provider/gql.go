@@ -1300,7 +1300,24 @@ type CreateExceptionResponse struct {
 }
 
 type ExceptionGroup struct {
-	ExceptionID string `graphql:"exceptionId"`
+	ExceptionID   string       `graphql:"exceptionId"`
+	ScopeMrn      string       `graphql:"scopeMrn"`
+	ValidUntil    *string      `graphql:"validUntil"`
+	Justification *string      `graphql:"justification"`
+	Action        string       `graphql:"action"`
+	Exceptions    []Exceptions `graphql:"exceptions"`
+}
+
+type Exceptions struct {
+	CheckMrns struct {
+		Mrn string `graphql:"mrn"`
+	} `graphql:"...on SpaceCheckException"`
+	VulnerabilityMrns struct {
+		Mrn string `graphql:"mrn"`
+	} `graphql:"...on SpaceCveException"`
+	AdvisoryMrns struct {
+		Mrn string `graphql:"mrn"`
+	} `graphql:"...on SpaceAdvisoryException"`
 }
 
 func (c *ExtendedGqlClient) DeleteExceptions(ctx context.Context, exceptionIds []string, spaceMrn string) error {
@@ -1350,4 +1367,48 @@ type ListExceptionGroupsConnection struct {
 type ExceptionGroupEdge struct {
 	Cursor string         `graphql:"cursor"`
 	Node   ExceptionGroup `graphql:"node"`
+}
+
+func (c *ExtendedGqlClient) ImportException(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse, scopeMrn string) (*ExceptionGroup, bool) {
+	id := req.ID
+	ctx = tflog.SetField(ctx, "id", id)
+	tflog.Debug(ctx, "importing exception")
+	exception, err := c.GetException(ctx, scopeMrn, id)
+	if err != nil {
+		resp.Diagnostics.
+			AddError("Client Error",
+				fmt.Sprintf("Unable to get exception. Got error: %s", err),
+			)
+		return nil, false
+	}
+	return exception, true
+}
+
+func (c *ExtendedGqlClient) GetException(ctx context.Context, scopeMrn string, id string) (*ExceptionGroup, error) {
+	var listExceptionGroups struct {
+		ListExceptionGroups ListExceptionGroupsConnection `graphql:"listExceptionGroups(input: $input)"`
+	}
+	tflog.Debug(ctx, "GetException", map[string]interface{}{
+		"scopeMrn": scopeMrn,
+		"id":       id,
+	})
+	input := mondoov1.ListExceptionGroupsInput{
+		ScopeMrn: mondoov1.String(scopeMrn),
+		Filter:   &mondoov1.ListExceptionGroupsFilter{Id: ToPtr(mondoov1.String(id))},
+	}
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	err := c.Query(ctx, &listExceptionGroups, variables)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find exception: %w", err)
+	}
+	if len(listExceptionGroups.ListExceptionGroups.Edges) == 0 {
+		return nil, fmt.Errorf("failed to find exception with id %s in scope %s", id, scopeMrn)
+	}
+	tflog.Debug(ctx, "found exception", map[string]interface{}{
+		"exceptionId": listExceptionGroups.ListExceptionGroups.Edges[0].Node.ExceptionID,
+	})
+	return &listExceptionGroups.ListExceptionGroups.Edges[0].Node, nil
 }

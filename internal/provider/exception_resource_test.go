@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestExceptionResource(t *testing.T) {
@@ -14,16 +15,45 @@ func TestExceptionResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testCreateException(accSpace.ID(), accSpace.MRN()),
+				Config: testCreateException(accSpace.ID(), accSpace.MRN(), "RISK_ACCEPTED"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_exception.windows_defender_exception", "action", "RISK_ACCEPTED"),
 				),
+			},
+			// Update testing
+			{
+				Config: testCreateException(accSpace.ID(), accSpace.MRN(), "FALSE_POSITIVE"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_exception.windows_defender_exception", "action", "FALSE_POSITIVE"),
+				),
+			},
+			// import testing
+			{
+				Config:       importException(accSpace.ID()),
+				ResourceName: "mondoo_exception.windows_defender_exception",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_exception.windows_defender_exception"].Primary.Attributes["exception_id"], nil
+				},
+
+				ImportStateVerifyIdentifierAttribute: "exception_id",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
 			},
 		},
 	})
 }
 
-func testCreateException(spaceId string, spaceMrn string) string {
+func importException(spaceId string) string {
+	return fmt.Sprintf(`
+provider "mondoo" {
+  space = "%s"
+}
+resource "mondoo_exception" "windows_defender_exception" {
+}
+`, spaceId)
+}
+
+func testCreateException(spaceId string, spaceMrn string, action string) string {
 	return fmt.Sprintf(`
 		resource "mondoo_policy_assignment" "cis_policy_assignment_enabled" {
 		space_id = "%s"
@@ -52,7 +82,7 @@ func testCreateException(spaceId string, spaceMrn string) string {
 		resource "mondoo_exception" "windows_defender_exception" {
 		justification = "Windows Defender is disabled. Other EDR is used/configured instead."
 		scope_mrn =  "%s"
-		action        = "RISK_ACCEPTED"
+		action        = "%s"
 		valid_until = "2025-09-09"
 		check_mrns = [
 			"//policy.api.mondoo.app/queries/cis-microsoft-windows-10--18.10.42.5.1",
@@ -65,5 +95,5 @@ func testCreateException(spaceId string, spaceMrn string) string {
 			mondoo_policy_assignment.cis_policy_assignment_enabled
 		]
 		}
-		`, spaceId, spaceMrn)
+		`, spaceId, spaceMrn, action)
 }
