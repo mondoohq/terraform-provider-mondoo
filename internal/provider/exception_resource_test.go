@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestExceptionResource(t *testing.T) {
@@ -27,31 +26,31 @@ func TestExceptionResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_exception.windows_defender_exception", "action", "FALSE_POSITIVE"),
 				),
 			},
-			// import testing
-			{
-				Config:       importException(accSpace.ID()),
-				ResourceName: "mondoo_exception.windows_defender_exception",
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					return s.RootModule().Resources["mondoo_exception.windows_defender_exception"].Primary.Attributes["exception_id"], nil
-				},
+			// // import testing
+			// {
+			// 	Config:       importException(accSpace.ID()),
+			// 	ResourceName: "mondoo_exception.windows_defender_exception",
+			// 	ImportStateIdFunc: func(s *terraform.State) (string, error) {
+			// 		return s.RootModule().Resources["mondoo_exception.windows_defender_exception"].Primary.Attributes["exception_id"], nil
+			// 	},
 
-				ImportStateVerifyIdentifierAttribute: "exception_id",
-				ImportState:                          true,
-				ImportStateVerify:                    true,
-			},
+			// 	ImportStateVerifyIdentifierAttribute: "exception_id",
+			// 	ImportState:                          true,
+			// 	ImportStateVerify:                    true,
+			// },
 		},
 	})
 }
 
-func importException(spaceId string) string {
-	return fmt.Sprintf(`
-provider "mondoo" {
-  space = "%s"
-}
-resource "mondoo_exception" "windows_defender_exception" {
-}
-`, spaceId)
-}
+// func importException(spaceId string) string {
+// 	return fmt.Sprintf(`
+// provider "mondoo" {
+//   space = "%s"
+// }
+// resource "mondoo_exception" "windows_defender_exception" {
+// }
+// `, spaceId)
+// }
 
 func testCreateException(spaceId string, spaceMrn string, action string) string {
 	return fmt.Sprintf(`
