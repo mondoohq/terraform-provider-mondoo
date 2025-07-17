@@ -322,12 +322,30 @@ func (r *exceptionResource) Update(ctx context.Context, req resource.UpdateReque
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
+	exceptionId := data.ExceptionId.ValueString()
+	if data.ExceptionId.IsNull() || data.ExceptionId.ValueString() == "" {
+		tflog.Debug(ctx, "No exception ID found in state, searching for existing exception")
+		// list the exceptions using data from the state
+		finding, findingType := getFindingType(data)
+		res, err := r.client.FindException(ctx, data.ScopeMrn.ValueString(), finding, findingType)
+		if err != nil {
+			// warn the user that the exception was not found. instruct them to import the exception
+			resp.Diagnostics.AddError("Failed to find existing exception. Please import the exception.", err.Error())
+			return
+		}
+		fmt.Printf("Found exception ID: %s\n", res.ExceptionID)
+		// if we find an exception, set the exception id on the data
+		data.ExceptionId = types.StringValue(res.ExceptionID)
+		exceptionId = res.ExceptionID
+	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Deleting exception for scope %s", data.ScopeMrn.ValueString()))
-	err = r.client.DeleteExceptions(ctx, []string{data.ExceptionId.ValueString()}, data.ScopeMrn.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
-		return
+	if exceptionId != "" {
+		tflog.Debug(ctx, fmt.Sprintf("Deleting exception for scope %s", data.ScopeMrn.ValueString()))
+		err = r.client.DeleteExceptions(ctx, []string{exceptionId}, data.ScopeMrn.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to disable existing exception", err.Error())
+			return
+		}
 	}
 
 	if data.Action.ValueString() == "SNOOZE" {
@@ -366,4 +384,22 @@ func (r *exceptionResource) Delete(ctx context.Context, req resource.DeleteReque
 		resp.Diagnostics.AddError("Failed to delete exception", err.Error())
 		return
 	}
+}
+
+func getFindingType(data exceptionResourceModel) (string, mondoov1.ExceptionType) {
+	if len(data.CheckMrns.Elements()) > 0 {
+		var checks []string
+		data.CheckMrns.ElementsAs(context.Background(), &checks, false)
+		if len(checks) > 0 {
+			return checks[0], mondoov1.ExceptionTypeSecurity
+		}
+	}
+	if len(data.VulnerabilityMrns.Elements()) > 0 {
+		var vulnerabilities []string
+		data.VulnerabilityMrns.ElementsAs(context.Background(), &vulnerabilities, false)
+		if len(vulnerabilities) > 0 {
+			return vulnerabilities[0], mondoov1.ExceptionTypeCve
+		}
+	}
+	return "", ""
 }
