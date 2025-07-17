@@ -1318,3 +1318,36 @@ func (c *ExtendedGqlClient) DeleteExceptions(ctx context.Context, exceptionIds [
 	}
 	return c.Mutate(ctx, &deleteExceptions, input, nil)
 }
+
+func (c *ExtendedGqlClient) FindException(ctx context.Context, spaceMrn string, findingFilter string, exceptionType mondoov1.ExceptionType) (*ExceptionGroup, error) {
+	var listExceptionGroups struct {
+		ListExceptionGroups ListExceptionGroupsConnection `graphql:"listExceptionGroups(input: $input)"`
+	}
+
+	exceptionTypes := []mondoov1.ExceptionType{exceptionType}
+	input := mondoov1.ListExceptionGroupsInput{
+		ScopeMrn: mondoov1.String(spaceMrn),
+		Mrn:      ToPtr(mondoov1.String(findingFilter)),
+		Types:    &exceptionTypes,
+	}
+	variables := map[string]interface{}{
+		"input": input,
+	}
+	err := c.Query(ctx, &listExceptionGroups, variables)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find exception: %w", err)
+	}
+	if len(listExceptionGroups.ListExceptionGroups.Edges) == 0 {
+		return nil, fmt.Errorf("failed to find exception")
+	}
+	return &listExceptionGroups.ListExceptionGroups.Edges[0].Node, nil
+}
+
+type ListExceptionGroupsConnection struct {
+	TotalCount int                  `graphql:"totalCount"`
+	Edges      []ExceptionGroupEdge `graphql:"edges"`
+}
+type ExceptionGroupEdge struct {
+	Cursor string         `graphql:"cursor"`
+	Node   ExceptionGroup `graphql:"node"`
+}
