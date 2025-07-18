@@ -84,3 +84,51 @@ jobs:
           MONDOO_CONFIG_BASE64: ${{ secrets.MONDOO_CONFIG_BASE64 }}
         run: go test -v -cover ./internal/provider/
         timeout-minutes: 10
+
+  check-wif-configuration:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  
+    steps:
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+      - run: go mod download
+      # Runs against org XXXXX
+      - name: Create WIF binding for pull request 
+        if: github.event_name == 'pull_request'
+        continue-on-error: true # we will fail on duplicates
+        env:
+          TOKEN:  ${{ secrets.WIF_API_TOKEN }}
+          PR_REF: repo:mondoohq/mondoo-terraform-provider:pull_request
+        run: |
+          curl https://api.edge.mondoo.com/query -H "authorization: Bearer $TOKEN" -H "content-type: application/json"  --data-raw $'{"operationName":"CreateWIFAuthBinding","variables":{"input":{"scopeMrn":"//captain.api.mondoo.app/organizations/relaxed-khayyam-961566","issuerUri":"https://token.actions.githubusercontent.com","subject":"'"${PR_REF}"'","expiration":3600,"name":"pullrequest-test-wif","description":"pull request wif test"}},"query":"mutation CreateWIFAuthBinding($input: CreateWIFAuthBindingInput) {  createWIFAuthBinding(input: $input) {    binding {      mrn      __typename    }    config {      universeDomain      scopes      type      audience      subjectTokenType      issuerUri      __typename    }    __typename  }}"}'
+
+      - name: Create WIF binding for main branch 
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true # we will fail on duplicates
+        env:
+          TOKEN:  ${{ secrets.WIF_API_TOKEN }}
+          MAIN_REF: repo:mondoohq/mondoo-terraform-provider:ref:refs/heads/main
+        run: |
+          curl https://api.edge.mondoo.com/query -H "authorization: Bearer $TOKEN" -H "content-type: application/json"  --data-raw $'{"operationName":"CreateWIFAuthBinding","variables":{"input":{"scopeMrn":"//captain.api.mondoo.app/organizations/relaxed-khayyam-961566","issuerUri":"https://token.actions.githubusercontent.com","subject":"'"${MAIN_REF}"'","expiration":3600,"name":"main-branch-test-wif","description":"main branch wif test"}},"query":"mutation CreateWIFAuthBinding($input: CreateWIFAuthBindingInput) {  createWIFAuthBinding(input: $input) {    binding {      mrn      __typename    }    config {      universeDomain      scopes      type      audience      subjectTokenType      issuerUri      __typename    }    __typename  }}"}'
+
+      - name: Create WIF binding for release
+        continue-on-error: true # we will fail on duplicates and non-release refs
+        env:
+          TOKEN:  ${{ secrets.WIF_API_TOKEN }}
+          FULL_REF: repo:mondoohq/mondoo-terraform-provider:ref:${{ github.ref }}
+        run: |
+          echo "using REF: " $FULL_REF
+          curl https://api.edge.mondoo.com/query -H "authorization: Bearer $TOKEN" -H "content-type: application/json"  --data-raw $'{"operationName":"CreateWIFAuthBinding","variables":{"input":{"scopeMrn":"//captain.api.mondoo.app/organizations/relaxed-khayyam-961566","issuerUri":"https://token.actions.githubusercontent.com","subject":"'"${FULL_REF}"'","expiration":3600,"name":"release-test-wif","description":"pre-release wif test"}},"query":"mutation CreateWIFAuthBinding($input: CreateWIFAuthBindingInput) {  createWIFAuthBinding(input: $input) {    binding {      mrn      __typename    }    config {      universeDomain      scopes      type      audience      subjectTokenType      issuerUri      __typename    }    __typename  }}"}'
+      - name: Run terraform using the WIF binding config
+        run: |
+          export JWT_TOKEN=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=vjtest" | jq -r '.value')
+          echo '{"universeDomain": "https://api.edge.mondoo.com", "type": "external_account", "audience": "//captain.api.mondoo.app/organizations/relaxed-khayyam-961566", "issuerUri": "https://token.actions.githubusercontent.com"}' > /tmp/config.json
+          export MONDOO_CONFIG_PATH=/tmp/config.json
+          cat $(pwd)/internal/provider/testdata/test-wif-tf.tf > /tmp/main.tf
+          cd /tmp && terraform init && terraform apply -auto-approve
+          if [ $(echo $?) != 0 ]; then echo "failed to run apply" exit 1; fi

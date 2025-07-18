@@ -110,7 +110,6 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		ctx = tflog.SetField(ctx, "env_config_base64", true)
 	} else if configPath != "" {
 		ctx = tflog.SetField(ctx, "env_config_path", true)
-
 		if conf, err := parseWIF(configPath); err == nil {
 			ctx = tflog.SetField(ctx, "wif", true)
 			serviceAccount, err := serviceAccountFromWIFConfig(conf)
@@ -140,7 +139,6 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			)
 			return
 		}
-
 		if conf, err := parseWIF(defaultConfigPath); err == nil {
 			ctx = tflog.SetField(ctx, "wif", true)
 			serviceAccount, err := serviceAccountFromWIFConfig(conf)
