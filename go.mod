@@ -3,7 +3,7 @@ module go.mondoo.com/terraform-provider-mondoo
 go 1.24.0
 
 require (
-	github.com/go-viper/mapstructure/v2 v2.3.0
+	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/hashicorp/copywrite v0.22.0
 	github.com/hashicorp/terraform-plugin-docs v0.22.0
 	github.com/hashicorp/terraform-plugin-framework v1.15.0
@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.13.2
 	github.com/stretchr/testify v1.10.0
-	go.mondoo.com/cnquery/v11 v11.62.1
+	go.mondoo.com/cnquery/v11 v11.64.0
 	go.mondoo.com/mondoo-go v0.0.0-20250702005123-23558fe8001c
 	gopkg.in/yaml.v2 v2.4.0
 )
