@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"os"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cnquery_config "go.mondoo.com/cnquery/v11/cli/config"
+	cnquery_upstream "go.mondoo.com/cnquery/v11/providers-sdk/v1/upstream"
 	mondoov1 "go.mondoo.com/mondoo-go"
 	"go.mondoo.com/mondoo-go/option"
 )
@@ -107,8 +109,18 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		opts = append(opts, option.WithServiceAccount(data))
 		ctx = tflog.SetField(ctx, "env_config_base64", true)
 	} else if configPath != "" {
-		opts = append(opts, option.WithServiceAccountFile(configPath))
 		ctx = tflog.SetField(ctx, "env_config_path", true)
+		if conf, err := parseWIF(configPath); err == nil {
+			ctx = tflog.SetField(ctx, "wif", true)
+			serviceAccount, err := serviceAccountFromWIFConfig(conf)
+			if err != nil {
+				resp.Diagnostics.AddError("Unable to exchange external token (WIF)", err.Error())
+				return
+			}
+			opts = append(opts, option.WithServiceAccount(serviceAccount))
+		} else {
+			opts = append(opts, option.WithServiceAccountFile(configPath))
+		}
 	} else if token != "" {
 		opts = append(opts, option.WithAPIToken(token))
 		ctx = tflog.SetField(ctx, "env_api_token", true)
@@ -116,6 +128,7 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		opts = append(opts, option.WithServiceAccount([]byte(data.Credentials.ValueString())))
 		ctx = tflog.SetField(ctx, "field_credentials", true)
 	} else {
+		ctx = tflog.SetField(ctx, "default_cli_config_file", true)
 		// if no option was provided, try the default location of Mondoo CLI configuration file
 		defaultConfigPath, err := detectDefaultConfig()
 		if err != nil {
@@ -126,8 +139,17 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			)
 			return
 		}
-		opts = append(opts, option.WithServiceAccountFile(defaultConfigPath))
-		ctx = tflog.SetField(ctx, "default_cli_config_file", true)
+		if conf, err := parseWIF(defaultConfigPath); err == nil {
+			ctx = tflog.SetField(ctx, "wif", true)
+			serviceAccount, err := serviceAccountFromWIFConfig(conf)
+			if err != nil {
+				resp.Diagnostics.AddError("Unable to exchange external token (WIF)", err.Error())
+				return
+			}
+			opts = append(opts, option.WithServiceAccount(serviceAccount))
+		} else {
+			opts = append(opts, option.WithServiceAccountFile(defaultConfigPath))
+		}
 	}
 	tflog.Debug(ctx, "Detected authentication credentials")
 
@@ -236,4 +258,37 @@ func detectDefaultConfig() (string, error) {
 	}
 
 	return "", errors.New("no mondoo config found")
+}
+
+type wif struct {
+	UniverseDomain   string   `json:"universeDomain"`
+	Scopes           []string `json:"scopes"`
+	Type             string   `json:"type"`
+	Audience         string   `json:"audience"`
+	SubjectTokenType string   `json:"subjectTokenType"`
+	IssuerURI        string   `json:"issuerUri"`
+	JWTToken         string   `json:"jwtToken"`
+}
+
+func parseWIF(filename string) (*wif, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var w wif
+	err = json.Unmarshal(data, &w)
+	if err != nil {
+		return nil, err
+	}
+
+	return &w, nil
+}
+
+func serviceAccountFromWIFConfig(config *wif) ([]byte, error) {
+	svcAccount, err := cnquery_upstream.ExchangeExternalToken(config.UniverseDomain, config.Audience, config.IssuerURI, config.JWTToken)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(svcAccount)
 }
