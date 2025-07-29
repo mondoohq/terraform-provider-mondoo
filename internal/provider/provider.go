@@ -110,9 +110,9 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		ctx = tflog.SetField(ctx, "env_config_base64", true)
 	} else if configPath != "" {
 		ctx = tflog.SetField(ctx, "env_config_path", true)
-		if cnquery_config.IsWifConfigFormat(configPath) {
+		if conf, err := parseWIF(configPath); err == nil {
 			ctx = tflog.SetField(ctx, "wif", true)
-			serviceAccount, err := serviceAccountFromWIF(configPath)
+			serviceAccount, err := serviceAccountFromWIFConfig(conf)
 			if err != nil {
 				resp.Diagnostics.AddError("Unable to exchange external token (WIF)", err.Error())
 				return
@@ -139,9 +139,9 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			)
 			return
 		}
-		if cnquery_config.IsWifConfigFormat(defaultConfigPath) {
+		if conf, err := parseWIF(defaultConfigPath); err == nil {
 			ctx = tflog.SetField(ctx, "wif", true)
-			serviceAccount, err := serviceAccountFromWIF(defaultConfigPath)
+			serviceAccount, err := serviceAccountFromWIFConfig(conf)
 			if err != nil {
 				resp.Diagnostics.AddError("Unable to exchange external token (WIF)", err.Error())
 				return
@@ -285,12 +285,8 @@ func parseWIF(filename string) (*wif, error) {
 	return &w, nil
 }
 
-func serviceAccountFromWIF(filename string) ([]byte, error) {
-	wif, err := parseWIF(filename)
-	if err != nil {
-		return nil, err
-	}
-	svcAccount, err := cnquery_upstream.ExchangeExternalToken(wif.UniverseDomain, wif.Audience, wif.IssuerURI, wif.JWTToken)
+func serviceAccountFromWIFConfig(config *wif) ([]byte, error) {
+	svcAccount, err := cnquery_upstream.ExchangeExternalToken(config.UniverseDomain, config.Audience, config.IssuerURI, config.JWTToken)
 	if err != nil {
 		return nil, err
 	}
