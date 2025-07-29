@@ -110,15 +110,10 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		ctx = tflog.SetField(ctx, "env_config_base64", true)
 	} else if configPath != "" {
 		ctx = tflog.SetField(ctx, "env_config_path", true)
-<<<<<<< HEAD
+
 		if conf, err := parseWIF(configPath); err == nil {
 			ctx = tflog.SetField(ctx, "wif", true)
 			serviceAccount, err := serviceAccountFromWIFConfig(conf)
-=======
-		if cnquery_config.IsWifConfigFormat(configPath) {
-			ctx = tflog.SetField(ctx, "wif", true)
-			serviceAccount, err := serviceAccountFromWIF(configPath)
->>>>>>> 5038426 (⭐️ auth: Workload Identity Federation (WIF))
 			if err != nil {
 				resp.Diagnostics.AddError("Unable to exchange external token (WIF)", err.Error())
 				return
@@ -145,15 +140,10 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			)
 			return
 		}
-<<<<<<< HEAD
+
 		if conf, err := parseWIF(defaultConfigPath); err == nil {
 			ctx = tflog.SetField(ctx, "wif", true)
 			serviceAccount, err := serviceAccountFromWIFConfig(conf)
-=======
-		if cnquery_config.IsWifConfigFormat(defaultConfigPath) {
-			ctx = tflog.SetField(ctx, "wif", true)
-			serviceAccount, err := serviceAccountFromWIF(defaultConfigPath)
->>>>>>> 5038426 (⭐️ auth: Workload Identity Federation (WIF))
 			if err != nil {
 				resp.Diagnostics.AddError("Unable to exchange external token (WIF)", err.Error())
 				return
