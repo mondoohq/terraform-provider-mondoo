@@ -165,7 +165,9 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	data.Id = types.StringValue(string(team.Id))
 	data.Mrn = types.StringValue(string(team.Mrn))
 	data.Name = types.StringValue(string(team.Name))
-	data.Description = types.StringValue(string(*team.Description))
+	if team.Description != nil {
+		data.Description = types.StringValue(string(*team.Description))
+	}
 	data.ScopeMrn = types.StringValue(string(team.ScopeMrn))
 	data.CreatedAt = types.StringValue(string(team.CreatedAt))
 	data.UpdatedAt = types.StringValue(string(team.UpdatedAt))
