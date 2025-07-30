@@ -90,6 +90,7 @@ resource "mondoo_iam_binding" "security_team_permissions" {
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Description of the team.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"scope_mrn": schema.StringAttribute{
 				MarkdownDescription: "MRN of the scope (organization or space) that owns this team.",
@@ -133,7 +134,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	// Create the team using GraphQL mutation
 	input := CreateTeamInput{
 		Name:        mondoov1.String(data.Name.ValueString()),
-		Description: mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
+		Description: mondoov1.String(data.Description.ValueString()),
 		ScopeMrn:    mondoov1.String(data.ScopeMrn.ValueString()),
 	}
 
@@ -155,9 +156,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	data.Id = types.StringValue(string(team.Id))
 	data.Mrn = types.StringValue(string(team.Mrn))
 	data.Name = types.StringValue(string(team.Name))
-	if team.Description != nil {
-		data.Description = types.StringValue(string(*team.Description))
-	}
+	data.Description = types.StringValue(string(team.Description))
 	data.ScopeMrn = types.StringValue(string(team.ScopeMrn))
 
 	tflog.Trace(ctx, "created team", map[string]interface{}{
@@ -190,11 +189,8 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	// Update model with current state
 	data.Id = types.StringValue(string(team.Id))
 	data.Name = types.StringValue(string(team.Name))
-	if team.Description != nil {
-		data.Description = types.StringValue(string(*team.Description))
-	} else {
-		data.Description = types.StringNull()
-	}
+	data.Description = types.StringValue(string(team.Description))
+
 	data.ScopeMrn = types.StringValue(string(team.ScopeMrn))
 
 	// Save updated data into Terraform state
@@ -214,7 +210,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	team, err := r.client.UpdateTeam(ctx, UpdateTeamInput{
 		Mrn:         mondoov1.String(data.Mrn.ValueString()),
 		Name:        mondoov1.String(data.Name.ValueString()),
-		Description: mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
+		Description: mondoov1.String(data.Description.ValueString()),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -226,11 +222,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	// Update the model with response data
 	data.Name = types.StringValue(string(team.Name))
-	if team.Description != nil {
-		data.Description = types.StringValue(string(*team.Description))
-	} else {
-		data.Description = types.StringNull()
-	}
+	data.Description = types.StringValue(string(team.Description))
 
 	tflog.Trace(ctx, "updated team", map[string]interface{}{
 		"mrn": data.Mrn.ValueString(),

@@ -1115,24 +1115,24 @@ func (c *ExtendedGqlClient) ApplyException(
 type CreateTeamInput struct {
 	Id          *mondoov1.String `json:"id,omitempty"`
 	Name        mondoov1.String  `json:"name"`
-	Description *mondoov1.String `json:"description,omitempty"`
+	Description mondoov1.String  `json:"description"`
 	ScopeMrn    mondoov1.String  `json:"scopeMrn"`
 }
 
 type UpdateTeamInput struct {
-	Mrn         mondoov1.String  `json:"mrn"`
-	Name        mondoov1.String  `json:"name"`
-	Description *mondoov1.String `json:"description,omitempty"`
+	Mrn         mondoov1.String `json:"mrn"`
+	Name        mondoov1.String `json:"name"`
+	Description mondoov1.String `json:"description"`
 }
 
 type TeamPayload struct {
-	Id          mondoov1.String  `json:"id"`
-	Mrn         mondoov1.String  `json:"mrn"`
-	Name        mondoov1.String  `json:"name"`
-	Description *mondoov1.String `json:"description,omitempty"`
-	ScopeMrn    mondoov1.String  `json:"scopeMrn"`
-	CreatedAt   mondoov1.String  `json:"createdAt"`
-	UpdatedAt   mondoov1.String  `json:"updatedAt"`
+	Id          mondoov1.String `json:"id"`
+	Mrn         mondoov1.String `json:"mrn"`
+	Name        mondoov1.String `json:"name"`
+	Description mondoov1.String `json:"description"`
+	ScopeMrn    mondoov1.String `json:"scopeMrn"`
+	CreatedAt   mondoov1.String `json:"createdAt"`
+	UpdatedAt   mondoov1.String `json:"updatedAt"`
 }
 
 type AddTeamExternalGroupMappingInput struct {

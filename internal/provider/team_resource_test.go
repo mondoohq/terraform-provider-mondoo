@@ -60,7 +60,7 @@ func TestAccTeamResource(t *testing.T) {
 			},
 			// Test team without description
 			{
-				Config: testAccTeamResourceConfigWithoutDescription("team-1"),
+				Config: testAccTeamResourceConfig("team-1", ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_team.test", "name", "team-1"),
 					resource.TestCheckResourceAttr("mondoo_team.test", "description", ""),
@@ -93,13 +93,4 @@ resource "mondoo_team" "test" {
   scope_mrn   = %[4]q
 }
 `, id, name, description, accSpace.MRN())
-}
-
-func testAccTeamResourceConfigWithoutDescription(name string) string {
-	return fmt.Sprintf(`
-resource "mondoo_team" "test" {
-  name      = %[1]q
-  scope_mrn = %[2]q
-}
-`, name, accSpace.MRN())
 }

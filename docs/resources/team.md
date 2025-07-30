@@ -117,6 +117,4 @@ output "team2" {
 
 ### Read-Only
 
-- `created_at` (String) RFC 3339 timestamp when the team was created.
 - `mrn` (String) Mondoo Resource Name (MRN) of the team.
-- `updated_at` (String) RFC 3339 timestamp when the team was last updated.
