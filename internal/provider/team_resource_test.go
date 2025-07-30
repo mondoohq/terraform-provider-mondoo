@@ -24,8 +24,6 @@ func TestAccTeamResourceWithCustomId(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_team.test", "description", "Team with custom ID"),
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "mrn"),
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "scope_mrn"),
-					resource.TestCheckResourceAttrSet("mondoo_team.test", "created_at"),
-					resource.TestCheckResourceAttrSet("mondoo_team.test", "updated_at"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -47,8 +45,6 @@ func TestAccTeamResource(t *testing.T) {
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "id"),
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "mrn"),
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "scope_mrn"),
-					resource.TestCheckResourceAttrSet("mondoo_team.test", "created_at"),
-					resource.TestCheckResourceAttrSet("mondoo_team.test", "updated_at"),
 				),
 			},
 			// Update and Read testing
@@ -60,8 +56,6 @@ func TestAccTeamResource(t *testing.T) {
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "id"),
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "mrn"),
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "scope_mrn"),
-					resource.TestCheckResourceAttrSet("mondoo_team.test", "created_at"),
-					resource.TestCheckResourceAttrSet("mondoo_team.test", "updated_at"),
 				),
 			},
 			// Test team without description
@@ -73,8 +67,6 @@ func TestAccTeamResource(t *testing.T) {
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "id"),
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "mrn"),
 					resource.TestCheckResourceAttrSet("mondoo_team.test", "scope_mrn"),
-					resource.TestCheckResourceAttrSet("mondoo_team.test", "created_at"),
-					resource.TestCheckResourceAttrSet("mondoo_team.test", "updated_at"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase

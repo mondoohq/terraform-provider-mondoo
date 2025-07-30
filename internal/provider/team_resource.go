@@ -35,8 +35,6 @@ type TeamResourceModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	ScopeMrn    types.String `tfsdk:"scope_mrn"`
-	CreatedAt   types.String `tfsdk:"created_at"`
-	UpdatedAt   types.String `tfsdk:"updated_at"`
 }
 
 func (r *TeamResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -100,14 +98,6 @@ resource "mondoo_iam_binding" "security_team_permissions" {
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"created_at": schema.StringAttribute{
-				MarkdownDescription: "RFC 3339 timestamp when the team was created.",
-				Computed:            true,
-			},
-			"updated_at": schema.StringAttribute{
-				MarkdownDescription: "RFC 3339 timestamp when the team was last updated.",
-				Computed:            true,
-			},
 		},
 	}
 }
@@ -169,8 +159,6 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		data.Description = types.StringValue(string(*team.Description))
 	}
 	data.ScopeMrn = types.StringValue(string(team.ScopeMrn))
-	data.CreatedAt = types.StringValue(string(team.CreatedAt))
-	data.UpdatedAt = types.StringValue(string(team.UpdatedAt))
 
 	tflog.Trace(ctx, "created team", map[string]interface{}{
 		"mrn": data.Mrn.ValueString(),
@@ -208,8 +196,6 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		data.Description = types.StringNull()
 	}
 	data.ScopeMrn = types.StringValue(string(team.ScopeMrn))
-	data.CreatedAt = types.StringValue(string(team.CreatedAt))
-	data.UpdatedAt = types.StringValue(string(team.UpdatedAt))
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -245,7 +231,6 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	} else {
 		data.Description = types.StringNull()
 	}
-	data.UpdatedAt = types.StringValue(string(team.UpdatedAt))
 
 	tflog.Trace(ctx, "updated team", map[string]interface{}{
 		"mrn": data.Mrn.ValueString(),
