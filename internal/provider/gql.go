@@ -1111,3 +1111,149 @@ func (c *ExtendedGqlClient) ApplyException(
 
 	return c.Mutate(ctx, &applyException, input, nil)
 }
+
+type CreateTeamInput struct {
+	Id          *mondoov1.String `json:"id,omitempty"`
+	Name        mondoov1.String  `json:"name"`
+	Description mondoov1.String  `json:"description"`
+	ScopeMrn    mondoov1.String  `json:"scopeMrn"`
+}
+
+type UpdateTeamInput struct {
+	Mrn         mondoov1.String `json:"mrn"`
+	Name        mondoov1.String `json:"name"`
+	Description mondoov1.String `json:"description"`
+}
+
+type TeamPayload struct {
+	Id          mondoov1.String `json:"id"`
+	Mrn         mondoov1.String `json:"mrn"`
+	Name        mondoov1.String `json:"name"`
+	Description mondoov1.String `json:"description"`
+	ScopeMrn    mondoov1.String `json:"scopeMrn"`
+	CreatedAt   mondoov1.String `json:"createdAt"`
+	UpdatedAt   mondoov1.String `json:"updatedAt"`
+}
+
+type AddTeamExternalGroupMappingInput struct {
+	TeamMrn    mondoov1.String `json:"teamMrn"`
+	ExternalId mondoov1.String `json:"externalId"`
+}
+
+type TeamExternalGroupMappingPayload struct {
+	Mrn        mondoov1.String `json:"mrn"`
+	Team       TeamPayload     `json:"team"`
+	ExternalId mondoov1.String `json:"externalId"`
+	CreatedAt  mondoov1.String `json:"createdAt"`
+}
+
+func (c *ExtendedGqlClient) CreateTeam(ctx context.Context, input CreateTeamInput) (TeamPayload, error) {
+	var createMutation struct {
+		CreateTeam TeamPayload `graphql:"createTeam(input: $input)"`
+	}
+
+	tflog.Trace(ctx, "CreateTeamInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	err := c.Mutate(ctx, &createMutation, input, nil)
+	return createMutation.CreateTeam, err
+}
+
+func (c *ExtendedGqlClient) GetTeam(ctx context.Context, mrn string) (TeamPayload, error) {
+	var query struct {
+		Team TeamPayload `graphql:"team(mrn: $mrn)"`
+	}
+	variables := map[string]interface{}{
+		"mrn": mondoov1.String(mrn),
+	}
+
+	tflog.Trace(ctx, "GetTeam", map[string]interface{}{
+		"mrn": mrn,
+	})
+
+	err := c.Query(ctx, &query, variables)
+	return query.Team, err
+}
+
+func (c *ExtendedGqlClient) UpdateTeam(ctx context.Context, input UpdateTeamInput) (TeamPayload, error) {
+	var updateMutation struct {
+		UpdateTeam TeamPayload `graphql:"updateTeam(input: $input)"`
+	}
+
+	tflog.Trace(ctx, "UpdateTeamInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	err := c.Mutate(ctx, &updateMutation, input, nil)
+	return updateMutation.UpdateTeam, err
+}
+
+func (c *ExtendedGqlClient) DeleteTeam(ctx context.Context, mrn string) error {
+	var deleteMutation struct {
+		DeleteTeam mondoov1.Boolean `graphql:"deleteTeam(mrn: $mrn)"`
+	}
+	variables := map[string]interface{}{
+		"mrn": mondoov1.String(mrn),
+	}
+
+	tflog.Trace(ctx, "DeleteTeam", map[string]interface{}{
+		"mrn": mrn,
+	})
+
+	return c.Mutate(ctx, &deleteMutation, nil, variables)
+}
+
+func (c *ExtendedGqlClient) AddTeamExternalGroupMapping(ctx context.Context, input AddTeamExternalGroupMappingInput) (TeamExternalGroupMappingPayload, error) {
+	var mutation struct {
+		AddTeamExternalGroupMapping TeamExternalGroupMappingPayload `graphql:"addTeamExternalGroupMapping(input: $input)"`
+	}
+	err := c.Mutate(ctx, &mutation, input, nil)
+	return mutation.AddTeamExternalGroupMapping, err
+}
+
+func (c *ExtendedGqlClient) GetTeamExternalGroupMapping(ctx context.Context, mrn string) (TeamExternalGroupMappingPayload, error) {
+	var query struct {
+		TeamExternalGroupMapping TeamExternalGroupMappingPayload `graphql:"teamExternalGroupMapping(mrn: $mrn)"`
+	}
+	variables := map[string]interface{}{
+		"mrn": mondoov1.String(mrn),
+	}
+	err := c.Query(ctx, &query, variables)
+	return query.TeamExternalGroupMapping, err
+}
+
+func (c *ExtendedGqlClient) RemoveTeamExternalGroupMapping(ctx context.Context, mrn string) error {
+	var mutation struct {
+		RemoveTeamExternalGroupMapping mondoov1.Boolean `graphql:"removeTeamExternalGroupMapping(mrn: $input)"`
+	}
+
+	return c.Mutate(ctx, &mutation, mondoov1.String(mrn), nil)
+}
+
+type RoleInput struct {
+	Mrn mondoov1.String `json:"mrn"`
+}
+
+type SetRoleInput struct {
+	EntityMrn mondoov1.String `json:"entityMrn"`
+	Roles     []RoleInput     `json:"roles"`
+}
+
+type SetRolesInput struct {
+	ScopeMrn mondoov1.String `json:"scopeMrn"`
+	Updates  []SetRoleInput  `json:"updates"`
+}
+
+type SetRolesPayload struct {
+	Mrns   []mondoov1.String `json:"mrns"`
+	Errors mondoov1.String   `json:"errors"`
+}
+
+func (c *ExtendedGqlClient) SetRoles(ctx context.Context, input SetRolesInput) (SetRolesPayload, error) {
+	var mutation struct {
+		SetRoles SetRolesPayload `graphql:"setRoles(input: $input)"`
+	}
+	err := c.Mutate(ctx, &mutation, input, nil)
+	return mutation.SetRoles, err
+}
