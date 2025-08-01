@@ -105,7 +105,7 @@ jobs:
           TOKEN:  ${{ secrets.WIF_API_TOKEN }}
           PR_REF: repo:mondoohq/terraform-provider-mondoo:pull_request
         run: |
-          curl https://api.edge.mondoo.com/query -H "authorization: Bearer $TOKEN" -H "content-type: application/json"  --data-raw $'{"operationName":"CreateWIFAuthBinding","variables":{"input":{"scopeMrn":"//captain.api.mondoo.app/organizations/relaxed-khayyam-961566","issuerUri":"https://token.actions.githubusercontent.com","subject":"'"${PR_REF}"'","expiration":3600,"name":"pullrequest-test-wif","description":"pull request wif test"}},"query":"mutation CreateWIFAuthBinding($input: CreateWIFAuthBindingInput) {  createWIFAuthBinding(input: $input) {    binding {      mrn      __typename    }    config {      universeDomain      scopes      type      audience      subjectTokenType      issuerUri      __typename    }    __typename  }}"}'
+          curl https://api.edge.mondoo.com/query -H "authorization: Bearer $TOKEN" -H "content-type: application/json"  --data-raw $'{"operationName":"CreateWIFAuthBinding","variables":{"input":{"scopeMrn":"//captain.api.mondoo.app/organizations/relaxed-khayyam-961566","roles":["//iam.api.mondoo.app/roles/owner"],"issuerUri":"https://token.actions.githubusercontent.com","subject":"'"${PR_REF}"'","expiration":3600,"name":"pullrequest-test-wif","description":"pull request wif test"}},"query":"mutation CreateWIFAuthBinding($input: CreateWIFAuthBindingInput) {  createWIFAuthBinding(input: $input) {    binding {      mrn      __typename    }    config {      universeDomain      scopes      type      audience      subjectTokenType      issuerUri      __typename    }    __typename  }}"}'
 
       - name: Create WIF binding for main branch 
         if: github.ref == 'refs/heads/main'
@@ -114,16 +114,18 @@ jobs:
           TOKEN:  ${{ secrets.WIF_API_TOKEN }}
           MAIN_REF: repo:mondoohq/terraform-provider-mondoo:ref:refs/heads/main
         run: |
-          curl https://api.edge.mondoo.com/query -H "authorization: Bearer $TOKEN" -H "content-type: application/json"  --data-raw $'{"operationName":"CreateWIFAuthBinding","variables":{"input":{"scopeMrn":"//captain.api.mondoo.app/organizations/relaxed-khayyam-961566","issuerUri":"https://token.actions.githubusercontent.com","subject":"'"${MAIN_REF}"'","expiration":3600,"name":"main-branch-test-wif","description":"main branch wif test"}},"query":"mutation CreateWIFAuthBinding($input: CreateWIFAuthBindingInput) {  createWIFAuthBinding(input: $input) {    binding {      mrn      __typename    }    config {      universeDomain      scopes      type      audience      subjectTokenType      issuerUri      __typename    }    __typename  }}"}'
+          curl https://api.edge.mondoo.com/query -H "authorization: Bearer $TOKEN" -H "content-type: application/json"  --data-raw $'{"operationName":"CreateWIFAuthBinding","variables":{"input":{"scopeMrn":"//captain.api.mondoo.app/organizations/relaxed-khayyam-961566","roles":["//iam.api.mondoo.app/roles/owner"],"issuerUri":"https://token.actions.githubusercontent.com","subject":"'"${MAIN_REF}"'","expiration":3600,"name":"main-branch-test-wif","description":"main branch wif test"}},"query":"mutation CreateWIFAuthBinding($input: CreateWIFAuthBindingInput) {  createWIFAuthBinding(input: $input) {    binding {      mrn      __typename    }    config {      universeDomain      scopes      type      audience      subjectTokenType      issuerUri      __typename    }    __typename  }}"}'
 
       - name: Create WIF binding for release
         continue-on-error: true # we will fail on duplicates and non-release refs
+        if: github.event_name == 'release'
         env:
           TOKEN:  ${{ secrets.WIF_API_TOKEN }}
           FULL_REF: repo:mondoohq/terraform-provider-mondoo:ref:${{ github.ref }}
         run: |
           echo "using REF: " $FULL_REF
-          curl https://api.edge.mondoo.com/query -H "authorization: Bearer $TOKEN" -H "content-type: application/json"  --data-raw $'{"operationName":"CreateWIFAuthBinding","variables":{"input":{"scopeMrn":"//captain.api.mondoo.app/organizations/relaxed-khayyam-961566","issuerUri":"https://token.actions.githubusercontent.com","subject":"'"${FULL_REF}"'","expiration":3600,"name":"release-test-wif","description":"pre-release wif test"}},"query":"mutation CreateWIFAuthBinding($input: CreateWIFAuthBindingInput) {  createWIFAuthBinding(input: $input) {    binding {      mrn      __typename    }    config {      universeDomain      scopes      type      audience      subjectTokenType      issuerUri      __typename    }    __typename  }}"}'
+          curl https://api.edge.mondoo.com/query -H "authorization: Bearer $TOKEN" -H "content-type: application/json"  --data-raw $'{"operationName":"CreateWIFAuthBinding","variables":{"input":{"scopeMrn":"//captain.api.mondoo.app/organizations/relaxed-khayyam-961566","roles":["//iam.api.mondoo.app/roles/owner"],"issuerUri":"https://token.actions.githubusercontent.com","subject":"'"${FULL_REF}"'","expiration":3600,"name":"release-test-wif","description":"pre-release wif test"}},"query":"mutation CreateWIFAuthBinding($input: CreateWIFAuthBindingInput) {  createWIFAuthBinding(input: $input) {    binding {      mrn      __typename    }    config {      universeDomain      scopes      type      audience      subjectTokenType      issuerUri      __typename    }    __typename  }}"}'
+      
       - name: Run terraform using the WIF binding config
         run: |
           export JWT_TOKEN=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=vjtest" | jq -r '.value')
