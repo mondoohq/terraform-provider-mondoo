@@ -132,3 +132,4 @@ jobs:
           cat $(pwd)/internal/provider/testdata/test-wif-tf.tf > /tmp/main.tf
           cd /tmp && terraform init && terraform apply -auto-approve
           if [ $(echo $?) != 0 ]; then echo "failed to run apply" exit 1; fi
+          cd /tmp && terraform destroy -auto-approve
