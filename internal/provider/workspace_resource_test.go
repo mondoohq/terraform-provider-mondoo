@@ -12,34 +12,46 @@ import (
 )
 
 func TestAccWorkspaceResource(t *testing.T) {
-	// Generate a random name for the workspace to ensure test isolation
-	minV := 1000
-	maxV := 3000
-	randName := fmt.Sprintf("test-ws-%d", rand.Intn(maxV-minV)+minV)
-	randNameUpdated := fmt.Sprintf("%s-updated", randName)
+	// Generate random names for each resource instance to avoid state conflicts
+	randName1 := fmt.Sprintf("test-ws-%d", rand.Intn(10000))
+	randName1Updated := fmt.Sprintf("%s-updated", randName1)
+
+	randName2 := fmt.Sprintf("test-ws-prov-%d", rand.Intn(10000))
+	randName2Updated := fmt.Sprintf("%s-updated", randName2)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
+			// Create and Read testing
 			{
-				Config: testAccWorkspaceResourceConfig(accSpace.ID(), randName, "development"),
+				Config: testAccWorkspaceResourceConfig(accSpace.ID(), randName1, "development"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName1),
 					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
 				),
 			},
+			// Update and Read testing
 			{
-				Config: testAccWorkspaceResourceConfig(accSpace.ID(), randNameUpdated, "production"),
+				Config: testAccWorkspaceResourceConfig(accSpace.ID(), randName1Updated, "production"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randNameUpdated),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName1Updated),
 					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
 				),
 			},
+			// Create and Read testing
 			{
-				Config: testAccWorkspaceResourceWithSpaceInProviderConfig(accSpace.ID(), randName, "qa"),
+				Config: testAccWorkspaceResourceWithSpaceInProviderConfig(accSpace.ID(), randName2, "qa"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName2),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
+				),
+			},
+			// Update and Read testing
+			{
+				Config: testAccWorkspaceResourceWithSpaceInProviderConfig(accSpace.ID(), randName2Updated, "production"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName2Updated),
 					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
 				),
 			},
