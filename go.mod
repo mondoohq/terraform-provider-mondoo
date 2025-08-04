@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.13.2
 	github.com/stretchr/testify v1.10.0
 	go.mondoo.com/cnquery/v11 v11.64.0
-	go.mondoo.com/mondoo-go v0.0.0-20250702005123-23558fe8001c
+	go.mondoo.com/mondoo-go v0.0.0-20250804094130-e175bd2a94e6
 	gopkg.in/yaml.v2 v2.4.0
 )
 

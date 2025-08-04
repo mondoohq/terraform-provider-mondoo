@@ -129,6 +129,7 @@ type MondooSpaceSettingsInput struct {
 	PlatformVulnerabilityConfiguration *mondoov1.PlatformVulnerabilityConfigurationInput `graphql:"platformVulnerabilityConfiguration"`
 	EolAssetsConfiguration             *mondoov1.EolAssetsConfigurationInput             `graphql:"eolAssetsConfiguration"`
 	CasesConfiguration                 *mondoov1.CasesConfigurationInput                 `graphql:"casesConfiguration"`
+	ExceptionsConfiguration            *mondoov1.ExceptionsConfigurationInput            `graphql:"exceptionsConfiguration"`
 }
 
 type orgPayload struct {
