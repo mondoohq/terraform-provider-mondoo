@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"sort"
@@ -378,10 +379,25 @@ func (r *exceptionResource) Delete(ctx context.Context, req resource.DeleteReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	exceptionId := data.ExceptionId.ValueString()
+	if data.ExceptionId.IsNull() || data.ExceptionId.ValueString() == "" {
+		tflog.Debug(ctx, "No exception ID found in state, searching for existing exception")
+		// list the exceptions using data from the state
+		finding, findingType := getFindingType(data)
+		res, err := r.client.FindException(ctx, data.ScopeMrn.ValueString(), finding, findingType)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to find existing exception. Please import the exception.", err.Error())
+			return
+		}
+		tflog.Debug(ctx, fmt.Sprintf("Found exception ID: %s", res.ExceptionID))
+		// if we find an exception, set the exception id on the data
+		data.ExceptionId = types.StringValue(res.ExceptionID)
+		exceptionId = res.ExceptionID
+	}
 
 	// Delete API call logic
-	tflog.Debug(ctx, fmt.Sprintf("Deleting exception for scope %s", data.ScopeMrn.ValueString()))
-	err := r.client.DeleteExceptions(ctx, []string{data.ExceptionId.ValueString()}, data.ScopeMrn.ValueString())
+	tflog.Debug(ctx, fmt.Sprintf("Deleting exception %s for scope %s", exceptionId, data.ScopeMrn.ValueString()))
+	err := r.client.DeleteExceptions(ctx, []string{exceptionId}, data.ScopeMrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to delete exception", err.Error())
 		return
@@ -420,7 +436,7 @@ func (r *exceptionResource) ImportState(ctx context.Context, req resource.Import
 	data.ScopeMrn = types.StringValue(exception.ScopeMrn)
 	if exception.ValidUntil != nil {
 		t, _ := time.Parse(time.RFC3339, *exception.ValidUntil)
-		st := t.UTC().Format("2006-01-02") // Ensure the date is parsed correctly
+		st := t.UTC().Format(time.DateOnly) // Ensure the date is parsed correctly
 		data.ValidUntil = types.StringValue(st)
 	}
 	if exception.Justification != nil {
@@ -444,14 +460,14 @@ func (r *exceptionResource) ImportState(ctx context.Context, req resource.Import
 		}
 	}
 	if len(checkMrns) > 0 {
-		l := mapToListValue(checkMrns)
+		l := slices.Collect(maps.Keys((checkMrns)))
 		sort.Strings(l)
 		data.CheckMrns = ConvertListValue(l)
 	} else {
 		data.CheckMrns = ConvertListValue([]string{})
 	}
 	if len(vulnMrns) > 0 {
-		l := mapToListValue(vulnMrns)
+		l := slices.Collect(maps.Keys((vulnMrns)))
 		sort.Strings(l)
 		data.VulnerabilityMrns = ConvertListValue(l)
 	} else {
@@ -460,12 +476,4 @@ func (r *exceptionResource) ImportState(ctx context.Context, req resource.Import
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func mapToListValue(m map[string]bool) []string {
-	vals := []string{}
-	for k := range m {
-		vals = append(vals, k)
-	}
-	return vals
 }
