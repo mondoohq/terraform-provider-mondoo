@@ -5,51 +5,53 @@ package provider
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccWorkspaceResource(t *testing.T) {
+	// Generate random names for each resource instance to avoid state conflicts
+	randName1 := fmt.Sprintf("test-ws-%d", rand.Intn(10000))
+	randName1Updated := fmt.Sprintf("%s-updated", randName1)
+
+	randName2 := fmt.Sprintf("test-ws-prov-%d", rand.Intn(10000))
+	randName2Updated := fmt.Sprintf("%s-updated", randName2)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccWorkspaceResourceConfig(accSpace.ID(), "my test workspace", "development"),
+				Config: testAccWorkspaceResourceConfig(accSpace.ID(), randName1, "development"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", "my test workspace"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName1),
 					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
 				),
 			},
-			{
-				Config: testAccWorkspaceResourceWithSpaceInProviderConfig(accSpace.ID(), "some workspace", "qa"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", "some workspace"),
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
-				),
-			},
-			// ImportState testing
-			// @afiune this doesn't work since most of our resources doesn't have the `id` attribute
-			// if we add it, instead of the `mrn` or as a copy, this import test will work
-			// {
-			// ResourceName:      "mondoo_workspace.test",
-			// ImportState:       true,
-			// ImportStateVerify: true,
-			// },
 			// Update and Read testing
 			{
-				Config: testAccWorkspaceResourceConfig(accSpace.ID(), "my updated workspace", "production"),
+				Config: testAccWorkspaceResourceConfig(accSpace.ID(), randName1Updated, "production"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", "my updated workspace"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName1Updated),
 					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
 				),
 			},
+			// Create and Read testing
 			{
-				Config: testAccWorkspaceResourceWithSpaceInProviderConfig(accSpace.ID(), "updated workspace", "production"),
+				Config: testAccWorkspaceResourceWithSpaceInProviderConfig(accSpace.ID(), randName2, "qa"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", "updated workspace"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName2),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
+				),
+			},
+			// Update and Read testing
+			{
+				Config: testAccWorkspaceResourceWithSpaceInProviderConfig(accSpace.ID(), randName2Updated, "production"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName2Updated),
 					resource.TestCheckResourceAttr("mondoo_workspace.test", "space_id", accSpace.ID()),
 				),
 			},

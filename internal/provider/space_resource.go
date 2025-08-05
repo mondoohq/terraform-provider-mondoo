@@ -54,6 +54,7 @@ type SpaceSettingsInput struct {
 	PlatformVulnerabilityConfiguration *PlatformVulnerabilityConfiguration `tfsdk:"platform_vulnerability_configuration"`
 	EolAssetsConfiguration             *EolAssetsConfiguration             `tfsdk:"eol_assets_configuration"`
 	CasesConfiguration                 *CasesConfiguration                 `tfsdk:"cases_configuration"`
+	ExceptionsConfiguration            *ExceptionsConfiguration            `tfsdk:"exceptions_configuration"`
 }
 
 type TerminatedAssetsConfiguration struct {
@@ -83,6 +84,12 @@ type CasesConfiguration struct {
 	AggregationWindow types.Int32 `tfsdk:"aggregation_window"`
 }
 
+type ExceptionsConfiguration struct {
+	RequireApproval           types.Bool `tfsdk:"require_approval"`
+	AllowIndefiniteValidUntil types.Bool `tfsdk:"allow_indefinite_valid_until"`
+	AllowSelfApproval         types.Bool `tfsdk:"allow_self_approval"`
+}
+
 func (r *SpaceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_space"
 }
@@ -95,6 +102,11 @@ func SpaceSettingsInputAttrTypes() map[string]attr.Type {
 		"platform_vulnerability_configuration":  types.ObjectType{AttrTypes: map[string]attr.Type{"enabled": types.BoolType}},
 		"eol_assets_configuration":              types.ObjectType{AttrTypes: map[string]attr.Type{"enabled": types.BoolType, "months_in_advance": types.Int32Type}},
 		"cases_configuration":                   types.ObjectType{AttrTypes: map[string]attr.Type{"auto_create": types.BoolType, "aggregation_window": types.Int32Type}},
+		"exceptions_configuration": types.ObjectType{AttrTypes: map[string]attr.Type{
+			"require_approval":             types.BoolType,
+			"allow_indefinite_valid_until": types.BoolType,
+			"allow_self_approval":          types.BoolType,
+		}},
 	}
 }
 
@@ -268,6 +280,31 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 								Optional:            true,
 								Computed:            true,
 								MarkdownDescription: "Aggregate findings for the same asset within this window. The value is specified in hours. 0 means no aggregation.",
+							},
+						},
+					},
+					"exceptions_configuration": schema.SingleNestedAttribute{
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Exceptions configuration for the space.",
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
+						Attributes: map[string]schema.Attribute{
+							"require_approval": schema.BoolAttribute{
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Whether to require approval for exceptions.",
+							},
+							"allow_indefinite_valid_until": schema.BoolAttribute{
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Whether to allow creation of exception groups with indefinite valid until.",
+							},
+							"allow_self_approval": schema.BoolAttribute{
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Whether a user can approve their own exception requests.",
 							},
 						},
 					},
@@ -527,6 +564,7 @@ func ExpandSpaceSettings(settings *SpaceSettingsInput) *mondoov1.SpaceSettingsIn
 		PlatformVulnerabilityConfiguration: expandPlatformVulnConfig(settings.PlatformVulnerabilityConfiguration),
 		EolAssetsConfiguration:             expandEolAssetsConfig(settings.EolAssetsConfiguration),
 		CasesConfiguration:                 expandCasesConfig(settings.CasesConfiguration),
+		ExceptionsConfiguration:            expandExceptionsConfig(settings.ExceptionsConfiguration),
 	}
 }
 
@@ -626,6 +664,33 @@ func expandCasesConfig(cfg *CasesConfiguration) *mondoov1.CasesConfigurationInpu
 	return input
 }
 
+func expandExceptionsConfig(cfg *ExceptionsConfiguration) *mondoov1.ExceptionsConfigurationInput {
+	if cfg == nil {
+		return nil
+	}
+
+	input := &mondoov1.ExceptionsConfigurationInput{}
+	empty := true
+
+	if !cfg.RequireApproval.IsNull() {
+		input.RequireApproval = mondoov1.NewBooleanPtr(mondoov1.Boolean(cfg.RequireApproval.ValueBool()))
+		empty = false
+	}
+	if !cfg.AllowIndefiniteValidUntil.IsNull() {
+		input.AllowIndefiniteValidUntil = mondoov1.NewBooleanPtr(mondoov1.Boolean(cfg.AllowIndefiniteValidUntil.ValueBool()))
+		empty = false
+	}
+	if !cfg.AllowSelfApproval.IsNull() {
+		input.AllowSelfApproval = mondoov1.NewBooleanPtr(mondoov1.Boolean(cfg.AllowSelfApproval.ValueBool()))
+		empty = false
+	}
+
+	if empty {
+		return nil
+	}
+	return input
+}
+
 func FlattenSpaceSettingsInput(input *MondooSpaceSettingsInput) *SpaceSettingsInput {
 	if input == nil {
 		return &SpaceSettingsInput{}
@@ -638,6 +703,7 @@ func FlattenSpaceSettingsInput(input *MondooSpaceSettingsInput) *SpaceSettingsIn
 		PlatformVulnerabilityConfiguration: flattenPlatformVulnConfig(input.PlatformVulnerabilityConfiguration),
 		EolAssetsConfiguration:             flattenEolAssetsConfig(input.EolAssetsConfiguration),
 		CasesConfiguration:                 flattenCasesConfig(input.CasesConfiguration),
+		ExceptionsConfiguration:            flattenExceptionsConfig(input.ExceptionsConfiguration),
 	}
 }
 
@@ -718,6 +784,29 @@ func flattenCasesConfig(in *mondoov1.CasesConfigurationInput) *CasesConfiguratio
 		out.AggregationWindow = types.Int32Value(int32(*in.AggregationWindow))
 	} else {
 		out.AggregationWindow = types.Int32Null()
+	}
+	return out
+}
+
+func flattenExceptionsConfig(in *mondoov1.ExceptionsConfigurationInput) *ExceptionsConfiguration {
+	if in == nil {
+		return nil
+	}
+	out := &ExceptionsConfiguration{}
+	if in.RequireApproval != nil {
+		out.RequireApproval = types.BoolValue(bool(*in.RequireApproval))
+	} else {
+		out.RequireApproval = types.BoolNull()
+	}
+	if in.AllowIndefiniteValidUntil != nil {
+		out.AllowIndefiniteValidUntil = types.BoolValue(bool(*in.AllowIndefiniteValidUntil))
+	} else {
+		out.AllowIndefiniteValidUntil = types.BoolNull()
+	}
+	if in.AllowSelfApproval != nil {
+		out.AllowSelfApproval = types.BoolValue(bool(*in.AllowSelfApproval))
+	} else {
+		out.AllowSelfApproval = types.BoolNull()
 	}
 	return out
 }

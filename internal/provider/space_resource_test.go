@@ -111,14 +111,19 @@ func TestAccSpaceResourceWithSettings(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Create and Read testing
+			// Create and Read testing with all settings enabled
 			{
 				Config: testAccSpaceResourceConfigWithSettings(orgID, "one",
-					true, true, true, true, true, true,
+					true, true, true, true, true, true, true, true, true,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_space.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_space.test", "org_id", orgID),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.terminated_assets_configuration.cleanup", "true"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.garbage_collect_assets_configuration.enabled", "true"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.exceptions_configuration.require_approval", "true"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.exceptions_configuration.allow_indefinite_valid_until", "true"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.exceptions_configuration.allow_self_approval", "true"),
 				),
 			},
 			// ImportState testing
@@ -127,13 +132,18 @@ func TestAccSpaceResourceWithSettings(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Update and Read testing
+			// Update and Read testing with all settings disabled
 			{
 				Config: testAccSpaceResourceConfigWithSettings(orgID, "two",
-					false, false, false, false, false, false,
+					false, false, false, false, false, false, false, false, false,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_space.test", "name", "two"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.terminated_assets_configuration.cleanup", "false"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.garbage_collect_assets_configuration.enabled", "false"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.exceptions_configuration.require_approval", "false"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.exceptions_configuration.allow_indefinite_valid_until", "false"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "space_settings.exceptions_configuration.allow_self_approval", "false"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -142,7 +152,8 @@ func TestAccSpaceResourceWithSettings(t *testing.T) {
 }
 
 func testAccSpaceResourceConfigWithSettings(resourceOrgID string, name string,
-	terminated, unused, garbage, vuln, eol, cases bool,
+	terminated, unused, garbage, vuln, eol, cases,
+	requireApproval, allowIndefinite, allowSelfApproval bool,
 ) string {
 	return fmt.Sprintf(`
 resource "mondoo_space" "test" {
@@ -171,9 +182,15 @@ resource "mondoo_space" "test" {
       auto_create        = %[8]t
       aggregation_window = 0
     }
+    exceptions_configuration = {
+      require_approval             = %[9]t
+      allow_indefinite_valid_until = %[10]t
+      allow_self_approval          = %[11]t
+    }
   }
 }
 `, resourceOrgID, name,
 		terminated, unused, garbage, vuln, eol, cases,
+		requireApproval, allowIndefinite, allowSelfApproval,
 	)
 }

@@ -89,6 +89,7 @@ Optional:
 
 - `cases_configuration` (Attributes) Cases configuration for the space. (see [below for nested schema](#nestedatt--space_settings--cases_configuration))
 - `eol_assets_configuration` (Attributes) EOL platform configuration for the space. (see [below for nested schema](#nestedatt--space_settings--eol_assets_configuration))
+- `exceptions_configuration` (Attributes) Exceptions configuration for the space. (see [below for nested schema](#nestedatt--space_settings--exceptions_configuration))
 - `garbage_collect_assets_configuration` (Attributes) Garbage collect assets configuration for the space. (see [below for nested schema](#nestedatt--space_settings--garbage_collect_assets_configuration))
 - `platform_vulnerability_configuration` (Attributes) Platform vulnerability configuration for the space. (see [below for nested schema](#nestedatt--space_settings--platform_vulnerability_configuration))
 - `terminated_assets_configuration` (Attributes) Terminated assets configuration for the space. (see [below for nested schema](#nestedatt--space_settings--terminated_assets_configuration))
@@ -110,6 +111,16 @@ Optional:
 
 - `enabled` (Boolean) Whether to enable EOL assets analysis.
 - `months_in_advance` (Number) How many months in advance should EOL be applied as risk factor.
+
+
+<a id="nestedatt--space_settings--exceptions_configuration"></a>
+### Nested Schema for `space_settings.exceptions_configuration`
+
+Optional:
+
+- `allow_indefinite_valid_until` (Boolean) Whether to allow creation of exception groups with indefinite valid until.
+- `allow_self_approval` (Boolean) Whether a user can approve their own exception requests.
+- `require_approval` (Boolean) Whether to require approval for exceptions.
 
 
 <a id="nestedatt--space_settings--garbage_collect_assets_configuration"></a>
