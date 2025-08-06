@@ -678,6 +678,10 @@ type GithubConfigurationOptions struct {
 	ReposAllowList []string
 	ReposDenyList  []string
 }
+type GcsBucketConfigurationOptions struct {
+	Bucket string
+	Output string
+}
 
 type GitlabConfigurationOptions struct {
 	Group                string
