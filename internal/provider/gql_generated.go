@@ -12,6 +12,7 @@ type ClientIntegrationConfigurationOptions struct {
 	GcpConfigurationOptions               GcpConfigurationOptions               `graphql:"... on GcpConfigurationOptions"`
 	GithubConfigurationOptions            GithubConfigurationOptions            `graphql:"... on GithubConfigurationOptions"`
 	GitlabConfigurationOptions            GitlabConfigurationOptions            `graphql:"... on GitlabConfigurationOptions"`
+	GcsBucketConfigurationOptions         GcsBucketConfigurationOptions         `graphql:"... on GcsBucketConfigurationOptions"`
 	HostConfigurationOptions              HostConfigurationOptions              `graphql:"... on HostConfigurationOptions"`
 	HostedAwsConfigurationOptions         HostedAwsConfigurationOptions         `graphql:"... on HostedAwsConfigurationOptions"`
 	JiraConfigurationOptions              JiraConfigurationOptions              `graphql:"... on JiraConfigurationOptions"`
