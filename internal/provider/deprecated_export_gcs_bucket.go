@@ -18,22 +18,41 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &ExportGcsBucketResource{}
+var _ resource.Resource = &GcsBucketExportResource{}
 
-func NewMondooExportGSCBucketResource() resource.Resource {
-	return &ExportGcsBucketResource{}
+func NewExportGSCBucketResource() resource.Resource {
+	return &GcsBucketExportResource{}
 }
 
-type ExportGcsBucketResource struct {
+type GcsBucketExportResource struct {
 	client *ExtendedGqlClient
 }
 
-func (r *ExportGcsBucketResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_export_gcs_bucket"
+type GcsBucketExportResourceModel struct {
+	// scope
+	SpaceID types.String `tfsdk:"space_id"`
+
+	// integration details
+	Mrn          types.String `tfsdk:"mrn"`
+	Name         types.String `tfsdk:"name"`
+	BucketName   types.String `tfsdk:"bucket_name"`
+	ExportFormat types.String `tfsdk:"export_format"`
+
+	// credentials
+	Credential gcsBucketExportCredentialModel `tfsdk:"credentials"`
 }
 
-func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+type gcsBucketExportCredentialModel struct {
+	PrivateKey types.String `tfsdk:"private_key"`
+}
+
+func (r *GcsBucketExportResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_gcs_bucket_export"
+}
+
+func (r *GcsBucketExportResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		DeprecationMessage: "Use `mondoo_export_gcs_bucket` instead.",
 		MarkdownDescription: `Export data to a Google Cloud Storage bucket.
 			## Example Usage
 			` + "```hcl" + `
@@ -103,7 +122,7 @@ func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.Schem
 	}
 }
 
-func (r *ExportGcsBucketResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *GcsBucketExportResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -123,7 +142,7 @@ func (r *ExportGcsBucketResource) Configure(ctx context.Context, req resource.Co
 	r.client = client
 }
 
-func (r *ExportGcsBucketResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *GcsBucketExportResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data GcsBucketExportResourceModel
 
 	// Read the plan data into the model
@@ -174,7 +193,7 @@ func (r *ExportGcsBucketResource) Create(ctx context.Context, req resource.Creat
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ExportGcsBucketResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *GcsBucketExportResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data GcsBucketExportResourceModel
 
 	// Read Terraform prior state data into the model
@@ -190,7 +209,7 @@ func (r *ExportGcsBucketResource) Read(ctx context.Context, req resource.ReadReq
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ExportGcsBucketResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *GcsBucketExportResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data GcsBucketExportResourceModel
 
 	// Read Terraform plan data into the model
@@ -229,7 +248,7 @@ func (r *ExportGcsBucketResource) Update(ctx context.Context, req resource.Updat
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ExportGcsBucketResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *GcsBucketExportResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data GcsBucketExportResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -244,7 +263,7 @@ func (r *ExportGcsBucketResource) Delete(ctx context.Context, req resource.Delet
 	}
 }
 
-func (r *ExportGcsBucketResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *GcsBucketExportResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	integration, ok := r.client.ImportIntegration(ctx, req, resp)
 	if !ok {
 		return
