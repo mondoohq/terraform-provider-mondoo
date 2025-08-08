@@ -225,6 +225,7 @@ func (p *MondooProvider) Resources(_ context.Context) []func() resource.Resource
 		NewIAMBindingResource,
 		NewExportGSCBucketResource,
 		NewExportS3BucketResource,
+		NewMondooExportGSCBucketResource,
 	}...)
 }
 

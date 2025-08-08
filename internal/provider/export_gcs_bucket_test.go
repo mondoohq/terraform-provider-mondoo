@@ -11,35 +11,35 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-func TestAccExportResource(t *testing.T) {
+func TestAccExportGCSBucketResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testGCSExportIntegration("bucket-export-integration", "my-bucket-name", accSpace.ID(), "CSV", "ServiceAccount_1"),
+				Config: testExportGCSIntegration("bucket-export-integration", "my-bucket-name", accSpace.ID(), "CSV", "ServiceAccount_1"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_gcs_bucket_export.test", "name", "bucket-export-integration"),
-					resource.TestCheckResourceAttr("mondoo_gcs_bucket_export.test", "bucket_name", "my-bucket-name"),
-					resource.TestCheckResourceAttr("mondoo_gcs_bucket_export.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_export_gcs_bucket.test", "name", "bucket-export-integration"),
+					resource.TestCheckResourceAttr("mondoo_export_gcs_bucket.test", "bucket_name", "my-bucket-name"),
+					resource.TestCheckResourceAttr("mondoo_export_gcs_bucket.test", "space_id", accSpace.ID()),
 				),
 			},
 			// Update and Read testing
 			{
-				Config: testGCSExportIntegration("bucket-export-integration-updated", "my-bucket-name-updated", accSpace.ID(), "JSONL", "ServiceAccount_2"),
+				Config: testExportGCSIntegration("bucket-export-integration-updated", "my-bucket-name-updated", accSpace.ID(), "JSONL", "ServiceAccount_2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_gcs_bucket_export.test", "name", "bucket-export-integration-updated"),
-					resource.TestCheckResourceAttr("mondoo_gcs_bucket_export.test", "bucket_name", "my-bucket-name-updated"),
-					resource.TestCheckResourceAttr("mondoo_gcs_bucket_export.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_export_gcs_bucket.test", "name", "bucket-export-integration-updated"),
+					resource.TestCheckResourceAttr("mondoo_export_gcs_bucket.test", "bucket_name", "my-bucket-name-updated"),
+					resource.TestCheckResourceAttr("mondoo_export_gcs_bucket.test", "space_id", accSpace.ID()),
 				),
 			},
 			// import testing
 			{
-				ResourceName: "mondoo_gcs_bucket_export.test",
+				ResourceName: "mondoo_export_gcs_bucket.test",
 				// setting the next two attributes allows the import to work in test, bc we use mrn instead of id
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					return s.RootModule().Resources["mondoo_gcs_bucket_export.test"].Primary.Attributes["mrn"], nil
+					return s.RootModule().Resources["mondoo_export_gcs_bucket.test"].Primary.Attributes["mrn"], nil
 				},
 				ImportStateVerifyIdentifierAttribute: "mrn",
 				ImportState:                          true,
@@ -50,9 +50,9 @@ func TestAccExportResource(t *testing.T) {
 	})
 }
 
-func testGCSExportIntegration(name string, bucketName string, spaceId string, output string, serviceAccount string) string {
+func testExportGCSIntegration(name string, bucketName string, spaceId string, output string, serviceAccount string) string {
 	return fmt.Sprintf(`
-	resource "mondoo_gcs_bucket_export" "test" {
+	resource "mondoo_export_gcs_bucket" "test" {
 		name         = "%s"
 		bucket_name  = "%s"
 		space_id = "%s"
