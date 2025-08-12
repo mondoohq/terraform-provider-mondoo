@@ -10,6 +10,7 @@ type ClientIntegrationConfigurationOptions struct {
 	CrowdstrikeFalconConfigurationOptions CrowdstrikeFalconConfigurationOptions `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
 	EmailConfigurationOptions             EmailConfigurationOptions             `graphql:"... on EmailConfigurationOptions"`
 	GcpConfigurationOptions               GcpConfigurationOptions               `graphql:"... on GcpConfigurationOptions"`
+	AwsS3ConfigurationOptions             AwsS3ConfigurationOptions             `graphql:"... on AwsS3ConfigurationOptions"`
 	GithubConfigurationOptions            GithubConfigurationOptions            `graphql:"... on GithubConfigurationOptions"`
 	GitlabConfigurationOptions            GitlabConfigurationOptions            `graphql:"... on GitlabConfigurationOptions"`
 	GcsBucketConfigurationOptions         GcsBucketConfigurationOptions         `graphql:"... on GcsBucketConfigurationOptions"`

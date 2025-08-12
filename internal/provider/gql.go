@@ -678,8 +678,15 @@ type GithubConfigurationOptions struct {
 	ReposAllowList []string
 	ReposDenyList  []string
 }
+
 type GcsBucketConfigurationOptions struct {
 	Bucket string
+	Output string
+}
+
+type AwsS3ConfigurationOptions struct {
+	Bucket string
+	Region string
 	Output string
 }
 
