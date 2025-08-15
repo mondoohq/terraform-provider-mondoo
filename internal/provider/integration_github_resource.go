@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -37,6 +39,9 @@ type integrationGithubResourceModel struct {
 	// integration details
 	Mrn  types.String `tfsdk:"mrn"`
 	Name types.String `tfsdk:"name"`
+
+	// force replacement on next apply to refresh credentials
+	ForceReplace types.Bool `tfsdk:"force_replace"`
 
 	Owner      types.String `tfsdk:"owner"`
 	Repository types.String `tfsdk:"repository"`
@@ -128,6 +133,15 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtMost(250),
+				},
+			},
+			"force_replace": schema.BoolAttribute{
+				MarkdownDescription: "Set to true to force replacement on next apply, useful to refresh credentials when the current value cannot be read.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
 				},
 			},
 			"owner": schema.StringAttribute{
