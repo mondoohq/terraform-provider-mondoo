@@ -677,8 +677,8 @@ type GithubConfigurationOptions struct {
 	Organization   string `graphql:"githubOrganization: organization"`
 	ReposAllowList []string
 	ReposDenyList  []string
-	DiscoverTerraform    bool
-	DiscoverK8sManifests bool
+	DiscoverTerraform    bool `graphql:"githubDiscoverTerraform: discoverTerraform"`
+	DiscoverK8sManifests bool `graphql:"githubDiscoverK8sManifests: discoverK8sManifests"`
 }
 
 type GcsBucketConfigurationOptions struct {
