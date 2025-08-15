@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccSentinelOneIntegrationResource(t *testing.T) {
@@ -58,6 +59,17 @@ func TestAccSentinelOneIntegrationResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "https://new-host"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "new-account"),
 				),
+			},
+			// Import testing
+			{
+				ResourceName: "mondoo_integration_sentinel_one.test",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_integration_sentinel_one.test"].Primary.Attributes["mrn"], nil
+				},
+				ImportStateVerifyIdentifierAttribute: "mrn",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIgnore:              []string{"credentials"},
 			},
 			// Delete testing automatically occurs in TestCase
 		},
