@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -370,8 +370,8 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 		RepositoryAllowList: allowList,
 		RepositoryDenyList:  denyList,
 		Discovery: &integrationGithubDiscoveryModel{
-			Terraform:    types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverTerraform),
-			K8sManifests: types.BoolValue(integration.ConfigurationOptions.GitlabConfigurationOptions.DiscoverK8sManifests),
+			Terraform:    types.BoolValue(integration.ConfigurationOptions.GithubConfigurationOptions.DiscoverTerraform),
+			K8sManifests: types.BoolValue(integration.ConfigurationOptions.GithubConfigurationOptions.DiscoverK8sManifests),
 		},
 		Credential: &integrationGithubCredentialModel{
 			Token: types.StringPointerValue(nil),
