@@ -41,6 +41,9 @@ resource "mondoo_integration_github" "gh_integration" {
     k8s_manifests = true
   }
 
+  # To rotate credentials or explicitly refresh an unreadable token, uncomment on the next apply:
+  # force_replace = true
+
   credentials = {
     token = var.github_token
   }
@@ -59,6 +62,7 @@ resource "mondoo_integration_github" "gh_integration" {
 ### Optional
 
 - `discovery` (Attributes) (see [below for nested schema](#nestedatt--discovery))
+- `force_replace` (Boolean) Set to true to force replacement on next apply, useful to refresh credentials when the current value cannot be read.
 - `repository` (String) GitHub repository.
 - `repository_allow_list` (List of String) List of GitHub repositories to scan.
 - `repository_deny_list` (List of String) List of GitHub repositories to exclude from scanning.
