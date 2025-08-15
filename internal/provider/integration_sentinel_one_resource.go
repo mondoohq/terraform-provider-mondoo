@@ -188,6 +188,7 @@ func (r *integrationSentinelOneResource) Create(ctx context.Context, req resourc
 	}
 
 	// trigger integration to gather results quickly after the first setup
+	// NOTE: we ignore the error since the integration state does not depend on it
 	_, err = r.client.TriggerAction(ctx,
 		string(integration.Mrn),
 		mondoov1.ActionTypeRunImport,
@@ -200,7 +201,6 @@ func (r *integrationSentinelOneResource) Create(ctx context.Context, req resourc
 					"Unable to trigger integration. Got error: %s", err,
 				),
 			)
-		return
 	}
 
 	// Save space mrn into the Terraform state.
