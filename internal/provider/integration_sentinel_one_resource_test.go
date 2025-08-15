@@ -5,9 +5,11 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccSentinelOneIntegrationResource(t *testing.T) {
@@ -15,43 +17,59 @@ func TestAccSentinelOneIntegrationResource(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
+			// Validation failure when host has no scheme
+			{
+				Config:      testAccSentinelOneIntegrationResourceConfig(accSpace.ID(), "invalid", "host-without-scheme", "account", "secret"),
+				ExpectError: regexp.MustCompile("scheme"),
+			},
 			// Create and Read testing
 			{
-				Config: testAccSentinelOneIntegrationResourceConfig(accSpace.ID(), "one", "host", "account", "secret"),
+				Config: testAccSentinelOneIntegrationResourceConfig(accSpace.ID(), "one", "https://host", "account", "secret"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "host"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "https://host"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "account"),
 				),
 			},
 			{
-				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "host", "account", "cert"),
+				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "https://host", "account", "cert"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "host"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "https://host"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "account"),
 				),
 			},
 			// Update and Read testing
 			{
-				Config: testAccSentinelOneIntegrationResourceConfig(accSpace.ID(), "three", "new-host", "new-account", "secret"),
+				Config: testAccSentinelOneIntegrationResourceConfig(accSpace.ID(), "three", "https://new-host", "new-account", "secret"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "three"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "new-host"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "https://new-host"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "new-account"),
 				),
 			},
 			{
-				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", "new-host", "new-account", "cert"),
+				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", "https://new-host", "new-account", "cert"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "four"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "new-host"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "https://new-host"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "new-account"),
 				),
+			},
+			// Import testing
+			{
+				ResourceName: "mondoo_integration_sentinel_one.test",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_integration_sentinel_one.test"].Primary.Attributes["mrn"], nil
+				},
+				ImportStateVerifyIdentifierAttribute: "mrn",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIgnore:              []string{"credentials"},
 			},
 			// Delete testing automatically occurs in TestCase
 		},

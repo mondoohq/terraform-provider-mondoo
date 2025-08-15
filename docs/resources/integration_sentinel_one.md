@@ -26,7 +26,7 @@ provider "mondoo" {
 # Setup the SentinelOne integration
 resource "mondoo_integration_sentinel_one" "example" {
   name    = "SentinelOne Integration"
-  host    = "domain.sentinelone.net"
+  host    = "https://domain.sentinelone.net"
   account = "Your Account"
 
   credentials = {
@@ -42,7 +42,7 @@ resource "mondoo_integration_sentinel_one" "example" {
 
 - `account` (String) The account ID of the SentinelOne integration.
 - `credentials` (Attributes) Credentials require one of certificate or client secret to be provided. (see [below for nested schema](#nestedatt--credentials))
-- `host` (String) The host of the SentinelOne integration.
+- `host` (String) The host of the SentinelOne integration. Must include URL scheme, e.g., https://domain.sentinelone.net.
 - `name` (String) Name of the integration.
 
 ### Optional

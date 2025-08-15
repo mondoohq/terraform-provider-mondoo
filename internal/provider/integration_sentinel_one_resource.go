@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -99,8 +100,11 @@ func (r *integrationSentinelOneResource) Schema(_ context.Context, _ resource.Sc
 			},
 			// SentinelOne options
 			"host": schema.StringAttribute{
-				MarkdownDescription: "The host of the SentinelOne integration.",
+				MarkdownDescription: "The host of the SentinelOne integration. Must include URL scheme, e.g., https://domain.sentinelone.net.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile("^https?://"), "must include URL scheme (http:// or https://)"),
+				},
 			},
 			"account": schema.StringAttribute{
 				MarkdownDescription: "The account ID of the SentinelOne integration.",
