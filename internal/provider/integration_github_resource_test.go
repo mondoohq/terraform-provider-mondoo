@@ -27,12 +27,12 @@ func TestAccGithubResource(t *testing.T) {
 			},
 			// Update and Read testing with space in provider and explicit token
 			{
-				Config: testAccGithubResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "lunalectric", "ghp_123456789012345678901234567890123456"),
+				Config: testAccGithubResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "lunalectric", "abc123token"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_github.test", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_github.test", "owner", "lunalectric"),
 					resource.TestCheckResourceAttr("mondoo_integration_github.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_integration_github.test", "credentials.token", "ghp_123456789012345678901234567890123456"),
+					resource.TestCheckResourceAttr("mondoo_integration_github.test", "credentials.token", "abc123token"),
 				),
 			},
 			// Plan-only step: setting force_replace should cause a non-empty plan (replacement)
