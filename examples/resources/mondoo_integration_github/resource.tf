@@ -26,6 +26,9 @@ resource "mondoo_integration_github" "gh_integration" {
     k8s_manifests = true
   }
 
+  # To rotate credentials or explicitly refresh an unreadable token, uncomment on the next apply:
+  # force_replace = true
+
   credentials = {
     token = var.github_token
   }
