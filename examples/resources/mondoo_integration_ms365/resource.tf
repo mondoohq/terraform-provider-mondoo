@@ -153,7 +153,7 @@ provider "mondoo" {
 
 # Setup the Azure integration
 resource "mondoo_integration_ms365" "ms365_integration" {
-  name      = "Ms365 ${local.mondoo_security_integration_name}"
+  name      = "M365 ${local.mondoo_security_integration_name}"
   tenant_id = var.tenant_id
   client_id = azuread_application.mondoo_security.client_id
   credentials = {
