@@ -288,6 +288,10 @@ func parseWIF(filename string) (*wif, error) {
 		return nil, err
 	}
 
+	if w.IssuerURI == "" {
+		return nil, errors.New("WIF configuration must contain an 'issuerUri' field")
+	}
+
 	return &w, nil
 }
 
