@@ -320,8 +320,8 @@ github.com/hashicorp/terraform-plugin-log v0.9.0 h1:i7hOA+vdAItN1/7UrfBqBwvYPQ9T
 github.com/hashicorp/terraform-plugin-log v0.9.0/go.mod h1:rKL8egZQ/eXSyDqzLUuwUYLVdlYeamldAHSxjUFADow=
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.37.0 h1:NFPMacTrY/IdcIcnUB+7hsore1ZaRWU9cnB6jFoBnIM=
 github.com/hashicorp/terraform-plugin-sdk/v2 v2.37.0/go.mod h1:QYmYnLfsosrxjCnGY1p9c7Zj6n9thnEE+7RObeYs3fA=
-github.com/hashicorp/terraform-plugin-testing v1.13.2 h1:mSotG4Odl020vRjIenA3rggwo6Kg6XCKIwtRhYgp+/M=
-github.com/hashicorp/terraform-plugin-testing v1.13.2/go.mod h1:WHQ9FDdiLoneey2/QHpGM/6SAYf4A7AZazVg7230pLE=
+github.com/hashicorp/terraform-plugin-testing v1.13.3 h1:QLi/khB8Z0a5L54AfPrHukFpnwsGL8cwwswj4RZduCo=
+github.com/hashicorp/terraform-plugin-testing v1.13.3/go.mod h1:WHQ9FDdiLoneey2/QHpGM/6SAYf4A7AZazVg7230pLE=
 github.com/hashicorp/terraform-registry-address v0.2.5 h1:2GTftHqmUhVOeuu9CW3kwDkRe4pcBDq0uuK5VJngU1M=
 github.com/hashicorp/terraform-registry-address v0.2.5/go.mod h1:PpzXWINwB5kuVS5CA7m1+eO2f1jKb5ZDIxrOPfpnGkg=
 github.com/hashicorp/terraform-svchost v0.1.1 h1:EZZimZ1GxdqFRinZ1tpJwVxxt49xc/S52uzrw4x0jKQ=
@@ -599,8 +599,8 @@ go.abhg.dev/goldmark/frontmatter v0.2.0/go.mod h1:XqrEkZuM57djk7zrlRUB02x8I5J0px
 go.etcd.io/etcd/api/v3 v3.5.4/go.mod h1:5GB2vv4A4AOn3yk7MftYGHkUfGtDHnEraIjym4dYz5A=
 go.etcd.io/etcd/client/pkg/v3 v3.5.4/go.mod h1:IJHfcCEKxYu1Os13ZdwCwIUTUVGYTSAM3YSwc9/Ac1g=
 go.etcd.io/etcd/client/v3 v3.5.4/go.mod h1:ZaRkVgBZC+L+dLCjTcF1hRXpgZXQPOvnA/Ak/gq3kiY=
-go.mondoo.com/cnquery/v11 v11.66.1 h1:AHBTFwCCr9aJGO8lZzvBSdYxDOO3XDYNVf/GwbElRjE=
-go.mondoo.com/cnquery/v11 v11.66.1/go.mod h1:6rfarvzViSZsU+8N358cw2EF83tVPK7aUdF7Jj2DM1A=
+go.mondoo.com/cnquery/v11 v11.67.1 h1:coAFBICcPPFgm5fMkptcn+nkFhoERIydV24GwKfeNJc=
+go.mondoo.com/cnquery/v11 v11.67.1/go.mod h1:6rfarvzViSZsU+8N358cw2EF83tVPK7aUdF7Jj2DM1A=
 go.mondoo.com/mondoo-go v0.0.0-20250804094130-e175bd2a94e6 h1:onilYMbus9OLZAerbHGYu68b9uAcsC2NeCIKREdLz5U=
 go.mondoo.com/mondoo-go v0.0.0-20250804094130-e175bd2a94e6/go.mod h1:Ih8FsSC1VhLk7F3hS7Ji6nleAi29VMqRb7f555jr6SE=
 go.mondoo.com/ranger-rpc v0.7.0 h1:QZDgQ8y5e9sCS5BYjwaow1HWBfQ3UwIdfUEQ2SJRO58=
