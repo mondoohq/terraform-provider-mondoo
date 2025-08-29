@@ -114,11 +114,11 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 			"default_project": schema.StringAttribute{
-				MarkdownDescription: "Default Jira project (represented by the project key, such as `SEC` or `SECURITY`).",
+				MarkdownDescription: "Default Jira project (represented by the project key, such as `SEC` or `SECURITY`). This corresponds to the **'Select a default drift issue destination'** dropdown in the Mondoo Console.",
 				Optional:            true,
 			},
 			"auto_create": schema.BoolAttribute{
-				MarkdownDescription: "Automatically create Jira issues for Mondoo findings.",
+				MarkdownDescription: "Automatically create Jira issues for Mondoo findings. This corresponds to the **'Create drift issues in this integration'** toggle in the Mondoo Console.",
 				Optional:            true,
 			},
 			"auto_close": schema.BoolAttribute{
