@@ -72,8 +72,8 @@ func testCreateException(spaceId string, spaceMrn string, action string) string 
 		action        = "%s"
 		valid_until = "2025-09-09"
 		check_mrns = [
-			"//policy.api.mondoo.app/policies/cis-microsoft-azure-windows-server-2022-dc-level-1",
-			"//policy.api.mondoo.app/policies/cis-microsoft-azure-windows-server-2022-ms-level-1",
+			"//policy.api.mondoo.app/queries/cis-microsoft-azure-windows-server-2022--2.3.1.1",
+			"//policy.api.mondoo.app/queries/cis-microsoft-azure-windows-server-2022--2.3.1.3",
 		]
 		depends_on = [
 			mondoo_policy_assignment.cis_policy_assignment_enabled
