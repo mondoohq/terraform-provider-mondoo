@@ -60,12 +60,8 @@ resource "mondoo_integration_aws_serverless" "aws_serverless" {
     ecs_scan           = false
     cron_scan_in_hours = 24
     ec2_scan_options = {
-      ssm             = true
-      ebs_volume_scan = true
-      ebs_scan_options = {
-        target_instances_per_scanner = 5
-        max_asg_instances            = 10
-      }
+      ssm              = true
+      ebs_volume_scan  = true
       instance_connect = false
     }
   }
