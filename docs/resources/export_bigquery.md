@@ -10,8 +10,6 @@ description: |-
   name                = "enterprise-demo-BigQuery"
   dataset_id          = "project-id.dataset_id"
   service_account_key = file("service-account.json")
-  schedule            = "hourly"
-  enabled             = true
   }
 ---
 
@@ -24,8 +22,6 @@ Export data to Google BigQuery.
 				name                = "enterprise-demo-BigQuery"
 				dataset_id          = "project-id.dataset_id"
 				service_account_key = file("service-account.json")
-				schedule            = "hourly"
-				enabled             = true
 			}
 			```
 
