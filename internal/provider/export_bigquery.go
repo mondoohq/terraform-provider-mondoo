@@ -37,8 +37,6 @@ type BigQueryExportResourceModel struct {
 	Mrn       types.String `tfsdk:"mrn"`
 	Name      types.String `tfsdk:"name"`
 	DatasetID types.String `tfsdk:"dataset_id"`
-	Schedule  types.String `tfsdk:"schedule"`
-	Enabled   types.Bool   `tfsdk:"enabled"`
 
 	// credentials
 	ServiceAccountKey types.String `tfsdk:"service_account_key"`
@@ -57,8 +55,6 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 				name                = "enterprise-demo-BigQuery"
 				dataset_id          = "project-id.dataset_id"
 				service_account_key = file("service-account.json")
-				schedule            = "hourly"
-				enabled             = true
 			}
 			` + "```" + `
 		`,
@@ -171,13 +167,11 @@ func (r *ExportBigQueryResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Trigger export if enabled
-	if data.Enabled.ValueBool() {
-		_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunExport)
-		if err != nil {
-			resp.Diagnostics.AddWarning("Client Warning",
-				fmt.Sprintf("Unable to trigger export for integration. Got error: %s", err),
-			)
-		}
+	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunExport)
+	if err != nil {
+		resp.Diagnostics.AddWarning("Client Warning",
+			fmt.Sprintf("Unable to trigger export for integration. Got error: %s", err),
+		)
 	}
 
 	// Save data into the Terraform state
@@ -279,8 +273,6 @@ func (r *ExportBigQueryResource) ImportState(ctx context.Context, req resource.I
 		SpaceID:           types.StringValue(integration.SpaceID()),
 		DatasetID:         types.StringValue(integration.ConfigurationOptions.BigqueryConfigurationOptions.DatasetId),
 		ServiceAccountKey: types.StringPointerValue(nil), // Don't expose sensitive data
-		Schedule:          types.StringValue("hourly"),    // Default schedule
-		Enabled:           types.BoolValue(true),          // Default enabled
 	}
 
 	resp.State.Set(ctx, &model)

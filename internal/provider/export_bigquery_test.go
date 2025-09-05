@@ -18,24 +18,20 @@ func TestAccExportBigQueryResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testExportBigQueryIntegration("enterprise-demo-BigQuery", "project-id.dataset_id", accSpace.ID(), "hourly", true, "ServiceAccount_JSON_1"),
+				Config: testExportBigQueryIntegration("enterprise-demo-BigQuery", "project-id.dataset_id", accSpace.ID(), "ServiceAccount_JSON_1"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "name", "enterprise-demo-BigQuery"),
 					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "dataset_id", "project-id.dataset_id"),
 					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "schedule", "hourly"),
-					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "enabled", "true"),
 				),
 			},
 			// Update and Read testing
 			{
-				Config: testExportBigQueryIntegration("enterprise-demo-BigQuery-updated", "project-id.dataset_id_new", accSpace.ID(), "daily", false, "ServiceAccount_JSON_2"),
+				Config: testExportBigQueryIntegration("enterprise-demo-BigQuery-updated", "project-id.dataset_id_new", accSpace.ID(), "ServiceAccount_JSON_2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "name", "enterprise-demo-BigQuery-updated"),
 					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "dataset_id", "project-id.dataset_id_new"),
 					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "space_id", accSpace.ID()),
-					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "schedule", "daily"),
-					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "enabled", "false"),
 				),
 			},
 			// import testing
@@ -54,15 +50,13 @@ func TestAccExportBigQueryResource(t *testing.T) {
 	})
 }
 
-func testExportBigQueryIntegration(name string, datasetId string, spaceId string, schedule string, enabled bool, serviceAccountKey string) string {
+func testExportBigQueryIntegration(name string, datasetId string, spaceId string, serviceAccountKey string) string {
 	return fmt.Sprintf(`
 	resource "mondoo_export_bigquery" "test" {
 		name                = "%s"
 		dataset_id          = "%s"
 		space_id            = "%s"
-		schedule            = "%s"
-		enabled             = %t
 		service_account_key = "%s"
 	}
-	`, name, datasetId, spaceId, schedule, enabled, serviceAccountKey)
+	`, name, datasetId, spaceId, serviceAccountKey)
 }
