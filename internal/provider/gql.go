@@ -693,8 +693,7 @@ type AwsS3ConfigurationOptions struct {
 }
 
 type BigqueryConfigurationOptions struct {
-	DatasetId      string `graphql:"datasetId"`
-	ServiceAccount string `graphql:"serviceAccount"`
+	DatasetId string
 }
 
 type GitlabConfigurationOptions struct {
