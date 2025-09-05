@@ -38,8 +38,6 @@ Export data to Google BigQuery.
 
 ### Optional
 
-- `enabled` (Boolean) Whether the export is active. Defaults to true.
-- `schedule` (String) Frequency of export (e.g., hourly, daily). Defaults to hourly.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
