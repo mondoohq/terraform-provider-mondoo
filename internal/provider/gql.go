@@ -672,11 +672,11 @@ type SlackConfigurationOptions struct {
 }
 
 type GithubConfigurationOptions struct {
-	Owner          string
-	Repository     string
-	Organization   string `graphql:"githubOrganization: organization"`
-	ReposAllowList []string
-	ReposDenyList  []string
+	Owner                string
+	Repository           string
+	Organization         string `graphql:"githubOrganization: organization"`
+	ReposAllowList       []string
+	ReposDenyList        []string
 	DiscoverTerraform    bool `graphql:"githubDiscoverTerraform: discoverTerraform"`
 	DiscoverK8sManifests bool `graphql:"githubDiscoverK8sManifests: discoverK8sManifests"`
 }
@@ -690,6 +690,10 @@ type AwsS3ConfigurationOptions struct {
 	Bucket string
 	Region string
 	Output string
+}
+
+type BigqueryConfigurationOptions struct {
+	DatasetId string
 }
 
 type GitlabConfigurationOptions struct {

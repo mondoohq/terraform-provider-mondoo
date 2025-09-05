@@ -11,6 +11,7 @@ type ClientIntegrationConfigurationOptions struct {
 	EmailConfigurationOptions             EmailConfigurationOptions             `graphql:"... on EmailConfigurationOptions"`
 	GcpConfigurationOptions               GcpConfigurationOptions               `graphql:"... on GcpConfigurationOptions"`
 	AwsS3ConfigurationOptions             AwsS3ConfigurationOptions             `graphql:"... on AwsS3ConfigurationOptions"`
+	BigqueryConfigurationOptions          BigqueryConfigurationOptions          `graphql:"... on BigqueryConfigurationOptions"`
 	GithubConfigurationOptions            GithubConfigurationOptions            `graphql:"... on GithubConfigurationOptions"`
 	GitlabConfigurationOptions            GitlabConfigurationOptions            `graphql:"... on GitlabConfigurationOptions"`
 	GcsBucketConfigurationOptions         GcsBucketConfigurationOptions         `graphql:"... on GcsBucketConfigurationOptions"`
