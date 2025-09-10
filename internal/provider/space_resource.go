@@ -121,12 +121,81 @@ func ObjectToSpaceSettingsInput(ctx context.Context, obj types.Object) (*SpaceSe
 	if obj.IsNull() || obj.IsUnknown() {
 		return nil, nil
 	}
-	var result SpaceSettingsInput
-	diags := obj.As(ctx, &result, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		return nil, diags
+
+	result := &SpaceSettingsInput{}
+	attrs := obj.Attributes()
+
+	// Extract terminated_assets_configuration
+	if val, ok := attrs["terminated_assets_configuration"]; ok && !val.IsNull() && !val.IsUnknown() {
+		var terminatedConfig TerminatedAssetsConfiguration
+		diags := val.(types.Object).As(ctx, &terminatedConfig, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return nil, diags
+		}
+		result.TerminatedAssetsConfiguration = &terminatedConfig
 	}
-	return &result, nil
+
+	// Extract unused_service_accounts_configuration
+	if val, ok := attrs["unused_service_accounts_configuration"]; ok && !val.IsNull() && !val.IsUnknown() {
+		var unusedConfig UnusedServiceAccountsConfiguration
+		diags := val.(types.Object).As(ctx, &unusedConfig, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return nil, diags
+		}
+		result.UnusedServiceAccountsConfiguration = &unusedConfig
+	}
+
+	// Extract garbage_collect_assets_configuration
+	if val, ok := attrs["garbage_collect_assets_configuration"]; ok && !val.IsNull() && !val.IsUnknown() {
+		var gcConfig GarbageCollectAssetsConfiguration
+		diags := val.(types.Object).As(ctx, &gcConfig, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return nil, diags
+		}
+		result.GarbageCollectAssetsConfiguration = &gcConfig
+	}
+
+	// Extract platform_vulnerability_configuration
+	if val, ok := attrs["platform_vulnerability_configuration"]; ok && !val.IsNull() && !val.IsUnknown() {
+		var vulnConfig PlatformVulnerabilityConfiguration
+		diags := val.(types.Object).As(ctx, &vulnConfig, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return nil, diags
+		}
+		result.PlatformVulnerabilityConfiguration = &vulnConfig
+	}
+
+	// Extract eol_assets_configuration
+	if val, ok := attrs["eol_assets_configuration"]; ok && !val.IsNull() && !val.IsUnknown() {
+		var eolConfig EolAssetsConfiguration
+		diags := val.(types.Object).As(ctx, &eolConfig, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return nil, diags
+		}
+		result.EolAssetsConfiguration = &eolConfig
+	}
+
+	// Extract cases_configuration
+	if val, ok := attrs["cases_configuration"]; ok && !val.IsNull() && !val.IsUnknown() {
+		var casesConfig CasesConfiguration
+		diags := val.(types.Object).As(ctx, &casesConfig, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return nil, diags
+		}
+		result.CasesConfiguration = &casesConfig
+	}
+
+	// Extract exceptions_configuration
+	if val, ok := attrs["exceptions_configuration"]; ok && !val.IsNull() && !val.IsUnknown() {
+		var exceptionsConfig ExceptionsConfiguration
+		diags := val.(types.Object).As(ctx, &exceptionsConfig, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return nil, diags
+		}
+		result.ExceptionsConfiguration = &exceptionsConfig
+	}
+
+	return result, nil
 }
 
 func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -708,21 +777,29 @@ func FlattenSpaceSettingsInput(input *MondooSpaceSettingsInput) *SpaceSettingsIn
 }
 
 func flattenTerminatedAssetsConfig(in *mondoov1.TerminatedAssetsConfigurationInput) *TerminatedAssetsConfiguration {
-	if in == nil || in.Cleanup == nil {
+	if in == nil {
 		return nil
 	}
-	return &TerminatedAssetsConfiguration{
-		Cleanup: types.BoolValue(bool(*in.Cleanup)),
+	out := &TerminatedAssetsConfiguration{}
+	if in.Cleanup != nil {
+		out.Cleanup = types.BoolValue(bool(*in.Cleanup))
+	} else {
+		out.Cleanup = types.BoolNull()
 	}
+	return out
 }
 
 func flattenUnusedServiceAccountsConfig(in *mondoov1.UnusedServiceAccountsConfigurationInput) *UnusedServiceAccountsConfiguration {
-	if in == nil || in.Cleanup == nil {
+	if in == nil {
 		return nil
 	}
-	return &UnusedServiceAccountsConfiguration{
-		Cleanup: types.BoolValue(bool(*in.Cleanup)),
+	out := &UnusedServiceAccountsConfiguration{}
+	if in.Cleanup != nil {
+		out.Cleanup = types.BoolValue(bool(*in.Cleanup))
+	} else {
+		out.Cleanup = types.BoolNull()
 	}
+	return out
 }
 
 func flattenGarbageCollectAssetsConfig(in *mondoov1.GarbageCollectAssetsConfigurationInput) *GarbageCollectAssetsConfiguration {
@@ -744,12 +821,16 @@ func flattenGarbageCollectAssetsConfig(in *mondoov1.GarbageCollectAssetsConfigur
 }
 
 func flattenPlatformVulnConfig(in *mondoov1.PlatformVulnerabilityConfigurationInput) *PlatformVulnerabilityConfiguration {
-	if in == nil || in.Enable == nil {
+	if in == nil {
 		return nil
 	}
-	return &PlatformVulnerabilityConfiguration{
-		Enabled: types.BoolValue(bool(*in.Enable)),
+	out := &PlatformVulnerabilityConfiguration{}
+	if in.Enable != nil {
+		out.Enabled = types.BoolValue(bool(*in.Enable))
+	} else {
+		out.Enabled = types.BoolNull()
 	}
+	return out
 }
 
 func flattenEolAssetsConfig(in *mondoov1.EolAssetsConfigurationInput) *EolAssetsConfiguration {
