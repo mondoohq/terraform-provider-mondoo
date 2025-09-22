@@ -19,8 +19,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	cnquery_config "go.mondoo.com/cnquery/v11/cli/config"
-	cnquery_upstream "go.mondoo.com/cnquery/v11/providers-sdk/v1/upstream"
+	cnquery_config "go.mondoo.com/cnquery/v12/cli/config"
+	cnquery_upstream "go.mondoo.com/cnquery/v12/providers-sdk/v1/upstream"
 	mondoov1 "go.mondoo.com/mondoo-go"
 	"go.mondoo.com/mondoo-go/option"
 )
