@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -53,6 +54,7 @@ func TestExceptionResource(t *testing.T) {
 // }
 
 func testCreateException(spaceId string, spaceMrn string, action string) string {
+	tomorrow := time.Now().Add(24 * time.Hour).Format("2006-01-02")
 	return fmt.Sprintf(`
 		resource "mondoo_policy_assignment" "cis_policy_assignment_enabled" {
 		space_id = "%s"
@@ -70,7 +72,7 @@ func testCreateException(spaceId string, spaceMrn string, action string) string 
 		justification = "Windows Defender is disabled. Other EDR is used/configured instead."
 		scope_mrn =  "%s"
 		action        = "%s"
-		valid_until = "2025-09-09"
+		valid_until = "%s"
 		check_mrns = [
 			"//policy.api.mondoo.app/queries/cis-microsoft-azure-windows-server-2022--2.3.1.1",
 			"//policy.api.mondoo.app/queries/cis-microsoft-azure-windows-server-2022--2.3.1.3",
@@ -79,5 +81,5 @@ func testCreateException(spaceId string, spaceMrn string, action string) string 
 			mondoo_policy_assignment.cis_policy_assignment_enabled
 		]
 		}
-		`, spaceId, spaceMrn, action)
+		`, spaceId, spaceMrn, action, tomorrow)
 }
