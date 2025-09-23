@@ -1264,8 +1264,7 @@ type SetRolesInput struct {
 }
 
 type SetRolesPayload struct {
-	Mrns   []mondoov1.String `json:"mrns"`
-	Errors mondoov1.String   `json:"errors"`
+	Mrns []mondoov1.String `json:"mrns"`
 }
 
 func (c *ExtendedGqlClient) SetRoles(ctx context.Context, input SetRolesInput) (SetRolesPayload, error) {
