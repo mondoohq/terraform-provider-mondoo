@@ -37,7 +37,6 @@ qpbi
 querypack
 Qwc
 scim
-sentinelone
 startswith
 Tcy
 testacc
