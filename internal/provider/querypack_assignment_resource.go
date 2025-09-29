@@ -24,7 +24,7 @@ import (
 
 var _ resource.Resource = (*queryPackAssignmentResource)(nil)
 
-func NewQueryPackAssigmentResource() resource.Resource {
+func NewQueryPackAssignmentResource() resource.Resource {
 	return &queryPackAssignmentResource{}
 }
 
@@ -32,7 +32,7 @@ type queryPackAssignmentResource struct {
 	client *ExtendedGqlClient
 }
 
-type queryPackAssigmentsResourceModel struct {
+type queryPackAssignmentsResourceModel struct {
 	// scope
 	SpaceID types.String `tfsdk:"space_id"`
 
@@ -101,7 +101,7 @@ func (r *queryPackAssignmentResource) Configure(ctx context.Context, req resourc
 }
 
 func (r *queryPackAssignmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data queryPackAssigmentsResourceModel
+	var data queryPackAssignmentsResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -155,7 +155,7 @@ func (r *queryPackAssignmentResource) Create(ctx context.Context, req resource.C
 }
 
 func (r *queryPackAssignmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data queryPackAssigmentsResourceModel
+	var data queryPackAssignmentsResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -171,7 +171,7 @@ func (r *queryPackAssignmentResource) Read(ctx context.Context, req resource.Rea
 }
 
 func (r *queryPackAssignmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data queryPackAssigmentsResourceModel
+	var data queryPackAssignmentsResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -225,7 +225,7 @@ func (r *queryPackAssignmentResource) Update(ctx context.Context, req resource.U
 }
 
 func (r *queryPackAssignmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data queryPackAssigmentsResourceModel
+	var data queryPackAssignmentsResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
