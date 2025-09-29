@@ -21,7 +21,7 @@ import (
 
 var _ resource.Resource = (*policyAssignmentResource)(nil)
 
-func NewPolicyAssigmentResource() resource.Resource {
+func NewPolicyAssignmentResource() resource.Resource {
 	return &policyAssignmentResource{}
 }
 
@@ -29,7 +29,7 @@ type policyAssignmentResource struct {
 	client *ExtendedGqlClient
 }
 
-type policyAssigmentsResourceModel struct {
+type policyAssignmentsResourceModel struct {
 	// scope
 	SpaceID types.String `tfsdk:"space_id"`
 
@@ -91,7 +91,7 @@ func (r *policyAssignmentResource) Configure(ctx context.Context, req resource.C
 }
 
 func (r *policyAssignmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data policyAssigmentsResourceModel
+	var data policyAssignmentsResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -145,7 +145,7 @@ func (r *policyAssignmentResource) Create(ctx context.Context, req resource.Crea
 }
 
 func (r *policyAssignmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data policyAssigmentsResourceModel
+	var data policyAssignmentsResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -161,7 +161,7 @@ func (r *policyAssignmentResource) Read(ctx context.Context, req resource.ReadRe
 }
 
 func (r *policyAssignmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data policyAssigmentsResourceModel
+	var data policyAssignmentsResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -215,7 +215,7 @@ func (r *policyAssignmentResource) Update(ctx context.Context, req resource.Upda
 }
 
 func (r *policyAssignmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data policyAssigmentsResourceModel
+	var data policyAssignmentsResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
