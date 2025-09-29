@@ -70,7 +70,7 @@ resource "mondoo_iam_binding" "team_permissions" {
 				},
 			},
 			"roles": schema.ListAttribute{
-				MarkdownDescription: "List of role MRNs to assign to the identity on the resource.",
+				MarkdownDescription: `List of role MRNs to assign to the identity on the resource. Possible roles: ["//iam.api.mondoo.app/roles/integrations-manager", "//iam.api.mondoo.app/roles/sla-manager", "//iam.api.mondoo.app/roles/policy-manager", "//iam.api.mondoo.app/roles/policy-editor","//iam.api.mondoo.app/roles/ticket-manager","//iam.api.mondoo.app/roles/ticket-creator", "//iam.api.mondoo.app/roles/exceptions-requester", "//iam.api.mondoo.app/roles/query-pack-manager", "//iam.api.mondoo.app/roles/query-pack-editor", "//iam.api.mondoo.app/roles/viewer", "//iam.api.mondoo.app/roles/editor", "//iam.api.mondoo.app/roles/owner"  ]`,
 				Required:            true,
 				ElementType:         types.StringType,
 			},
