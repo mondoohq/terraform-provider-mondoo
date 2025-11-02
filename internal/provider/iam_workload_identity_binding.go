@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
+	"go.mondoo.com/terraform-provider-mondoo/internal/customtypes"
 )
 
 var _ resource.Resource = (*IAMWorkloadIdentityBindingResource)(nil)
@@ -97,11 +98,12 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 				},
 			},
 			"roles": schema.ListAttribute{
-				MarkdownDescription: "List of roles associated with the binding (e.g. agent mrn).",
+				MarkdownDescription: `List of role names to assign to the binding. Can be specified as short names (e.g. "editor") or full MRNs (e.g. "//iam.api.mondoo.app/roles/editor"). Available roles: integrations-manager, sla-manager, policy-manager, policy-editor, ticket-manager, ticket-creator, exceptions-requester, query-pack-manager, query-pack-editor, viewer, editor, owner.`,
 				ElementType:         types.StringType,
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.List{
+					RoleListNormalizerModifier(),
 					listplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -206,8 +208,16 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 	ctx = tflog.SetField(ctx, "scope_mrn", scopeMRN)
 
 	// Do GraphQL request to API to create the resource
+	// Convert and normalize role names to full MRNs
+	var roles []mondoov1.String
+	var roleStrings []string
+	data.Roles.ElementsAs(ctx, &roleStrings, false)
+	for _, role := range roleStrings {
+		normalizedRole := customtypes.NormalizeRoleMRN(role)
+		roles = append(roles, mondoov1.String(normalizedRole))
+	}
+
 	var (
-		roles            = ConvertSliceStrings(data.Roles)
 		allowedAudiences = ConvertSliceStrings(data.AllowedAudiences)
 	)
 
@@ -302,6 +312,7 @@ func (r *IAMWorkloadIdentityBindingResource) readIAMWorkloadIdentityBinding(ctx 
 	tflog.Debug(ctx, "getWIFAuthBindingPayload", map[string]interface{}{
 		"payload": fmt.Sprintf("%+v", q),
 	})
+
 	return IAMWorkloadIdentityBindingResourceModel{
 		ScopeMRN:         types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Scope),
 		Mrn:              types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Mrn),

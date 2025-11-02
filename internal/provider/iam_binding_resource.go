@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
+	"go.mondoo.com/terraform-provider-mondoo/internal/customtypes"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -29,9 +30,9 @@ type IAMBindingResource struct {
 
 // IAMBindingResourceModel describes the resource data model.
 type IAMBindingResourceModel struct {
-	IdentityMrn types.String   `tfsdk:"identity_mrn"`
-	ResourceMrn types.String   `tfsdk:"resource_mrn"`
-	Roles       []types.String `tfsdk:"roles"`
+	IdentityMrn types.String `tfsdk:"identity_mrn"`
+	ResourceMrn types.String `tfsdk:"resource_mrn"`
+	Roles       types.List   `tfsdk:"roles"`
 }
 
 func (r *IAMBindingResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -70,9 +71,12 @@ resource "mondoo_iam_binding" "team_permissions" {
 				},
 			},
 			"roles": schema.ListAttribute{
-				MarkdownDescription: `List of role MRNs to assign to the identity on the resource. Possible roles: ["//iam.api.mondoo.app/roles/integrations-manager", "//iam.api.mondoo.app/roles/sla-manager", "//iam.api.mondoo.app/roles/policy-manager", "//iam.api.mondoo.app/roles/policy-editor","//iam.api.mondoo.app/roles/ticket-manager","//iam.api.mondoo.app/roles/ticket-creator", "//iam.api.mondoo.app/roles/exceptions-requester", "//iam.api.mondoo.app/roles/query-pack-manager", "//iam.api.mondoo.app/roles/query-pack-editor", "//iam.api.mondoo.app/roles/viewer", "//iam.api.mondoo.app/roles/editor", "//iam.api.mondoo.app/roles/owner"  ]`,
+				MarkdownDescription: `List of role names to assign to the identity on the resource. Can be specified as short names (e.g. "editor") or full MRNs (e.g. "//iam.api.mondoo.app/roles/editor"). Available roles: integrations-manager, sla-manager, policy-manager, policy-editor, ticket-manager, ticket-creator, exceptions-requester, query-pack-manager, query-pack-editor, viewer, editor, owner.`,
 				Required:            true,
 				ElementType:         types.StringType,
+				PlanModifiers: []planmodifier.List{
+					RoleListNormalizerModifier(),
+				},
 			},
 		},
 	}
@@ -110,9 +114,13 @@ func (r *IAMBindingResource) Create(ctx context.Context, req resource.CreateRequ
 
 	// Convert roles to the format expected by the API
 	var roleInputs []RoleInput
-	for _, role := range data.Roles {
+	var roleStrings []string
+	data.Roles.ElementsAs(ctx, &roleStrings, false)
+	for _, role := range roleStrings {
+		// Normalize role names to full MRNs
+		normalizedRole := customtypes.NormalizeRoleMRN(role)
 		roleInputs = append(roleInputs, RoleInput{
-			Mrn: mondoov1.String(role.ValueString()),
+			Mrn: mondoov1.String(normalizedRole),
 		})
 	}
 
@@ -165,9 +173,13 @@ func (r *IAMBindingResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	// Convert roles to the format expected by the API
 	var roleInputs []RoleInput
-	for _, role := range data.Roles {
+	var roleStrings []string
+	data.Roles.ElementsAs(ctx, &roleStrings, false)
+	for _, role := range roleStrings {
+		// Normalize role names to full MRNs
+		normalizedRole := customtypes.NormalizeRoleMRN(role)
 		roleInputs = append(roleInputs, RoleInput{
-			Mrn: mondoov1.String(role.ValueString()),
+			Mrn: mondoov1.String(normalizedRole),
 		})
 	}
 
