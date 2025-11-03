@@ -34,7 +34,6 @@ func TestAccIAMBindingResource(t *testing.T) {
 						plancheck.ExpectEmptyPlan(),
 					},
 				},
-				PlanOnly: true, // Set to false to verify no plan changes
 			},
 		},
 	})
