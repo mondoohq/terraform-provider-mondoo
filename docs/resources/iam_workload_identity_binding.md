@@ -40,7 +40,7 @@ resource "mondoo_iam_workload_identity_binding" "example" {
 - `description` (String) Description of the binding.
 - `expiration` (Number) Expiration in seconds associated with the binding.
 - `mappings` (Map of String) List of additional configurations to confirm.
-- `roles` (List of String) List of roles associated with the binding (e.g. agent mrn).
+- `roles` (List of String) List of role names to assign to the binding. Can be specified as short names (e.g. "editor") or full MRNs (e.g. "//iam.api.mondoo.app/roles/editor"). Available roles: integrations-manager, sla-manager, policy-manager, policy-editor, ticket-manager, ticket-creator, exceptions-requester, query-pack-manager, query-pack-editor, viewer, editor, owner.
 - `scope_mrn` (String) The MRN of the scope (either space or organization). If there is no scope, the provider space is used.
 
 ### Read-Only
