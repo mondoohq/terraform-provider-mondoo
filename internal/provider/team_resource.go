@@ -6,11 +6,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -72,6 +75,12 @@ resource "mondoo_iam_binding" "security_team_permissions" {
 					stringplanmodifier.UseStateForUnknown(),
 					stringplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^[a-z\d]([\d-_]|[a-z]){2,62}[a-z\d]$`),
+						"must contain 4 to 64 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
+					),
+				},
 			},
 			"mrn": schema.StringAttribute{
 				MarkdownDescription: "Mondoo Resource Name (MRN) of the team.",
@@ -85,6 +94,12 @@ resource "mondoo_iam_binding" "security_team_permissions" {
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^([a-zA-Z \-'_]|\d){2,64}$`),
+						"must contain 2 to 64 characters, where each character can be a letter (uppercase or lowercase), a space, a dash, an underscore, or a digit",
+					),
 				},
 			},
 			"description": schema.StringAttribute{

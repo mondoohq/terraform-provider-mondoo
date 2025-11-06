@@ -209,8 +209,8 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^([a-zA-Z \-'_]|\d){2,30}$`),
-						"must contain 2 to 30 characters, where each character can be a letter (uppercase or lowercase), a space, a dash, an underscore, or a digit",
+						regexp.MustCompile(`^([a-zA-Z \-'_]|\d){2,64}$`),
+						"must contain 2 to 64 characters, where each character can be a letter (uppercase or lowercase), a space, a dash, an underscore, or a digit",
 					),
 				},
 			},
@@ -227,8 +227,8 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^[a-z\d]([\d-_]|[a-z]){2,48}[a-z\d]$`),
-						"must contain 4 to 50 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
+						regexp.MustCompile(`^[a-z\d]([\d-_]|[a-z]){2,62}[a-z\d]$`),
+						"must contain 4 to 64 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
 					),
 				},
 			},
@@ -244,8 +244,8 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^[a-z\d]([\d-_]|[a-z]){4,48}[a-z\d]$`),
-						"must contain 6 to 50 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
+						regexp.MustCompile(`^[a-z\d]([\d-_]|[a-z]){4,62}[a-z\d]$`),
+						"must contain 4 to 64 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
 					),
 				},
 			},
