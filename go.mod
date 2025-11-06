@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.13.3
 	github.com/stretchr/testify v1.11.1
-	go.mondoo.com/cnquery/v12 v12.6.0
+	go.mondoo.com/cnquery/v12 v12.7.1
 	go.mondoo.com/mondoo-go v0.0.0-20251022000425-2aa884f9d36b
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -30,19 +30,19 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
-	github.com/aws/aws-sdk-go-v2 v1.39.3 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.31.13 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.17 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.10 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.10 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.10 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.39.4 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.31.15 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.19 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.11 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.11 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.11 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.10 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.66.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.29.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.38.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.11 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.66.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.29.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.38.9 // indirect
 	github.com/aws/smithy-go v1.23.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
@@ -50,7 +50,8 @@ require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.5.0 // indirect
 	github.com/cli/go-gh/v2 v2.12.1 // indirect
 	github.com/cli/safeexec v1.0.0 // indirect
-	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
+	github.com/clipperhouse/stringish v0.1.1 // indirect
+	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/cockroachdb/errors v1.12.0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
@@ -58,7 +59,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/getsentry/sentry-go v0.36.0 // indirect
+	github.com/getsentry/sentry-go v0.36.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -156,7 +157,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
-	golang.org/x/exp v0.0.0-20251017212417-90e834f514db // indirect
+	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/oauth2 v0.32.0 // indirect
@@ -166,7 +167,7 @@ require (
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251014184007-4626949a642f // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
