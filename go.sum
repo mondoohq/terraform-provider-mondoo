@@ -600,8 +600,8 @@ go.etcd.io/etcd/client/pkg/v3 v3.5.4/go.mod h1:IJHfcCEKxYu1Os13ZdwCwIUTUVGYTSAM3
 go.etcd.io/etcd/client/v3 v3.5.4/go.mod h1:ZaRkVgBZC+L+dLCjTcF1hRXpgZXQPOvnA/Ak/gq3kiY=
 go.mondoo.com/cnquery/v12 v12.7.1 h1:DIx/JXriGIaKMdOYnpz9vdyXsh/wics1uySRlrR0qRM=
 go.mondoo.com/cnquery/v12 v12.7.1/go.mod h1:BGQDZsmsy4QZBsBvKeHAciXit3ZHcIil1Tm7gspzato=
-go.mondoo.com/mondoo-go v0.0.0-20251022000425-2aa884f9d36b h1:WK13N5R7sioIoPLzJjHpmo3TG0DxHFvfoEFTpk+50Og=
-go.mondoo.com/mondoo-go v0.0.0-20251022000425-2aa884f9d36b/go.mod h1:b0S5pJVrlx02GFuviBaOMkSlP0eOjjtP2kEnMaea5Qc=
+go.mondoo.com/mondoo-go v0.0.0-20251106193126-5fc5cce0f7cc h1:Y1V7NCPWyQsVqG/KU2YikuMdT2U5vXLv8uV23AyIhrA=
+go.mondoo.com/mondoo-go v0.0.0-20251106193126-5fc5cce0f7cc/go.mod h1:b0S5pJVrlx02GFuviBaOMkSlP0eOjjtP2kEnMaea5Qc=
 go.mondoo.com/ranger-rpc v0.7.0 h1:QZDgQ8y5e9sCS5BYjwaow1HWBfQ3UwIdfUEQ2SJRO58=
 go.mondoo.com/ranger-rpc v0.7.0/go.mod h1:dEPg7hjZYxxAQOeQTJopgNKSpcPlA1/g/bJ2IK9CPyE=
 go.mongodb.org/mongo-driver v1.10.0 h1:UtV6N5k14upNp4LTduX0QCufG124fSu25Wz9tu94GLg=
