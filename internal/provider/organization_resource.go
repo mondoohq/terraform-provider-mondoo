@@ -30,6 +30,7 @@ type organizationResourceModel struct {
 	Name        types.String `tfsdk:"name"`
 	OrgMrn      types.String `tfsdk:"mrn"`
 	Description types.String `tfsdk:"description"`
+	Company     types.String `tfsdk:"company"`
 }
 
 func (r *organizationResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -66,6 +67,10 @@ func (r *organizationResource) Schema(ctx context.Context, req resource.SchemaRe
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Description of the organization.",
+				Optional:            true,
+			},
+			"company": schema.StringAttribute{
+				MarkdownDescription: "Company name of the organization.",
 				Optional:            true,
 			},
 		},
@@ -106,6 +111,7 @@ func (r *organizationResource) Create(ctx context.Context, req resource.CreateRe
 		data.OrgId.ValueStringPointer(),
 		data.Name.ValueString(),
 		data.Description.ValueStringPointer(),
+		data.Company.ValueStringPointer(),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create organization", err.Error())
@@ -162,6 +168,7 @@ func (r *organizationResource) Update(ctx context.Context, req resource.UpdateRe
 		data.OrgMrn.ValueString(),
 		data.Name.ValueString(),
 		data.Description.ValueStringPointer(),
+		data.Company.ValueStringPointer(),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update organization", err.Error())
@@ -206,6 +213,7 @@ func (r *organizationResource) ImportState(ctx context.Context, req resource.Imp
 		OrgId:       types.StringValue(orgPayload.Id),
 		OrgMrn:      types.StringValue(orgPayload.Mrn),
 		Description: types.StringValue(orgPayload.Description),
+		Company:     types.StringValue(orgPayload.Company),
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }

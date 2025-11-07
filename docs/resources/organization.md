@@ -16,6 +16,7 @@ description: |-
 resource "mondoo_organization" "myorg" {
   name        = "My New Organization"
   description = "My New Organization Description 1"
+  company     = "Mondoo Inc."
 }
 ```
 
@@ -28,6 +29,7 @@ resource "mondoo_organization" "myorg" {
 
 ### Optional
 
+- `company` (String) Company name of the organization.
 - `description` (String) Description of the organization.
 - `id` (String) ID of the org. Must be globally unique. If the provider has a org configured and this field is empty, the provider org is used.
 

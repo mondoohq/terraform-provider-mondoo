@@ -137,6 +137,7 @@ type orgPayload struct {
 	Mrn         string
 	Name        string
 	Description string
+	Company     string
 	SpacesCount int
 	SpacesList  struct {
 		TotalCount int
@@ -193,7 +194,7 @@ func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayl
 	return q.Space, nil
 }
 
-func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *string, name string, description *string) (orgPayload, error) {
+func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *string, name string, description *string, company *string) (orgPayload, error) {
 	var createMutation struct {
 		CreateOrganization orgPayload `graphql:"createOrganization(input: $input)"`
 	}
@@ -209,6 +210,10 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 		createInput.Description = mondoov1.NewStringPtr(mondoov1.String(*description))
 	}
 
+	if company != nil {
+		createInput.Company = mondoov1.NewStringPtr(mondoov1.String(*company))
+	}
+
 	tflog.Trace(ctx, "CreateOrganizationInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createInput),
 	})
@@ -219,13 +224,14 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 	return createMutation.CreateOrganization, err
 }
 
-func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn string, name string, description *string) error {
+func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn string, name string, description *string, company *string) error {
 	var updateMutation struct {
 		UpdateOrganization struct {
 			Organization struct {
 				Mrn         mondoov1.String
 				Name        mondoov1.String
 				Description mondoov1.String
+				Company     mondoov1.String
 			}
 		} `graphql:"updateOrganization(input: $input)"`
 	}
@@ -236,6 +242,10 @@ func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn strin
 	}
 	if description != nil {
 		updateInput.Description = mondoov1.NewStringPtr(mondoov1.String(*description))
+	}
+
+	if company != nil {
+		updateInput.Company = mondoov1.NewStringPtr(mondoov1.String(*company))
 	}
 
 	tflog.Trace(ctx, "UpdateOrganizationInput", map[string]interface{}{
