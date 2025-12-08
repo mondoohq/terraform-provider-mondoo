@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -166,9 +167,10 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 	regions, _ := m.ScanConfiguration.Ec2ScanOptions.RegionsFilter.ToListValue(context.Background())
 	regions.ElementsAs(context.Background(), &regionsFilter, true)
 
-	var tagsFilter mondoov1.Map
-	tags, _ := m.ScanConfiguration.Ec2ScanOptions.TagsFilter.ToMapValue(context.Background())
-	tags.ElementsAs(context.Background(), &tagsFilter, true)
+	tagsFilter := make(mondoov1.Map)
+	for k, v := range m.ScanConfiguration.Ec2ScanOptions.TagsFilter.Elements() {
+		tagsFilter[k] = strings.Trim(v.String(), "\"")
+	}
 
 	var excludeInstanceIdsFilter []mondoov1.String
 	excludeInstanceIds, _ := m.ScanConfiguration.Ec2ScanOptions.ExcludeInstanceIdsFilter.ToListValue(context.Background())
@@ -178,9 +180,10 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 	excludeRegions, _ := m.ScanConfiguration.Ec2ScanOptions.ExcludeRegionsFilter.ToListValue(context.Background())
 	excludeRegions.ElementsAs(context.Background(), &excludeRegionsFilter, true)
 
-	var excludeTagsFilter mondoov1.Map
-	excludeTags, _ := m.ScanConfiguration.Ec2ScanOptions.ExcludeTagsFilter.ToMapValue(context.Background())
-	excludeTags.ElementsAs(context.Background(), &excludeTagsFilter, true)
+	excludeTagsFilter := make(mondoov1.Map)
+	for k, v := range m.ScanConfiguration.Ec2ScanOptions.ExcludeTagsFilter.Elements() {
+		excludeTagsFilter[k] = strings.Trim(v.String(), "\"")
+	}
 
 	var accountIDs []mondoov1.String
 	accountIds, _ := m.AccountIDs.ToListValue(context.Background())
