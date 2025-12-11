@@ -49,7 +49,7 @@ data "aws_region" "current" {}
 # Setup the AWS integration
 resource "mondoo_integration_aws_serverless" "aws_serverless" {
   name                          = "AWS Integration"
-  region                        = data.aws_region.current.name
+  region                        = data.aws_region.current.region
   is_organization               = false
   console_sign_in_trigger       = true
   instance_state_change_trigger = true
@@ -63,6 +63,10 @@ resource "mondoo_integration_aws_serverless" "aws_serverless" {
       ssm              = true
       ebs_volume_scan  = true
       instance_connect = false
+      exclude_tags_filter = {
+        "Created By" = "Mondoo"
+        "Env"        = "dev"
+      }
     }
   }
 }
