@@ -227,6 +227,7 @@ func (p *MondooProvider) Resources(_ context.Context) []func() resource.Resource
 		NewExportS3BucketResource,
 		NewMondooExportGSCBucketResource,
 		NewMondooExportBigQueryResource,
+		NewIntegrationGithubTicketingResource,
 	}...)
 }
 

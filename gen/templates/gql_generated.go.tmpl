@@ -24,6 +24,7 @@ type ClientIntegrationConfigurationOptions struct {
 	ShodanConfigurationOptions            ShodanConfigurationOptions            `graphql:"... on ShodanConfigurationOptions"`
 	SlackConfigurationOptions             SlackConfigurationOptions             `graphql:"... on SlackConfigurationOptions"`
 	ZendeskConfigurationOptions           ZendeskConfigurationOptions           `graphql:"... on ZendeskConfigurationOptions"`
+	GithubTicketingConfigurationOptions   GithubTicketingConfigurationOptions   `graphql:"... on GithubTicketingConfigurationOptions"`
 	// Auto-generated resources
 	{{- range .}}
 	{{.}}ConfigurationOptions {{.}}ConfigurationOptions `graphql:"... on {{.}}ConfigurationOptions"`

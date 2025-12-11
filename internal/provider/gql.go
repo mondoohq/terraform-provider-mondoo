@@ -742,6 +742,14 @@ type ZendeskConfigurationOptions struct {
 	CustomFields      []ZendeskCustomField
 }
 
+type GithubTicketingConfigurationOptions struct {
+	EnterpriseUrl     string
+	DefaultRepoOwner  string
+	DefaultRepoName   string
+	AutoCloseTickets  bool
+	AutoCreateTickets bool
+}
+
 type ZendeskCustomField struct {
 	ID    int64
 	Value string
