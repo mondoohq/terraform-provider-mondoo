@@ -87,6 +87,9 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the binding.",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Description of the binding.",
@@ -94,6 +97,7 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 				Computed:            true,
 				Default:             stringdefault.StaticString("Created by Terraform"),
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -103,6 +107,7 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 					RoleListNormalizerModifier(),
 					listplanmodifier.UseStateForUnknown(),
 				},
@@ -110,16 +115,23 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 			"issuer_uri": schema.StringAttribute{
 				MarkdownDescription: "URI for the token issuer, e.g. https://accounts.google.com.",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"subject": schema.StringAttribute{
 				MarkdownDescription: "Unique identifier to confirm.",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"expiration": schema.Int32Attribute{
 				MarkdownDescription: "Expiration in seconds associated with the binding.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Int32{
+					int32planmodifier.RequiresReplace(),
 					int32planmodifier.UseStateForUnknown(),
 				},
 			},
@@ -129,6 +141,7 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 					listplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -137,6 +150,7 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 				Optional:            true,
 				ElementType:         types.StringType,
 				PlanModifiers: []planmodifier.Map{
+					mapplanmodifier.RequiresReplace(),
 					mapplanmodifier.UseStateForUnknown(),
 				},
 			},
