@@ -251,9 +251,13 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						Optional:            true,
 						Computed:            true,
 						MarkdownDescription: "Terminated assets configuration for the space.",
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
 						Attributes: map[string]schema.Attribute{
 							"cleanup": schema.BoolAttribute{
-								Required:            true,
+								Optional:            true,
+								Computed:            true,
 								MarkdownDescription: "Whether to cleanup terminated assets.",
 							},
 						},
@@ -262,9 +266,13 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						Optional:            true,
 						Computed:            true,
 						MarkdownDescription: "Unused service accounts configuration for the space.",
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
 						Attributes: map[string]schema.Attribute{
 							"cleanup": schema.BoolAttribute{
-								Required:            true,
+								Optional:            true,
+								Computed:            true,
 								MarkdownDescription: "Whether to cleanup unused service accounts.",
 							},
 						},
@@ -284,6 +292,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							},
 							"after_days": schema.Int32Attribute{
 								Optional:            true,
+								Computed:            true,
 								MarkdownDescription: "After how many days to garbage collect. ",
 							},
 						},
@@ -297,7 +306,8 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						},
 						Attributes: map[string]schema.Attribute{
 							"enabled": schema.BoolAttribute{
-								Required:            true,
+								Optional:            true,
+								Computed:            true,
 								MarkdownDescription: "Whether to enable platform vulnerability analysis.",
 							},
 						},
