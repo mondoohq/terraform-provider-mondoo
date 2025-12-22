@@ -12,6 +12,13 @@ description: |-
     resource_mrn = mondoo_space.production.mrn
     roles        = ["//iam.api.mondoo.app/roles/editor"]
   }
+  
+  # Grant a team viewer permissions on a workspace
+  resource "mondoo_iam_binding" "security_team_permissions" {
+    identity_mrn = mondoo_team.team_1.mrn
+    resource_mrn = mondoo_workspace.my_workspace.mrn
+    roles        = ["//iam.api.mondoo.app/roles/viewer"]
+  }
 ---
 
 # mondoo_iam_binding (Resource)
@@ -26,6 +33,13 @@ resource "mondoo_iam_binding" "team_permissions" {
   identity_mrn = mondoo_team.security_team.mrn
   resource_mrn = mondoo_space.production.mrn
   roles        = ["//iam.api.mondoo.app/roles/editor"]
+}
+
+# Grant a team viewer permissions on a workspace
+resource "mondoo_iam_binding" "security_team_permissions" {
+  identity_mrn = mondoo_team.team_1.mrn
+  resource_mrn = mondoo_workspace.my_workspace.mrn
+  roles        = ["//iam.api.mondoo.app/roles/viewer"]
 }
 ```
 

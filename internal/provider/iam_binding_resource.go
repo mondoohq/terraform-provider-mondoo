@@ -53,6 +53,13 @@ resource "mondoo_iam_binding" "team_permissions" {
   resource_mrn = mondoo_space.production.mrn
   roles        = ["//iam.api.mondoo.app/roles/editor"]
 }
+
+# Grant a team viewer permissions on a workspace
+resource "mondoo_iam_binding" "security_team_permissions" {
+  identity_mrn = mondoo_team.team_1.mrn
+  resource_mrn = mondoo_workspace.my_workspace.mrn
+  roles        = ["//iam.api.mondoo.app/roles/viewer"]
+}
 ` + "```",
 
 		Attributes: map[string]schema.Attribute{
