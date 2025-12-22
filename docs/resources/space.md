@@ -135,7 +135,7 @@ Optional:
 <a id="nestedatt--space_settings--platform_vulnerability_configuration"></a>
 ### Nested Schema for `space_settings.platform_vulnerability_configuration`
 
-Required:
+Optional:
 
 - `enabled` (Boolean) Whether to enable platform vulnerability analysis.
 
@@ -143,7 +143,7 @@ Required:
 <a id="nestedatt--space_settings--terminated_assets_configuration"></a>
 ### Nested Schema for `space_settings.terminated_assets_configuration`
 
-Required:
+Optional:
 
 - `cleanup` (Boolean) Whether to cleanup terminated assets.
 
@@ -151,7 +151,7 @@ Required:
 <a id="nestedatt--space_settings--unused_service_accounts_configuration"></a>
 ### Nested Schema for `space_settings.unused_service_accounts_configuration`
 
-Required:
+Optional:
 
 - `cleanup` (Boolean) Whether to cleanup unused service accounts.
 
