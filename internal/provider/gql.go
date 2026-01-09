@@ -1284,6 +1284,28 @@ func (c *ExtendedGqlClient) SetRoles(ctx context.Context, input SetRolesInput) (
 	err := c.Mutate(ctx, &mutation, input, nil)
 	return mutation.SetRoles, err
 }
+
+type GetRolesPayload struct {
+	IdentityMrn   mondoov1.String   `json:"identity_mrn"`
+	IdentityEmail *mondoov1.String  `json:"identity_email"`
+	ScopeMrn      mondoov1.String   `json:"scope_mrn"`
+	Roles         []mondoov1.String `json:"roles"`
+}
+
+func (c *ExtendedGqlClient) GetRoles(ctx context.Context, identity string, scopeMrn string) (*GetRolesPayload, error) {
+	var query struct {
+		GetRoles GetRolesPayload `graphql:"getRoles(identity: $identity, scopeMrn: $scopeMrn)"`
+	}
+	variables := map[string]interface{}{
+		"identity": mondoov1.String(identity),
+		"scopeMrn": mondoov1.String(scopeMrn),
+	}
+	err := c.Query(ctx, &query, variables)
+	if err != nil {
+		return nil, err
+	}
+	return &query.GetRoles, nil
+}
 func (c *ExtendedGqlClient) CreateException(
 	ctx context.Context,
 	scopeMrn string,
