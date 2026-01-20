@@ -162,7 +162,31 @@ func (r *IAMBindingResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	// TODO: There's no direct query to get a specific role binding in the GraphQL schema.
+	// Query current roles from the API
+	rolesPayload, err := r.client.GetRoles(ctx, data.IdentityMrn.ValueString(), data.ResourceMrn.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read IAM binding, got error: %s", err))
+		return
+	}
+
+	// Filter out implicit roles (org-member, space-member) that are automatically added
+	var explicitRoles []string
+	for _, role := range rolesPayload.Roles {
+		roleStr := string(role)
+		// Skip implicit membership roles
+		if roleStr != "//iam.api.mondoo.app/roles/org-member" && roleStr != "//iam.api.mondoo.app/roles/space-member" {
+			explicitRoles = append(explicitRoles, roleStr)
+		}
+	}
+
+	// Convert to Terraform list type
+	rolesList, diags := types.ListValueFrom(ctx, types.StringType, explicitRoles)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	data.Roles = rolesList
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
