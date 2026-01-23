@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -294,6 +295,14 @@ func renderSelectionsFromGraphql(response WorkspaceSelections) []WorkspaceSelect
 							Value: types.StringValue(kv.Value),
 						})
 				}
+				// Sort values by key then value to ensure consistent ordering
+				// regardless of the order returned by the API
+				sort.Slice(newCondition.KeyValueCondition.Values, func(i, j int) bool {
+					if newCondition.KeyValueCondition.Values[i].Key.ValueString() != newCondition.KeyValueCondition.Values[j].Key.ValueString() {
+						return newCondition.KeyValueCondition.Values[i].Key.ValueString() < newCondition.KeyValueCondition.Values[j].Key.ValueString()
+					}
+					return newCondition.KeyValueCondition.Values[i].Value.ValueString() < newCondition.KeyValueCondition.Values[j].Value.ValueString()
+				})
 			case "WorkspaceSelectionStringCondition":
 				newCondition.StringCondition = &WorkspaceGenericCondition{
 					Field:    types.StringValue(string(condition.Condition.StringCondition.Field)),
@@ -484,11 +493,13 @@ func (r *WorkspaceResource) Create(ctx context.Context, req resource.CreateReque
 		"response": fmt.Sprintf("%+v", createMutation),
 	})
 	// Save space mrn into the Terraform state.
+	// Only update computed fields from the response. Keep the plan's Selections
+	// to preserve the user's specified order (the API may return values in a different order).
 	data.SpaceID = types.StringValue(SpaceFrom(createMutation.Workspace.OwnerMrn).ID())
 	data.Mrn = types.StringValue(createMutation.Workspace.Mrn)
 	data.Name = types.StringValue(createMutation.Workspace.Name)
 	data.Description = types.StringValue(createMutation.Workspace.Description)
-	data.Selections = renderSelectionsFromGraphql(createMutation.Workspace.Selections)
+	// Note: data.Selections is kept from the plan, not overwritten from API response
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -602,11 +613,13 @@ func (r *WorkspaceResource) Update(ctx context.Context, req resource.UpdateReque
 		"response": fmt.Sprintf("%+v", createMutation),
 	})
 	// Save space mrn into the Terraform state.
+	// Only update computed fields from the response. Keep the plan's Selections
+	// to preserve the user's specified order (the API may return values in a different order).
 	data.SpaceID = types.StringValue(SpaceFrom(createMutation.Workspace.OwnerMrn).ID())
 	data.Mrn = types.StringValue(createMutation.Workspace.Mrn)
 	data.Name = types.StringValue(createMutation.Workspace.Name)
 	data.Description = types.StringValue(createMutation.Workspace.Description)
-	data.Selections = renderSelectionsFromGraphql(createMutation.Workspace.Selections)
+	// Note: data.Selections is kept from the plan, not overwritten from API response
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
