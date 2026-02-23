@@ -1266,8 +1266,8 @@ type SetRolesInput struct {
 }
 
 type SetRolesPayload struct {
-	IdentityMrn   mondoov1.String  `json:"identity_mrn"`
-	IdentityEmail *mondoov1.String `json:"identity_email"`
+	IdentityMrn   mondoov1.String  `graphql:"identity_mrn"`
+	IdentityEmail *mondoov1.String `graphql:"identity_email"`
 }
 
 func (c *ExtendedGqlClient) SetRoles(ctx context.Context, input SetRolesInput) (SetRolesPayload, error) {
