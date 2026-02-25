@@ -720,6 +720,11 @@ type Ms365ConfigurationOptions struct {
 	ClientId string
 }
 
+type MsIntuneConfigurationOptions struct {
+	TenantId string
+	ClientId string
+}
+
 type HostedAwsConfigurationOptions struct {
 	AccessKeyId string
 	Role        string
@@ -1378,9 +1383,10 @@ func (c *ExtendedGqlClient) DeleteExceptions(ctx context.Context, exceptionIds [
 	for _, id := range exceptionIds {
 		ids = append(ids, mondoov1.String(id))
 	}
+	spaceMrnStr := mondoov1.String(spaceMrn)
 	input := mondoov1.ExceptionsDeleteInput{
 		ExceptionIDs: &ids,
-		SpaceMrn:     mondoov1.String(spaceMrn),
+		SpaceMrn:     &spaceMrnStr,
 	}
 	return c.Mutate(ctx, &deleteExceptions, input, nil)
 }

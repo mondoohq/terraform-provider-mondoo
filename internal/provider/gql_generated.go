@@ -28,4 +28,5 @@ type ClientIntegrationConfigurationOptions struct {
 	AzureDevopsConfigurationOptions     AzureDevopsConfigurationOptions     `graphql:"... on AzureDevopsConfigurationOptions"`
 	GoogleWorkspaceConfigurationOptions GoogleWorkspaceConfigurationOptions `graphql:"... on GoogleWorkspaceConfigurationOptions"`
 	OktaConfigurationOptions            OktaConfigurationOptions            `graphql:"... on OktaConfigurationOptions"`
+	MsIntuneConfigurationOptions        MsIntuneConfigurationOptions        `graphql:"... on MsIntuneConfigurationOptions"`
 }
