@@ -57,6 +57,10 @@ jobs:
 
       - name: "Setup GPG Key"
         run: |
+          # Configure GPG for CI environment
+          export GPG_TTY=$(tty)
+          echo "GPG_TTY=$GPG_TTY" >> $GITHUB_ENV
+
           # Write key to temp file
           gpgkey="$(mktemp -t gpgkey.XXX)"
           base64 -d <<<"$GPG_KEY" > "$gpgkey"
@@ -73,9 +77,20 @@ jobs:
             file "$gpgkey" || true
           fi
 
-          # Import the key
+          # Configure GPG agent for non-interactive use
+          echo "=== Configuring GPG Agent ==="
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          echo "use-agent" >> ~/.gnupg/gpg.conf
+          echo "batch" >> ~/.gnupg/gpg.conf
+
+          # Start gpg-agent if needed
+          gpg-agent --daemon --allow-loopback-pinentry --default-cache-ttl 7200 || true
+
+          # Import the key with passphrase
           echo "=== Importing GPG Key ==="
-          if ! gpg --batch --import "$gpgkey"; then
+          if ! DISPLAY="" gpg --batch --yes --pinentry-mode=loopback --passphrase="$GPG_PASSPHRASE" --import "$gpgkey"; then
             echo "Error: Failed to import GPG key"
             echo "Key file size: $(wc -c < "$gpgkey")"
             echo "First few bytes (hex): $(hexdump -C "$gpgkey" | head -3)"
@@ -98,18 +113,17 @@ jobs:
           echo "Successfully extracted key ID: $KEY_ID"
           echo "GPG_FINGERPRINT=$KEY_ID" >> $GITHUB_ENV
 
-          # Verify key can be used for signing
-          echo "=== Verifying Key ==="
-          if ! gpg --list-secret-keys "$KEY_ID" >/dev/null 2>&1; then
-            echo "Error: Key $KEY_ID not found in secret keyring"
-            exit 1
-          fi
+          # Test signing to verify passphrase works
+          echo "=== Testing GPG Signing ==="
+          echo "test" | DISPLAY="" gpg --batch --yes --pinentry-mode=loopback --passphrase="$GPG_PASSPHRASE" --armor --sign --local-user "$KEY_ID" > /dev/null
+          echo "GPG signing test successful"
 
           # Clean up temp file
           rm "$gpgkey"
           echo "GPG key setup completed successfully"
         env:
           GPG_KEY: "${{ secrets.GPG_KEY }}"
+          GPG_PASSPHRASE: "${{ secrets.GPG_PASSPHRASE }}"
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
@@ -125,6 +139,7 @@ jobs:
           # GitHub sets the GITHUB_TOKEN secret automatically.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NFPM_DEFAULT_RPM_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_TTY: ${{ env.GPG_TTY }}
 
       - name: Upload artifacts
         if: ${{ inputs.upload-artifacts == true }}
