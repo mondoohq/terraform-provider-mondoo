@@ -10,10 +10,20 @@ on:
   workflow_dispatch:
     inputs:
       skip-publish:
-        description: "Skip publishing to the artifacts?"
+        description: "Skip publishing? ie don't create a GitHub release."
         type: boolean
         required: false
         default: false
+      goreleaser-snapshot:
+        description: "Run goreleaser in snapshot mode? this will bypass tag checks."
+        required: false
+        default: false
+        type: boolean
+      upload-artifacts:
+        description: "Uploading artifacts to workflow"
+        required: false
+        default: false
+        type: boolean
 
 # Releases need permissions to read and write the repository contents.
 # GitHub considers creating releases and uploading assets as writing contents.
@@ -110,7 +120,16 @@ jobs:
             --clean
             --timeout 30m
             ${{ steps.skip-publish.outputs.skip-publish == 'true' && '--skip=publish' || '' }}
+            ${{ inputs.goreleaser-snapshot == true && '--snapshot' || '' }}
         env:
           # GitHub sets the GITHUB_TOKEN secret automatically.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NFPM_DEFAULT_RPM_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Upload artifacts
+        if: ${{ inputs.upload-artifacts == true }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: terraform-artifacts
+          path: dist/
+          retention-days: 3
