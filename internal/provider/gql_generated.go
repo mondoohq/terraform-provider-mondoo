@@ -23,6 +23,7 @@ type ClientIntegrationConfigurationOptions struct {
 	SentinelOneConfigurationOptions       SentinelOneConfigurationOptions       `graphql:"... on SentinelOneConfigurationOptions"`
 	ShodanConfigurationOptions            ShodanConfigurationOptions            `graphql:"... on ShodanConfigurationOptions"`
 	SlackConfigurationOptions             SlackConfigurationOptions             `graphql:"... on SlackConfigurationOptions"`
+	WebhookConfigurationOptions           WebhookConfigurationOptions           `graphql:"... on WebhookConfigurationOptions"`
 	ZendeskConfigurationOptions           ZendeskConfigurationOptions           `graphql:"... on ZendeskConfigurationOptions"`
 	// Auto-generated resources
 	AzureDevopsConfigurationOptions     AzureDevopsConfigurationOptions     `graphql:"... on AzureDevopsConfigurationOptions"`
