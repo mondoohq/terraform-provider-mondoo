@@ -101,6 +101,68 @@ resource "mondoo_space" "test" {
 `, resourceOrgID, id, name)
 }
 
+func TestAccSpaceResourceWithTags(t *testing.T) {
+	orgID, err := getOrgId()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create with tags
+			{
+				Config: testAccSpaceResourceConfigWithTags(orgID, "tagged-space", map[string]string{
+					"env":  "test",
+					"team": "engineering",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_space.test", "name", "tagged-space"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "tags.env", "test"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "tags.team", "engineering"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName:      "mondoo_space.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Update tags
+			{
+				Config: testAccSpaceResourceConfigWithTags(orgID, "tagged-space", map[string]string{
+					"env":     "production",
+					"project": "alpha",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_space.test", "name", "tagged-space"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "tags.env", "production"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "tags.project", "alpha"),
+					resource.TestCheckNoResourceAttr("mondoo_space.test", "tags.team"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccSpaceResourceConfigWithTags(resourceOrgID string, name string, tags map[string]string) string {
+	tagsHCL := ""
+	for k, v := range tags {
+		tagsHCL += fmt.Sprintf("    %q = %q\n", k, v)
+	}
+	return fmt.Sprintf(`
+resource "mondoo_space" "test" {
+  org_id = %[1]q
+  name   = %[2]q
+
+  tags = {
+%[3]s  }
+}
+`, resourceOrgID, name, tagsHCL)
+}
+
 func TestAccSpaceResourceWithSettings(t *testing.T) {
 	orgID, err := getOrgId()
 	if err != nil {

@@ -44,6 +44,7 @@ type SpaceModel struct {
 	OrgID         types.String `tfsdk:"org_id"`
 	SpaceMrn      types.String `tfsdk:"mrn"`
 	SpaceSettings types.Object `tfsdk:"space_settings"`
+	Tags          types.Map    `tfsdk:"tags"`
 }
 
 type SpaceSettingsInput struct {
@@ -238,6 +239,11 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Validators: []validator.String{
 					mondoovalidator.Id(),
 				},
+			},
+			"tags": schema.MapAttribute{
+				MarkdownDescription: "Tags for the space as key-value pairs.",
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 			"space_settings": schema.SingleNestedAttribute{
 				Optional:            true,
@@ -434,6 +440,7 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 		Id:          spaceID,
 		OrgMrn:      mondoov1.String(orgPrefix + data.OrgID.ValueString()),
 		Settings:    ExpandSpaceSettings(spaceSettings),
+		Tags:        expandTags(data.Tags),
 	}
 
 	// Do GraphQL request to API to create the resource.
@@ -466,6 +473,8 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics = append(resp.Diagnostics, diags...)
 		return
 	}
+
+	data.Tags = flattenTags(payload.Tags)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -502,6 +511,7 @@ func (r *SpaceResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		Name:          types.StringValue(spacePayload.Name),
 		OrgID:         types.StringValue(spacePayload.Organization.Id),
 		SpaceSettings: spaceSettings,
+		Tags:          flattenTags(spacePayload.Tags),
 	}
 
 	if spacePayload.Description != "" {
@@ -557,6 +567,7 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		data.Name.ValueString(),
 		data.Description.ValueString(),
 		ExpandSpaceSettings(spaceSettings),
+		expandTags(data.Tags),
 	)
 	if err != nil {
 		resp.Diagnostics.
@@ -612,6 +623,7 @@ func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStat
 		Name:          types.StringValue(spacePayload.Name),
 		OrgID:         types.StringValue(spacePayload.Organization.Id),
 		SpaceSettings: spaceSettings,
+		Tags:          flattenTags(spacePayload.Tags),
 	}
 
 	if spacePayload.Description != "" {
@@ -867,6 +879,37 @@ func flattenCasesConfig(in *mondoov1.CasesConfigurationInput) *CasesConfiguratio
 		out.AggregationWindow = types.Int32Null()
 	}
 	return out
+}
+
+// expandTags converts a Terraform map of tags to a slice of TagInput.
+func expandTags(tags types.Map) *[]mondoov1.TagInput {
+	if tags.IsNull() || tags.IsUnknown() {
+		return nil
+	}
+
+	elements := tags.Elements()
+	result := make([]mondoov1.TagInput, 0, len(elements))
+	for k, v := range elements {
+		result = append(result, mondoov1.TagInput{
+			Key:   mondoov1.String(k),
+			Value: mondoov1.String(v.(types.String).ValueString()),
+		})
+	}
+	return &result
+}
+
+// flattenTags converts a slice of tag payloads to a Terraform map.
+func flattenTags(tags []tagPayload) types.Map {
+	if len(tags) == 0 {
+		return types.MapNull(types.StringType)
+	}
+
+	elements := make(map[string]attr.Value, len(tags))
+	for _, t := range tags {
+		elements[t.Key] = types.StringValue(t.Value)
+	}
+	m, _ := types.MapValue(types.StringType, elements)
+	return m
 }
 
 func flattenExceptionsConfig(in *mondoov1.ExceptionsConfigurationInput) *ExceptionsConfiguration {

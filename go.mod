@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.14.0
 	github.com/stretchr/testify v1.11.1
 	go.mondoo.com/cnquery/v12 v12.23.1
-	go.mondoo.com/mondoo-go v0.0.0-20260211131346-5a2e107d8ab4
+	go.mondoo.com/mondoo-go v0.0.0-20260310001044-1f720271512a
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -155,7 +155,7 @@ require (
 	golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
-	golang.org/x/oauth2 v0.35.0 // indirect
+	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
