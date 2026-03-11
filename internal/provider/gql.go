@@ -1278,22 +1278,15 @@ func (c *ExtendedGqlClient) RemoveTeamExternalGroupMapping(ctx context.Context, 
 	return c.Mutate(ctx, &mutation, mondoov1.String(mrn), nil)
 }
 
-type RoleInput struct {
-	Mrn mondoov1.String `json:"mrn"`
-}
-
-type SetRoleInput struct {
-	EntityMrn mondoov1.String `json:"entityMrn"`
-	Roles     []RoleInput     `json:"roles"`
-}
-
 type SetRolesInput struct {
-	ScopeMrn mondoov1.String `json:"scopeMrn"`
-	Updates  []SetRoleInput  `json:"updates"`
+	ScopeMrn mondoov1.String   `json:"scopeMrn"`
+	Identity mondoov1.String   `json:"identity"`
+	Roles    []mondoov1.String `json:"roles"`
 }
 
 type SetRolesPayload struct {
-	Mrns []mondoov1.String `json:"mrns"`
+	IdentityMrn   mondoov1.String  `graphql:"identity_mrn"`
+	IdentityEmail *mondoov1.String `graphql:"identity_email"`
 }
 
 func (c *ExtendedGqlClient) SetRoles(ctx context.Context, input SetRolesInput) (SetRolesPayload, error) {
