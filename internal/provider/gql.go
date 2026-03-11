@@ -787,6 +787,12 @@ type EmailRecipient struct {
 	ReferenceURL string
 }
 
+type WebhookConfigurationOptions struct {
+	Url               string
+	AutoCloseTickets  bool
+	AutoCreateTickets bool
+}
+
 type MicrosoftDefenderConfigurationOptions struct {
 	TenantId               string
 	ClientId               string
