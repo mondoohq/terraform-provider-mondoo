@@ -60,3 +60,4 @@ output "space_id" {
 
 - `mrn` (String) Space MRN
 - `name` (String) Space name
+- `tags` (Map of String) Tags for the space as key-value pairs.

@@ -30,6 +30,49 @@ func TestAccSpaceDataSource(t *testing.T) {
 	})
 }
 
+func TestAccSpaceDataSourceWithTags(t *testing.T) {
+	orgID, err := getOrgId()
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSpaceDataSourceConfigWithTags(orgID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.mondoo_space.space", "name", "test-space-tags"),
+					resource.TestCheckResourceAttr("data.mondoo_space.space", "tags.env", "test"),
+					resource.TestCheckResourceAttr("data.mondoo_space.space", "tags.team", "engineering"),
+				),
+			},
+		},
+	})
+}
+
+func testAccSpaceDataSourceConfigWithTags(orgId string) string {
+	return fmt.Sprintf(`
+resource "mondoo_space" "test" {
+  org_id = %[1]q
+  name   = "test-space-tags"
+
+  tags = {
+    env  = "test"
+    team = "engineering"
+  }
+}
+
+data "mondoo_space" "space" {
+  id = mondoo_space.test.id
+
+  depends_on = [
+    mondoo_space.test
+  ]
+}
+`, orgId)
+}
+
 func testAccSpaceDataSourceConfig(orgId string) string {
 	return fmt.Sprintf(`
 

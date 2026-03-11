@@ -32,6 +32,7 @@ type OrganizationDataSourceModel struct {
 	OrgID  types.String `tfsdk:"id"`
 	OrgMrn types.String `tfsdk:"mrn"`
 	Name   types.String `tfsdk:"name"`
+	Tags   types.Map    `tfsdk:"tags"`
 	Spaces types.List   `tfsdk:"spaces"`
 }
 
@@ -69,6 +70,11 @@ func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.Sche
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Organization name",
 				Computed:            true,
+			},
+			"tags": schema.MapAttribute{
+				MarkdownDescription: "Tags for the organization as key-value pairs.",
+				Computed:            true,
+				ElementType:         types.StringType,
 			},
 			"spaces": schema.ListAttribute{
 				MarkdownDescription: "List of spaces (MRNs) in the organization",
@@ -136,6 +142,7 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 	data.OrgID = types.StringValue(payload.Id)
 	data.OrgMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)
+	data.Tags = flattenTags(payload.Tags)
 	data.Spaces = ConvertListValue(spaces)
 
 	// Save data into Terraform state

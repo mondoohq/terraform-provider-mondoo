@@ -30,6 +30,7 @@ type SpaceDataSourceModel struct {
 	SpaceID  types.String `tfsdk:"id"`
 	SpaceMrn types.String `tfsdk:"mrn"`
 	Name     types.String `tfsdk:"name"`
+	Tags     types.Map    `tfsdk:"tags"`
 }
 
 func (d *SpaceDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -39,7 +40,6 @@ func (d *SpaceDataSource) Metadata(ctx context.Context, req datasource.MetadataR
 func (d *SpaceDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Space data source",
-
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Space ID",
@@ -53,6 +53,11 @@ func (d *SpaceDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Space name",
 				Computed:            true,
+			},
+			"tags": schema.MapAttribute{
+				MarkdownDescription: "Tags for the space as key-value pairs.",
+				Computed:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -109,6 +114,7 @@ func (d *SpaceDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	data.SpaceID = types.StringValue(payload.Id)
 	data.SpaceMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)
+	data.Tags = flattenTags(payload.Tags)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
