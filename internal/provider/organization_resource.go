@@ -31,6 +31,7 @@ type organizationResourceModel struct {
 	OrgMrn      types.String `tfsdk:"mrn"`
 	Description types.String `tfsdk:"description"`
 	Company     types.String `tfsdk:"company"`
+	Tags        types.Map    `tfsdk:"tags"`
 }
 
 func (r *organizationResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -73,6 +74,11 @@ func (r *organizationResource) Schema(ctx context.Context, req resource.SchemaRe
 				MarkdownDescription: "Company name of the organization.",
 				Optional:            true,
 			},
+			"tags": schema.MapAttribute{
+				MarkdownDescription: "Tags for the organization as key-value pairs.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
 		},
 	}
 }
@@ -112,6 +118,7 @@ func (r *organizationResource) Create(ctx context.Context, req resource.CreateRe
 		data.Name.ValueString(),
 		data.Description.ValueStringPointer(),
 		data.Company.ValueStringPointer(),
+		expandTags(data.Tags),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create organization", err.Error())
@@ -124,6 +131,8 @@ func (r *organizationResource) Create(ctx context.Context, req resource.CreateRe
 
 	data.OrgMrn = types.StringValue(payload.Mrn)
 	ctx = tflog.SetField(ctx, "org_mrn", data.OrgMrn)
+
+	data.Tags = flattenTags(payload.Tags)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -169,6 +178,7 @@ func (r *organizationResource) Update(ctx context.Context, req resource.UpdateRe
 		data.Name.ValueString(),
 		data.Description.ValueStringPointer(),
 		data.Company.ValueStringPointer(),
+		expandTags(data.Tags),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update organization", err.Error())
@@ -214,6 +224,7 @@ func (r *organizationResource) ImportState(ctx context.Context, req resource.Imp
 		OrgMrn:      types.StringValue(orgPayload.Mrn),
 		Description: types.StringValue(orgPayload.Description),
 		Company:     types.StringValue(orgPayload.Company),
+		Tags:        flattenTags(orgPayload.Tags),
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }

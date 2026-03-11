@@ -51,12 +51,18 @@ func newDataUrl(content []byte) string {
 	return "data:application/x-yaml;base64," + base64.StdEncoding.EncodeToString(content)
 }
 
+type tagPayload struct {
+	Key   string
+	Value string
+}
+
 type createSpacePayload struct {
 	Id          mondoov1.ID
 	Mrn         mondoov1.String
 	Name        mondoov1.String
 	Description mondoov1.String
 	Settings    *MondooSpaceSettingsInput
+	Tags        []tagPayload
 }
 
 func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, input mondoov1.CreateSpaceInput) (createSpacePayload, error) {
@@ -72,7 +78,7 @@ func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, input mondoov1.Crea
 	return createMutation.CreateSpace, err
 }
 
-func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, description string, settings *mondoov1.SpaceSettingsInput) error {
+func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, description string, settings *mondoov1.SpaceSettingsInput, tags *[]mondoov1.TagInput) error {
 	var updateMutation struct {
 		UpdateSpace struct {
 			Space struct {
@@ -91,6 +97,9 @@ func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, desc
 
 	if settings != nil {
 		updateInput.Settings = settings
+	}
+	if tags != nil {
+		updateInput.Tags = tags
 	}
 	tflog.Trace(ctx, "UpdateSpaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
@@ -120,6 +129,7 @@ type spacePayload struct {
 	Description  string
 	Organization orgPayload
 	Settings     *MondooSpaceSettingsInput
+	Tags         []tagPayload
 }
 
 type MondooSpaceSettingsInput struct {
@@ -138,6 +148,7 @@ type orgPayload struct {
 	Name        string
 	Description string
 	Company     string
+	Tags        []tagPayload
 	SpacesCount int
 	SpacesList  struct {
 		TotalCount int
@@ -194,7 +205,7 @@ func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayl
 	return q.Space, nil
 }
 
-func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *string, name string, description *string, company *string) (orgPayload, error) {
+func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *string, name string, description *string, company *string, tags *[]mondoov1.TagInput) (orgPayload, error) {
 	var createMutation struct {
 		CreateOrganization orgPayload `graphql:"createOrganization(input: $input)"`
 	}
@@ -214,6 +225,10 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 		createInput.Company = mondoov1.NewStringPtr(mondoov1.String(*company))
 	}
 
+	if tags != nil {
+		createInput.Tags = tags
+	}
+
 	tflog.Trace(ctx, "CreateOrganizationInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createInput),
 	})
@@ -224,7 +239,7 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 	return createMutation.CreateOrganization, err
 }
 
-func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn string, name string, description *string, company *string) error {
+func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn string, name string, description *string, company *string, tags *[]mondoov1.TagInput) error {
 	var updateMutation struct {
 		UpdateOrganization struct {
 			Organization struct {
@@ -246,6 +261,10 @@ func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn strin
 
 	if company != nil {
 		updateInput.Company = mondoov1.NewStringPtr(mondoov1.String(*company))
+	}
+
+	if tags != nil {
+		updateInput.Tags = tags
 	}
 
 	tflog.Trace(ctx, "UpdateOrganizationInput", map[string]interface{}{
@@ -632,7 +651,7 @@ func (c *ExtendedGqlClient) UpdateIntegration(ctx context.Context, mrn, name str
 		Type:                 typ,
 		ConfigurationOptions: opts,
 	}
-	tflog.Trace(ctx, "UpdateClientIntegrationNameInput", map[string]interface{}{
+	tflog.Trace(ctx, "UpdateIntegration", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
 	})
 	err := c.Mutate(ctx, &updateMutation, updateInput, nil)
@@ -1380,7 +1399,7 @@ func (c *ExtendedGqlClient) DeleteExceptions(ctx context.Context, exceptionIds [
 	}
 	input := mondoov1.ExceptionsDeleteInput{
 		ExceptionIDs: &ids,
-		SpaceMrn:     mondoov1.String(spaceMrn),
+		SpaceMrn:     mondoov1.NewStringPtr(mondoov1.String(spaceMrn)),
 	}
 	return c.Mutate(ctx, &deleteExceptions, input, nil)
 }

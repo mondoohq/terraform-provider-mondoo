@@ -52,3 +52,4 @@ output "spaces" {
 
 - `name` (String) Organization name
 - `spaces` (List of String) List of spaces (MRNs) in the organization
+- `tags` (Map of String) Tags for the organization as key-value pairs.

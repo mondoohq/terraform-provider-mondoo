@@ -189,7 +189,7 @@ func (r *customQueryPackResource) Create(ctx context.Context, req resource.Creat
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to store policy. Got error: %s", err),
+				fmt.Sprintf("Unable to store query pack. Got error: %s", err),
 			)
 		return
 	}
@@ -285,7 +285,7 @@ func (r *customQueryPackResource) Update(ctx context.Context, req resource.Updat
 		if err != nil {
 			resp.Diagnostics.
 				AddError("Client Error",
-					fmt.Sprintf("Unable to store policy. Got error: %s", err),
+					fmt.Sprintf("Unable to store query pack. Got error: %s", err),
 				)
 			return
 		}
