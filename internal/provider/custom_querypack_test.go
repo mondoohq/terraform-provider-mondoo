@@ -23,7 +23,7 @@ func TestAccCustomQueryPackResource(t *testing.T) {
 			{
 				Config: testAccCustomQueryPackResourceConfig(orgID, "./testdata/querypack_1.mql.yaml"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_custom_querypack.my_querypack", "crc32c", "2322167c"),
+					resource.TestCheckResourceAttr("mondoo_custom_querypack.my_querypack", "crc32c", "6ea263ec"),
 				),
 			},
 			// ImportState testing
@@ -37,7 +37,7 @@ func TestAccCustomQueryPackResource(t *testing.T) {
 			{
 				Config: testAccCustomQueryPackResourceConfig(orgID, "./testdata/querypack_2.mql.yaml"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_custom_querypack.my_querypack", "crc32c", "c4221534"),
+					resource.TestCheckResourceAttr("mondoo_custom_querypack.my_querypack", "crc32c", "4c28e902"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase

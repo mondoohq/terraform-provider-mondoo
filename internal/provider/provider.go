@@ -19,10 +19,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	cnquery_config "go.mondoo.com/cnquery/v12/cli/config"
-	cnquery_upstream "go.mondoo.com/cnquery/v12/providers-sdk/v1/upstream"
 	mondoov1 "go.mondoo.com/mondoo-go"
 	"go.mondoo.com/mondoo-go/option"
+	mql_config "go.mondoo.com/mql/v13/cli/config"
+	mql_upstream "go.mondoo.com/mql/v13/providers-sdk/v1/upstream"
 )
 
 // Ensure MondooProvider satisfies various provider interfaces.
@@ -250,17 +250,17 @@ func New(version string) func() provider.Provider {
 
 // detectDefaultConfig tries to detect the default Mondoo CLI configuration file.
 func detectDefaultConfig() (string, error) {
-	f := cnquery_config.DefaultConfigFile
-	homeConfig, err := cnquery_config.HomePath(f)
+	f := mql_config.DefaultConfigFile
+	homeConfig, err := mql_config.HomePath(f)
 	if err != nil {
 		return "", errors.New("failed to detect mondoo config")
 	}
-	if cnquery_config.ProbeFile(homeConfig) {
+	if mql_config.ProbeFile(homeConfig) {
 		return homeConfig, nil
 	}
 
-	sysConfig := cnquery_config.SystemConfigPath(f)
-	if cnquery_config.ProbeFile(sysConfig) {
+	sysConfig := mql_config.SystemConfigPath(f)
+	if mql_config.ProbeFile(sysConfig) {
 		return sysConfig, nil
 	}
 
@@ -297,7 +297,7 @@ func parseWIF(filename string) (*wif, error) {
 }
 
 func serviceAccountFromWIFConfig(config *wif) ([]byte, error) {
-	svcAccount, err := cnquery_upstream.ExchangeExternalToken(config.UniverseDomain, config.Audience, config.IssuerURI, config.JWTToken)
+	svcAccount, err := mql_upstream.ExchangeExternalToken(config.UniverseDomain, config.Audience, config.IssuerURI, config.JWTToken)
 	if err != nil {
 		return nil, err
 	}
