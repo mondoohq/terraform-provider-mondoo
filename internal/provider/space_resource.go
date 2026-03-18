@@ -44,6 +44,7 @@ type SpaceModel struct {
 	OrgID         types.String `tfsdk:"org_id"`
 	SpaceMrn      types.String `tfsdk:"mrn"`
 	SpaceSettings types.Object `tfsdk:"space_settings"`
+	Annotations   types.Map    `tfsdk:"annotations"`
 	Tags          types.Map    `tfsdk:"tags"`
 }
 
@@ -240,8 +241,14 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 					mondoovalidator.Id(),
 				},
 			},
+			"annotations": schema.MapAttribute{
+				MarkdownDescription: "Annotations for the space as key-value pairs.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
 			"tags": schema.MapAttribute{
 				MarkdownDescription: "Tags for the space as key-value pairs.",
+				DeprecationMessage:  "Use `annotations` instead. This attribute will be removed in a future version.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
@@ -440,7 +447,7 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 		Id:          spaceID,
 		OrgMrn:      mondoov1.String(orgPrefix + data.OrgID.ValueString()),
 		Settings:    ExpandSpaceSettings(spaceSettings),
-		Tags:        expandTags(data.Tags),
+		Annotations: expandAnnotations(resolveAnnotations(data.Annotations, data.Tags)),
 	}
 
 	// Do GraphQL request to API to create the resource.
@@ -474,7 +481,11 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	data.Tags = flattenTags(payload.Tags)
+	data.Annotations = flattenAnnotations(payload.Annotations)
+	// Mirror annotations into deprecated tags field if the user configured tags.
+	if !data.Tags.IsNull() {
+		data.Tags = data.Annotations
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -505,13 +516,21 @@ func (r *SpaceResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
+	annotations := flattenAnnotations(spacePayload.Annotations)
+	// Mirror annotations into deprecated tags field if the user had tags in state.
+	tags := types.MapNull(types.StringType)
+	if !data.Tags.IsNull() {
+		tags = annotations
+	}
+
 	model := SpaceModel{
 		SpaceID:       types.StringValue(spacePayload.Id),
 		SpaceMrn:      types.StringValue(spacePayload.Mrn),
 		Name:          types.StringValue(spacePayload.Name),
 		OrgID:         types.StringValue(spacePayload.Organization.Id),
 		SpaceSettings: spaceSettings,
-		Tags:          flattenTags(spacePayload.Tags),
+		Annotations:   annotations,
+		Tags:          tags,
 	}
 
 	if spacePayload.Description != "" {
@@ -567,7 +586,7 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		data.Name.ValueString(),
 		data.Description.ValueString(),
 		ExpandSpaceSettings(spaceSettings),
-		expandTags(data.Tags),
+		expandAnnotations(resolveAnnotations(data.Annotations, data.Tags)),
 	)
 	if err != nil {
 		resp.Diagnostics.
@@ -623,7 +642,8 @@ func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStat
 		Name:          types.StringValue(spacePayload.Name),
 		OrgID:         types.StringValue(spacePayload.Organization.Id),
 		SpaceSettings: spaceSettings,
-		Tags:          flattenTags(spacePayload.Tags),
+		Annotations:   flattenAnnotations(spacePayload.Annotations),
+		Tags:          types.MapNull(types.StringType),
 	}
 
 	if spacePayload.Description != "" {
@@ -881,16 +901,28 @@ func flattenCasesConfig(in *mondoov1.CasesConfigurationInput) *CasesConfiguratio
 	return out
 }
 
-// expandTags converts a Terraform map of tags to a slice of TagInput.
-func expandTags(tags types.Map) *[]mondoov1.TagInput {
-	if tags.IsNull() || tags.IsUnknown() {
+// resolveAnnotations returns whichever is set: annotations (preferred) or tags (deprecated).
+// Returns null if neither is set.
+func resolveAnnotations(annotations, tags types.Map) types.Map {
+	if !annotations.IsNull() && !annotations.IsUnknown() {
+		return annotations
+	}
+	if !tags.IsNull() && !tags.IsUnknown() {
+		return tags
+	}
+	return types.MapNull(types.StringType)
+}
+
+// expandAnnotations converts a Terraform map to a slice of AnnotationInput.
+func expandAnnotations(m types.Map) *[]mondoov1.AnnotationInput {
+	if m.IsNull() || m.IsUnknown() {
 		return nil
 	}
 
-	elements := tags.Elements()
-	result := make([]mondoov1.TagInput, 0, len(elements))
+	elements := m.Elements()
+	result := make([]mondoov1.AnnotationInput, 0, len(elements))
 	for k, v := range elements {
-		result = append(result, mondoov1.TagInput{
+		result = append(result, mondoov1.AnnotationInput{
 			Key:   mondoov1.String(k),
 			Value: mondoov1.String(v.(types.String).ValueString()),
 		})
@@ -898,15 +930,15 @@ func expandTags(tags types.Map) *[]mondoov1.TagInput {
 	return &result
 }
 
-// flattenTags converts a slice of tag payloads to a Terraform map.
-func flattenTags(tags []tagPayload) types.Map {
-	if len(tags) == 0 {
+// flattenAnnotations converts a slice of AnnotationPayload to a Terraform map.
+func flattenAnnotations(annotations []AnnotationPayload) types.Map {
+	if len(annotations) == 0 {
 		return types.MapNull(types.StringType)
 	}
 
-	elements := make(map[string]attr.Value, len(tags))
-	for _, t := range tags {
-		elements[t.Key] = types.StringValue(t.Value)
+	elements := make(map[string]attr.Value, len(annotations))
+	for _, a := range annotations {
+		elements[string(a.Key)] = types.StringValue(string(a.Value))
 	}
 	m, _ := types.MapValue(types.StringType, elements)
 	return m

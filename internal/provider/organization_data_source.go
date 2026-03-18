@@ -29,11 +29,12 @@ type OrganizationDataSource struct {
 
 // OrganizationDataSourceModel describes the data source data model.
 type OrganizationDataSourceModel struct {
-	OrgID  types.String `tfsdk:"id"`
-	OrgMrn types.String `tfsdk:"mrn"`
-	Name   types.String `tfsdk:"name"`
-	Tags   types.Map    `tfsdk:"tags"`
-	Spaces types.List   `tfsdk:"spaces"`
+	OrgID       types.String `tfsdk:"id"`
+	OrgMrn      types.String `tfsdk:"mrn"`
+	Name        types.String `tfsdk:"name"`
+	Annotations types.Map    `tfsdk:"annotations"`
+	Tags        types.Map    `tfsdk:"tags"`
+	Spaces      types.List   `tfsdk:"spaces"`
 }
 
 func (d *OrganizationDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -71,8 +72,14 @@ func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.Sche
 				MarkdownDescription: "Organization name",
 				Computed:            true,
 			},
+			"annotations": schema.MapAttribute{
+				MarkdownDescription: "Annotations for the organization as key-value pairs.",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
 			"tags": schema.MapAttribute{
 				MarkdownDescription: "Tags for the organization as key-value pairs.",
+				DeprecationMessage:  "Use `annotations` instead. This attribute will be removed in a future version.",
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
@@ -142,7 +149,8 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 	data.OrgID = types.StringValue(payload.Id)
 	data.OrgMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)
-	data.Tags = flattenTags(payload.Tags)
+	data.Annotations = flattenAnnotations(payload.Annotations)
+	data.Tags = data.Annotations // deprecated alias
 	data.Spaces = ConvertListValue(spaces)
 
 	// Save data into Terraform state
