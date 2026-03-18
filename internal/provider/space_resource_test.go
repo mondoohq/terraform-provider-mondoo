@@ -101,7 +101,7 @@ resource "mondoo_space" "test" {
 `, resourceOrgID, id, name)
 }
 
-func TestAccSpaceResourceWithTags(t *testing.T) {
+func TestAccSpaceResourceWithAnnotations(t *testing.T) {
 	orgID, err := getOrgId()
 	if err != nil {
 		t.Fatal(err)
@@ -111,16 +111,16 @@ func TestAccSpaceResourceWithTags(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Create with tags
+			// Create with annotations
 			{
-				Config: testAccSpaceResourceConfigWithTags(orgID, "tagged-space", map[string]string{
+				Config: testAccSpaceResourceConfigWithAnnotations(orgID, "tagged-space", map[string]string{
 					"env":  "test",
 					"team": "engineering",
 				}),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_space.test", "name", "tagged-space"),
-					resource.TestCheckResourceAttr("mondoo_space.test", "tags.env", "test"),
-					resource.TestCheckResourceAttr("mondoo_space.test", "tags.team", "engineering"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "annotations.env", "test"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "annotations.team", "engineering"),
 				),
 			},
 			// ImportState testing
@@ -129,17 +129,17 @@ func TestAccSpaceResourceWithTags(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Update tags
+			// Update annotations
 			{
-				Config: testAccSpaceResourceConfigWithTags(orgID, "tagged-space", map[string]string{
+				Config: testAccSpaceResourceConfigWithAnnotations(orgID, "tagged-space", map[string]string{
 					"env":     "production",
 					"project": "alpha",
 				}),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_space.test", "name", "tagged-space"),
-					resource.TestCheckResourceAttr("mondoo_space.test", "tags.env", "production"),
-					resource.TestCheckResourceAttr("mondoo_space.test", "tags.project", "alpha"),
-					resource.TestCheckNoResourceAttr("mondoo_space.test", "tags.team"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "annotations.env", "production"),
+					resource.TestCheckResourceAttr("mondoo_space.test", "annotations.project", "alpha"),
+					resource.TestCheckNoResourceAttr("mondoo_space.test", "annotations.team"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -147,7 +147,7 @@ func TestAccSpaceResourceWithTags(t *testing.T) {
 	})
 }
 
-func testAccSpaceResourceConfigWithTags(resourceOrgID string, name string, tags map[string]string) string {
+func testAccSpaceResourceConfigWithAnnotations(resourceOrgID string, name string, tags map[string]string) string {
 	tagsHCL := ""
 	for k, v := range tags {
 		tagsHCL += fmt.Sprintf("    %q = %q\n", k, v)
@@ -157,7 +157,7 @@ resource "mondoo_space" "test" {
   org_id = %[1]q
   name   = %[2]q
 
-  tags = {
+  annotations = {
 %[3]s  }
 }
 `, resourceOrgID, name, tagsHCL)

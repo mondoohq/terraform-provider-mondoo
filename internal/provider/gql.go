@@ -51,9 +51,9 @@ func newDataUrl(content []byte) string {
 	return "data:application/x-yaml;base64," + base64.StdEncoding.EncodeToString(content)
 }
 
-type tagPayload struct {
-	Key   string
-	Value string
+type AnnotationPayload struct {
+	Key   mondoov1.String
+	Value mondoov1.String
 }
 
 type createSpacePayload struct {
@@ -62,7 +62,7 @@ type createSpacePayload struct {
 	Name        mondoov1.String
 	Description mondoov1.String
 	Settings    *MondooSpaceSettingsInput
-	Tags        []tagPayload
+	Annotations []AnnotationPayload `graphql:"annotations"`
 }
 
 func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, input mondoov1.CreateSpaceInput) (createSpacePayload, error) {
@@ -78,7 +78,7 @@ func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, input mondoov1.Crea
 	return createMutation.CreateSpace, err
 }
 
-func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, description string, settings *mondoov1.SpaceSettingsInput, tags *[]mondoov1.TagInput) error {
+func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, description string, settings *mondoov1.SpaceSettingsInput, annotations *[]mondoov1.AnnotationInput) error {
 	var updateMutation struct {
 		UpdateSpace struct {
 			Space struct {
@@ -98,8 +98,8 @@ func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, desc
 	if settings != nil {
 		updateInput.Settings = settings
 	}
-	if tags != nil {
-		updateInput.Tags = tags
+	if annotations != nil {
+		updateInput.Annotations = annotations
 	}
 	tflog.Trace(ctx, "UpdateSpaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
@@ -129,7 +129,7 @@ type spacePayload struct {
 	Description  string
 	Organization orgPayload
 	Settings     *MondooSpaceSettingsInput
-	Tags         []tagPayload
+	Annotations  []AnnotationPayload `graphql:"annotations"`
 }
 
 type MondooSpaceSettingsInput struct {
@@ -148,7 +148,7 @@ type orgPayload struct {
 	Name        string
 	Description string
 	Company     string
-	Tags        []tagPayload
+	Annotations []AnnotationPayload `graphql:"annotations"`
 	SpacesCount int
 	SpacesList  struct {
 		TotalCount int
@@ -205,7 +205,7 @@ func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayl
 	return q.Space, nil
 }
 
-func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *string, name string, description *string, company *string, tags *[]mondoov1.TagInput) (orgPayload, error) {
+func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *string, name string, description *string, company *string, annotations *[]mondoov1.AnnotationInput) (orgPayload, error) {
 	var createMutation struct {
 		CreateOrganization orgPayload `graphql:"createOrganization(input: $input)"`
 	}
@@ -225,8 +225,8 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 		createInput.Company = mondoov1.NewStringPtr(mondoov1.String(*company))
 	}
 
-	if tags != nil {
-		createInput.Tags = tags
+	if annotations != nil {
+		createInput.Annotations = annotations
 	}
 
 	tflog.Trace(ctx, "CreateOrganizationInput", map[string]interface{}{
@@ -239,7 +239,7 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 	return createMutation.CreateOrganization, err
 }
 
-func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn string, name string, description *string, company *string, tags *[]mondoov1.TagInput) error {
+func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn string, name string, description *string, company *string, annotations *[]mondoov1.AnnotationInput) error {
 	var updateMutation struct {
 		UpdateOrganization struct {
 			Organization struct {
@@ -263,8 +263,8 @@ func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn strin
 		updateInput.Company = mondoov1.NewStringPtr(mondoov1.String(*company))
 	}
 
-	if tags != nil {
-		updateInput.Tags = tags
+	if annotations != nil {
+		updateInput.Annotations = annotations
 	}
 
 	tflog.Trace(ctx, "UpdateOrganizationInput", map[string]interface{}{

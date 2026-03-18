@@ -31,7 +31,7 @@ func TestAccOrganizationDataSource(t *testing.T) {
 	})
 }
 
-func TestAccOrganizationDataSourceWithTags(t *testing.T) {
+func TestAccOrganizationDataSourceWithAnnotations(t *testing.T) {
 	// Skipped: requires ability to create organizations with tags
 	t.SkipNow()
 	orgID, err := getOrgId()
@@ -44,22 +44,22 @@ func TestAccOrganizationDataSourceWithTags(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccOrganizationDataSourceConfigWithTags(orgID),
+				Config: testAccOrganizationDataSourceConfigWithAnnotations(orgID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.mondoo_organization.org", "id", orgID),
-					resource.TestCheckResourceAttr("data.mondoo_organization.org", "tags.env", "test"),
+					resource.TestCheckResourceAttr("data.mondoo_organization.org", "annotations.env", "test"),
 				),
 			},
 		},
 	})
 }
 
-func testAccOrganizationDataSourceConfigWithTags(orgId string) string {
+func testAccOrganizationDataSourceConfigWithAnnotations(orgId string) string {
 	return fmt.Sprintf(`
 resource "mondoo_organization" "test" {
   name = "test-org-tags-%[1]s"
 
-  tags = {
+  annotations = {
     env = "test"
   }
 }

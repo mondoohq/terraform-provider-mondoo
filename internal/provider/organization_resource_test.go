@@ -35,7 +35,7 @@ func TestAccOrganizationResource(t *testing.T) {
 	})
 }
 
-func TestAccOrganizationResourceWithTags(t *testing.T) {
+func TestAccOrganizationResourceWithAnnotations(t *testing.T) {
 	// These tests are skipped because the tests are run with an agent that is scoped
 	// to a specific organization. It does not have the ability to create new organizations.
 	t.SkipNow()
@@ -43,35 +43,35 @@ func TestAccOrganizationResourceWithTags(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Create with tags
+			// Create with annotations
 			{
-				Config: testAccOrganizationResourceConfigWithTags("name a", "description a", map[string]string{
+				Config: testAccOrganizationResourceConfigWithAnnotations("name a", "description a", map[string]string{
 					"env":  "test",
 					"team": "engineering",
 				}),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_organization.test", "name", "name a"),
-					resource.TestCheckResourceAttr("mondoo_organization.test", "tags.env", "test"),
-					resource.TestCheckResourceAttr("mondoo_organization.test", "tags.team", "engineering"),
+					resource.TestCheckResourceAttr("mondoo_organization.test", "annotations.env", "test"),
+					resource.TestCheckResourceAttr("mondoo_organization.test", "annotations.team", "engineering"),
 				),
 			},
-			// Update tags
+			// Update annotations
 			{
-				Config: testAccOrganizationResourceConfigWithTags("name a", "description a", map[string]string{
+				Config: testAccOrganizationResourceConfigWithAnnotations("name a", "description a", map[string]string{
 					"env":     "production",
 					"project": "alpha",
 				}),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_organization.test", "tags.env", "production"),
-					resource.TestCheckResourceAttr("mondoo_organization.test", "tags.project", "alpha"),
-					resource.TestCheckNoResourceAttr("mondoo_organization.test", "tags.team"),
+					resource.TestCheckResourceAttr("mondoo_organization.test", "annotations.env", "production"),
+					resource.TestCheckResourceAttr("mondoo_organization.test", "annotations.project", "alpha"),
+					resource.TestCheckNoResourceAttr("mondoo_organization.test", "annotations.team"),
 				),
 			},
 		},
 	})
 }
 
-func testAccOrganizationResourceConfigWithTags(name, description string, tags map[string]string) string {
+func testAccOrganizationResourceConfigWithAnnotations(name, description string, tags map[string]string) string {
 	tagsHCL := ""
 	for k, v := range tags {
 		tagsHCL += fmt.Sprintf("    %q = %q\n", k, v)
@@ -81,7 +81,7 @@ resource "mondoo_organization" "test" {
   name        = %[1]q
   description = %[2]q
 
-  tags = {
+  annotations = {
 %[3]s  }
 }
 `, name, description, tagsHCL)
