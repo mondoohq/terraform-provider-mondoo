@@ -20,6 +20,7 @@ type ClientIntegrationConfigurationOptions struct {
 	JiraConfigurationOptions              JiraConfigurationOptions              `graphql:"... on JiraConfigurationOptions"`
 	MicrosoftDefenderConfigurationOptions MicrosoftDefenderConfigurationOptions `graphql:"... on MicrosoftDefenderConfigurationOptions"`
 	Ms365ConfigurationOptions             Ms365ConfigurationOptions             `graphql:"... on Ms365ConfigurationOptions"`
+	MsIntuneConfigurationOptions          MsIntuneConfigurationOptions          `graphql:"... on MsIntuneConfigurationOptions"`
 	SentinelOneConfigurationOptions       SentinelOneConfigurationOptions       `graphql:"... on SentinelOneConfigurationOptions"`
 	ShodanConfigurationOptions            ShodanConfigurationOptions            `graphql:"... on ShodanConfigurationOptions"`
 	SlackConfigurationOptions             SlackConfigurationOptions             `graphql:"... on SlackConfigurationOptions"`
