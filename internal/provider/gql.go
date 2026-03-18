@@ -739,6 +739,11 @@ type Ms365ConfigurationOptions struct {
 	ClientId string
 }
 
+type MsIntuneConfigurationOptions struct {
+	TenantId string
+	ClientId string
+}
+
 type HostedAwsConfigurationOptions struct {
 	AccessKeyId string
 	Role        string
