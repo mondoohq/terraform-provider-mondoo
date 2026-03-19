@@ -32,7 +32,6 @@ type organizationResourceModel struct {
 	Description types.String `tfsdk:"description"`
 	Company     types.String `tfsdk:"company"`
 	Annotations types.Map    `tfsdk:"annotations"`
-	Tags        types.Map    `tfsdk:"tags"`
 }
 
 func (r *organizationResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -80,12 +79,6 @@ func (r *organizationResource) Schema(ctx context.Context, req resource.SchemaRe
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
-			"tags": schema.MapAttribute{
-				MarkdownDescription: "Tags for the organization as key-value pairs.",
-				DeprecationMessage:  "Use `annotations` instead. This attribute will be removed in a future version.",
-				Optional:            true,
-				ElementType:         types.StringType,
-			},
 		},
 	}
 }
@@ -125,7 +118,7 @@ func (r *organizationResource) Create(ctx context.Context, req resource.CreateRe
 		data.Name.ValueString(),
 		data.Description.ValueStringPointer(),
 		data.Company.ValueStringPointer(),
-		expandAnnotations(resolveAnnotations(data.Annotations, data.Tags)),
+		expandAnnotations(data.Annotations),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create organization", err.Error())
@@ -140,10 +133,6 @@ func (r *organizationResource) Create(ctx context.Context, req resource.CreateRe
 	ctx = tflog.SetField(ctx, "org_mrn", data.OrgMrn)
 
 	data.Annotations = flattenAnnotations(payload.Annotations)
-	// Mirror annotations into deprecated tags field if the user configured tags.
-	if !data.Tags.IsNull() {
-		data.Tags = data.Annotations
-	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -189,7 +178,7 @@ func (r *organizationResource) Update(ctx context.Context, req resource.UpdateRe
 		data.Name.ValueString(),
 		data.Description.ValueStringPointer(),
 		data.Company.ValueStringPointer(),
-		expandAnnotations(resolveAnnotations(data.Annotations, data.Tags)),
+		expandAnnotations(data.Annotations),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update organization", err.Error())
@@ -236,7 +225,6 @@ func (r *organizationResource) ImportState(ctx context.Context, req resource.Imp
 		Description: types.StringValue(orgPayload.Description),
 		Company:     types.StringValue(orgPayload.Company),
 		Annotations: flattenAnnotations(orgPayload.Annotations),
-		Tags:        types.MapNull(types.StringType),
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }

@@ -31,7 +31,6 @@ type SpaceDataSourceModel struct {
 	SpaceMrn    types.String `tfsdk:"mrn"`
 	Name        types.String `tfsdk:"name"`
 	Annotations types.Map    `tfsdk:"annotations"`
-	Tags        types.Map    `tfsdk:"tags"`
 }
 
 func (d *SpaceDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -57,12 +56,6 @@ func (d *SpaceDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 			},
 			"annotations": schema.MapAttribute{
 				MarkdownDescription: "Annotations for the space as key-value pairs.",
-				Computed:            true,
-				ElementType:         types.StringType,
-			},
-			"tags": schema.MapAttribute{
-				MarkdownDescription: "Tags for the space as key-value pairs.",
-				DeprecationMessage:  "Use `annotations` instead. This attribute will be removed in a future version.",
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
@@ -122,7 +115,6 @@ func (d *SpaceDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	data.SpaceMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)
 	data.Annotations = flattenAnnotations(payload.Annotations)
-	data.Tags = data.Annotations // deprecated alias
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

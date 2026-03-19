@@ -53,4 +53,3 @@ output "spaces" {
 - `annotations` (Map of String) Annotations for the organization as key-value pairs.
 - `name` (String) Organization name
 - `spaces` (List of String) List of spaces (MRNs) in the organization
-- `tags` (Map of String, Deprecated) Tags for the organization as key-value pairs.

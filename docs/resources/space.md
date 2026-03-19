@@ -78,7 +78,6 @@ resource "mondoo_space" "custom_space" {
 - `id` (String) ID of the space. Must be globally unique. If the provider has a space configured and this field is empty, the provider space is used.
 - `name` (String) Name of the space.
 - `space_settings` (Attributes) Space settings. (see [below for nested schema](#nestedatt--space_settings))
-- `tags` (Map of String, Deprecated) Tags for the space as key-value pairs.
 
 ### Read-Only
 

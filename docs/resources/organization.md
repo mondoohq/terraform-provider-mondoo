@@ -33,7 +33,6 @@ resource "mondoo_organization" "myorg" {
 - `company` (String) Company name of the organization.
 - `description` (String) Description of the organization.
 - `id` (String) ID of the org. Must be globally unique. If the provider has a org configured and this field is empty, the provider org is used.
-- `tags` (Map of String, Deprecated) Tags for the organization as key-value pairs.
 
 ### Read-Only
 
