@@ -32,7 +32,7 @@ func TestAccOrganizationDataSource(t *testing.T) {
 }
 
 func TestAccOrganizationDataSourceWithAnnotations(t *testing.T) {
-	// Skipped: requires ability to create organizations with tags
+	// Skipped: requires ability to create organizations with annotations
 	t.SkipNow()
 	orgID, err := getOrgId()
 	if err != nil {

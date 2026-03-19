@@ -147,10 +147,10 @@ func TestAccSpaceResourceWithAnnotations(t *testing.T) {
 	})
 }
 
-func testAccSpaceResourceConfigWithAnnotations(resourceOrgID string, name string, tags map[string]string) string {
-	tagsHCL := ""
-	for k, v := range tags {
-		tagsHCL += fmt.Sprintf("    %q = %q\n", k, v)
+func testAccSpaceResourceConfigWithAnnotations(resourceOrgID string, name string, annotations map[string]string) string {
+	annotationsHCL := ""
+	for k, v := range annotations {
+		annotationsHCL += fmt.Sprintf("    %q = %q\n", k, v)
 	}
 	return fmt.Sprintf(`
 resource "mondoo_space" "test" {
@@ -160,7 +160,7 @@ resource "mondoo_space" "test" {
   annotations = {
 %[3]s  }
 }
-`, resourceOrgID, name, tagsHCL)
+`, resourceOrgID, name, annotationsHCL)
 }
 
 func TestAccSpaceResourceWithSettings(t *testing.T) {

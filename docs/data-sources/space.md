@@ -61,4 +61,3 @@ output "space_id" {
 - `annotations` (Map of String) Annotations for the space as key-value pairs.
 - `mrn` (String) Space MRN
 - `name` (String) Space name
-- `tags` (Map of String, Deprecated) Tags for the space as key-value pairs.

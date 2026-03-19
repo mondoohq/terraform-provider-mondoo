@@ -71,10 +71,10 @@ func TestAccOrganizationResourceWithAnnotations(t *testing.T) {
 	})
 }
 
-func testAccOrganizationResourceConfigWithAnnotations(name, description string, tags map[string]string) string {
-	tagsHCL := ""
-	for k, v := range tags {
-		tagsHCL += fmt.Sprintf("    %q = %q\n", k, v)
+func testAccOrganizationResourceConfigWithAnnotations(name, description string, annotations map[string]string) string {
+	annotationsHCL := ""
+	for k, v := range annotations {
+		annotationsHCL += fmt.Sprintf("    %q = %q\n", k, v)
 	}
 	return fmt.Sprintf(`
 resource "mondoo_organization" "test" {
@@ -84,7 +84,7 @@ resource "mondoo_organization" "test" {
   annotations = {
 %[3]s  }
 }
-`, name, description, tagsHCL)
+`, name, description, annotationsHCL)
 }
 
 func testAccOrganizationResourceConfig(name, description string) string {
