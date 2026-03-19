@@ -113,7 +113,7 @@ Required:
 
 - `field` (String) key:value field to match. Valid values: ["LABELS" "ANNOTATIONS"]
 - `operator` (String) Rating operator. Valid values: ["CONTAINS"]
-- `values` (Attributes List) key:value list to match. Values are ORed together. (see [below for nested schema](#nestedatt--asset_selections--conditions--key_value_condition--values))
+- `values` (Attributes Set) key:value list to match. Values are ORed together. (see [below for nested schema](#nestedatt--asset_selections--conditions--key_value_condition--values))
 
 <a id="nestedatt--asset_selections--conditions--key_value_condition--values"></a>
 ### Nested Schema for `asset_selections.conditions.key_value_condition.values`
