@@ -1286,9 +1286,8 @@ func (c *ExtendedGqlClient) RemoveTeamExternalGroupMapping(ctx context.Context, 
 // Team Member types and methods
 
 type AddTeamMemberInput struct {
-	TeamMrn   mondoov1.String  `json:"teamMrn"`
-	MemberMrn *mondoov1.String `json:"memberMrn,omitempty"`
-	Email     *mondoov1.String `json:"email,omitempty"`
+	TeamMrn  mondoov1.String  `json:"teamMrn"`
+	Identity *mondoov1.String `json:"identity,omitempty"`
 }
 
 type AddTeamMemberPayload struct {
@@ -1297,9 +1296,8 @@ type AddTeamMemberPayload struct {
 }
 
 type RemoveTeamMemberInput struct {
-	TeamMrn   mondoov1.String  `json:"teamMrn"`
-	MemberMrn *mondoov1.String `json:"memberMrn,omitempty"`
-	Email     *mondoov1.String `json:"email,omitempty"`
+	TeamMrn  mondoov1.String  `json:"teamMrn"`
+	Identity *mondoov1.String `json:"identity,omitempty"`
 }
 
 type TeamMemberPayload struct {
@@ -1321,18 +1319,18 @@ func (c *ExtendedGqlClient) AddTeamMember(ctx context.Context, input AddTeamMemb
 	return mutation.AddTeamMember, err
 }
 
-func (c *ExtendedGqlClient) GetTeamMember(ctx context.Context, teamMrn string, email string) (*TeamMemberPayload, error) {
+func (c *ExtendedGqlClient) GetTeamMember(ctx context.Context, teamMrn string, identity string) (*TeamMemberPayload, error) {
 	var query struct {
-		TeamMember *TeamMemberPayload `graphql:"teamMember(teamMrn: $teamMrn, email: $email)"`
+		TeamMember *TeamMemberPayload `graphql:"teamMember(teamMrn: $teamMrn, identity: $identity)"`
 	}
 	variables := map[string]interface{}{
-		"teamMrn": mondoov1.String(teamMrn),
-		"email":   mondoov1.String(email),
+		"teamMrn":  mondoov1.String(teamMrn),
+		"identity": mondoov1.String(identity),
 	}
 
 	tflog.Trace(ctx, "GetTeamMember", map[string]interface{}{
-		"teamMrn": teamMrn,
-		"email":   email,
+		"teamMrn":  teamMrn,
+		"identity": identity,
 	})
 
 	err := c.Query(ctx, &query, variables)

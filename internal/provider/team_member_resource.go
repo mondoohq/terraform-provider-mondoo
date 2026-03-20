@@ -30,7 +30,7 @@ type TeamMemberResource struct {
 // TeamMemberResourceModel describes the resource data model.
 type TeamMemberResourceModel struct {
 	TeamMrn   types.String `tfsdk:"team_mrn"`
-	Email     types.String `tfsdk:"email"`
+	Identity  types.String `tfsdk:"identity"`
 	MemberMrn types.String `tfsdk:"member_mrn"`
 }
 
@@ -40,7 +40,7 @@ func (r *TeamMemberResource) Metadata(ctx context.Context, req resource.Metadata
 
 func (r *TeamMemberResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `This resource manages team membership in Mondoo. It allows adding users to teams by email address. If the user does not yet have a Mondoo account, a pending membership is created.
+		MarkdownDescription: `This resource manages team membership in Mondoo. It allows adding users to teams by email address or MRN. If the user does not yet have a Mondoo account, a pending membership is created.
 
 **Example usage:**
 
@@ -52,7 +52,7 @@ resource "mondoo_team" "example" {
 
 resource "mondoo_team_member" "alice" {
   team_mrn = mondoo_team.example.mrn
-  email    = "alice@example.com"
+  identity = "alice@example.com"
 }
 ` + "```",
 
@@ -64,8 +64,8 @@ resource "mondoo_team_member" "alice" {
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"email": schema.StringAttribute{
-				MarkdownDescription: "Email address of the user to add to the team.",
+			"identity": schema.StringAttribute{
+				MarkdownDescription: "Email address or MRN of the user to add to the team.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -109,10 +109,10 @@ func (r *TeamMemberResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	email := mondoov1.String(data.Email.ValueString())
+	identity := mondoov1.String(data.Identity.ValueString())
 	input := AddTeamMemberInput{
-		TeamMrn: mondoov1.String(data.TeamMrn.ValueString()),
-		Email:   &email,
+		TeamMrn:  mondoov1.String(data.TeamMrn.ValueString()),
+		Identity: &identity,
 	}
 
 	payload, err := r.client.AddTeamMember(ctx, input)
@@ -143,7 +143,7 @@ func (r *TeamMemberResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Get the team member from the API
-	member, err := r.client.GetTeamMember(ctx, data.TeamMrn.ValueString(), data.Email.ValueString())
+	member, err := r.client.GetTeamMember(ctx, data.TeamMrn.ValueString(), data.Identity.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team member, got error: %s", err))
 		return
@@ -156,7 +156,6 @@ func (r *TeamMemberResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Map response back to schema
-	data.Email = types.StringValue(string(member.Email))
 	if member.Mrn != nil {
 		data.MemberMrn = types.StringValue(string(*member.Mrn))
 	} else {
@@ -168,11 +167,11 @@ func (r *TeamMemberResource) Read(ctx context.Context, req resource.ReadRequest,
 }
 
 func (r *TeamMemberResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Team members are immutable - both team_mrn and email require replacement
+	// Team members are immutable - both team_mrn and identity require replacement
 	// This method should never be called due to RequiresReplace plan modifiers
 	resp.Diagnostics.AddError(
 		"Unexpected Update Call",
-		"Team members cannot be updated. Both team_mrn and email changes require replacement.",
+		"Team members cannot be updated. Both team_mrn and identity changes require replacement.",
 	)
 }
 
@@ -186,10 +185,10 @@ func (r *TeamMemberResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	email := mondoov1.String(data.Email.ValueString())
+	identity := mondoov1.String(data.Identity.ValueString())
 	input := RemoveTeamMemberInput{
-		TeamMrn: mondoov1.String(data.TeamMrn.ValueString()),
-		Email:   &email,
+		TeamMrn:  mondoov1.String(data.TeamMrn.ValueString()),
+		Identity: &identity,
 	}
 
 	err := r.client.RemoveTeamMember(ctx, input)
