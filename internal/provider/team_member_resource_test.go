@@ -19,7 +19,7 @@ func TestAccTeamMemberResource(t *testing.T) {
 			{
 				Config: testAccTeamMemberResourceConfig("test-member-team", "alice@example.com"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_team_member.test", "email", "alice@example.com"),
+					resource.TestCheckResourceAttr("mondoo_team_member.test", "identity", "alice@example.com"),
 					resource.TestCheckResourceAttrSet("mondoo_team_member.test", "team_mrn"),
 					resource.TestCheckResourceAttrSet("mondoo_team_member.test", "member_mrn"),
 				),
@@ -29,7 +29,7 @@ func TestAccTeamMemberResource(t *testing.T) {
 	})
 }
 
-func testAccTeamMemberResourceConfig(teamName, email string) string {
+func testAccTeamMemberResourceConfig(teamName, identity string) string {
 	return fmt.Sprintf(`
 resource "mondoo_team" "test" {
   name      = %[1]q
@@ -38,7 +38,7 @@ resource "mondoo_team" "test" {
 
 resource "mondoo_team_member" "test" {
   team_mrn = mondoo_team.test.mrn
-  email    = %[2]q
+  identity = %[2]q
 }
-`, teamName, email, accSpace.MRN())
+`, teamName, identity, accSpace.MRN())
 }
