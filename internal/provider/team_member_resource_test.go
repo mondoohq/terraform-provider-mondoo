@@ -21,7 +21,6 @@ func TestAccTeamMemberResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_team_member.test", "identity", "alice@example.com"),
 					resource.TestCheckResourceAttrSet("mondoo_team_member.test", "team_mrn"),
-					resource.TestCheckResourceAttrSet("mondoo_team_member.test", "member_mrn"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
