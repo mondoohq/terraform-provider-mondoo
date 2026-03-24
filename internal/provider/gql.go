@@ -353,6 +353,22 @@ type Policy struct {
 	Docs      mondoov1.String
 }
 
+type ActivePolicy struct {
+	Mrn           mondoov1.String
+	Name          mondoov1.String
+	Action        mondoov1.String
+	AssignedScope mondoov1.String
+}
+
+type ActivePolicyEdge struct {
+	Node ActivePolicy
+}
+
+type ActivePoliciesConnection struct {
+	TotalCount int
+	Edges      []ActivePolicyEdge
+}
+
 type PolicyNode struct {
 	Policy Policy
 }
@@ -476,6 +492,31 @@ func (c *ExtendedGqlClient) GetPolicy(ctx context.Context, policyMrn string, spa
 	}
 
 	return &q.Policy, nil
+}
+
+func (c *ExtendedGqlClient) GetActivePolicies(ctx context.Context, scopeMrn string) ([]ActivePolicy, error) {
+	var q struct {
+		ActivePolicies ActivePoliciesConnection `graphql:"activePolicies(input: $input)"`
+	}
+
+	input := mondoov1.ActivePoliciesInput{
+		ScopeMrn: mondoov1.String(scopeMrn),
+	}
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	err := c.Query(ctx, &q, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	policies := make([]ActivePolicy, 0, len(q.ActivePolicies.Edges))
+	for _, edge := range q.ActivePolicies.Edges {
+		policies = append(policies, edge.Node)
+	}
+	return policies, nil
 }
 
 func (c *ExtendedGqlClient) AssignPolicy(ctx context.Context, spaceMrn string, action mondoov1.PolicyAction, policyMrns []string) error {
