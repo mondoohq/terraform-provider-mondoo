@@ -154,7 +154,62 @@ func (r *policyAssignmentResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	// Read API call logic
+	// Compute and validate the space
+	space, err := r.client.ComputeSpace(data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
+	}
+	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
+	// Fetch active policies from API
+	activePolicies, err := r.client.GetActivePolicies(ctx, space.MRN())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to fetch active policies", err.Error())
+		return
+	}
+
+	// Build lookup map: policyMrn -> action, filtered by assignedScope
+	policyActions := make(map[string]string)
+	for _, p := range activePolicies {
+		if string(p.AssignedScope) == space.MRN() {
+			policyActions[string(p.Mrn)] = string(p.Action)
+		}
+	}
+
+	// Check the actual state of each configured policy
+	policyMrns := []string{}
+	data.PolicyMrns.ElementsAs(ctx, &policyMrns, false)
+
+	configuredState := data.State.ValueString()
+	allMatch := true
+	for _, mrn := range policyMrns {
+		action, found := policyActions[mrn]
+		var actualState string
+		if !found {
+			actualState = "disabled"
+		} else {
+			switch action {
+			case "ACTIVE":
+				actualState = "enabled"
+			case "IGNORE":
+				actualState = "preview"
+			default:
+				actualState = "disabled"
+			}
+		}
+		if actualState != configuredState {
+			allMatch = false
+			// Report the actual state of this policy so Terraform sees the drift
+			data.State = types.StringValue(actualState)
+			break
+		}
+	}
+
+	if allMatch {
+		// All policies match the configured state, no drift
+		data.State = types.StringValue(configuredState)
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
