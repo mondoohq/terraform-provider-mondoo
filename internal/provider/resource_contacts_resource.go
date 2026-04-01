@@ -111,13 +111,14 @@ func (r *ResourceContactsResource) Create(ctx context.Context, req resource.Crea
 
 	contacts := expandContactIdentities(data.Contacts)
 
-	result, err := r.client.SetResourceContacts(ctx, data.ResourceMrn.ValueString(), contacts)
+	_, err := r.client.SetResourceContacts(ctx, data.ResourceMrn.ValueString(), contacts)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to set resource contacts", err.Error())
 		return
 	}
 
-	data.Contacts = flattenContactIdentities(result)
+	// Keep the user's configured values in state rather than the server's
+	// resolved identities, since the server may resolve emails to user MRNs.
 
 	tflog.Trace(ctx, "set resource contacts", map[string]interface{}{
 		"resource_mrn": data.ResourceMrn.ValueString(),
@@ -140,7 +141,7 @@ func (r *ResourceContactsResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	data.Contacts = flattenContactIdentities(contacts)
+	data.Contacts = reconcileContacts(data.Contacts, contacts)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -155,14 +156,13 @@ func (r *ResourceContactsResource) Update(ctx context.Context, req resource.Upda
 
 	contacts := expandContactIdentities(data.Contacts)
 
-	result, err := r.client.SetResourceContacts(ctx, data.ResourceMrn.ValueString(), contacts)
+	_, err := r.client.SetResourceContacts(ctx, data.ResourceMrn.ValueString(), contacts)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update resource contacts", err.Error())
 		return
 	}
 
-	data.Contacts = flattenContactIdentities(result)
-
+	// Keep the user's configured values in state.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -229,6 +229,63 @@ func flattenContactIdentities(contacts []ResourceContactPayload) types.List {
 	for _, c := range contacts {
 		elements = append(elements, types.StringValue(string(c.Identity)))
 	}
+	l, _ := types.ListValue(types.StringType, elements)
+	return l
+}
+
+// reconcileContacts preserves user-provided identities when the server resolves
+// them to different forms (e.g., email → user MRN). It matches server contacts
+// back to state values using the email field, so users can write emails in config
+// even when the server stores the resolved MRN.
+func reconcileContacts(stateContacts types.List, serverContacts []ResourceContactPayload) types.List {
+	if len(serverContacts) == 0 {
+		return types.ListValueMust(types.StringType, []attr.Value{})
+	}
+
+	// Build a lookup from server identity/email to the server contact
+	// so we can match state values to server contacts.
+	stateValues := stateContacts.Elements()
+
+	// Build set of state identities for quick lookup
+	stateSet := make(map[string]bool, len(stateValues))
+	for _, v := range stateValues {
+		stateSet[v.(types.String).ValueString()] = true
+	}
+
+	// Build mapping from email → state value (for email-to-MRN resolution)
+	emailToMrn := make(map[string]string)
+	for _, sc := range serverContacts {
+		if sc.Email != "" {
+			emailToMrn[string(sc.Email)] = string(sc.Identity)
+		}
+	}
+
+	// For each server contact, try to find the user's original value
+	elements := make([]attr.Value, 0, len(serverContacts))
+	matched := make(map[string]bool)
+	for _, sc := range serverContacts {
+		identity := string(sc.Identity)
+		email := string(sc.Email)
+
+		// If the server identity matches a state value directly, keep it
+		if stateSet[identity] && !matched[identity] {
+			elements = append(elements, types.StringValue(identity))
+			matched[identity] = true
+			continue
+		}
+
+		// If the server resolved an email to a MRN, check if the original
+		// email is in state
+		if email != "" && stateSet[email] && !matched[email] {
+			elements = append(elements, types.StringValue(email))
+			matched[email] = true
+			continue
+		}
+
+		// Otherwise use the server identity (new contact added externally)
+		elements = append(elements, types.StringValue(identity))
+	}
+
 	l, _ := types.ListValue(types.StringType, elements)
 	return l
 }
