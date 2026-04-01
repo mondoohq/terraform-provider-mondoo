@@ -56,13 +56,21 @@ type AnnotationPayload struct {
 	Value mondoov1.String
 }
 
+type ResourceContactPayload struct {
+	ContactType mondoov1.ResourceContactType `graphql:"contactType"`
+	Identity    mondoov1.String              `graphql:"identity"`
+	Email       mondoov1.String              `graphql:"email"`
+	Name        mondoov1.String              `graphql:"name"`
+}
+
 type createSpacePayload struct {
 	Id          mondoov1.ID
 	Mrn         mondoov1.String
 	Name        mondoov1.String
 	Description mondoov1.String
 	Settings    *MondooSpaceSettingsInput
-	Annotations []AnnotationPayload `graphql:"annotations"`
+	Annotations []AnnotationPayload      `graphql:"annotations"`
+	Contacts    []ResourceContactPayload `graphql:"contacts"`
 }
 
 func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, input mondoov1.CreateSpaceInput) (createSpacePayload, error) {
@@ -78,7 +86,7 @@ func (c *ExtendedGqlClient) CreateSpace(ctx context.Context, input mondoov1.Crea
 	return createMutation.CreateSpace, err
 }
 
-func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, description string, settings *mondoov1.SpaceSettingsInput, annotations *[]mondoov1.AnnotationInput) error {
+func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, description string, settings *mondoov1.SpaceSettingsInput, annotations *[]mondoov1.AnnotationInput, contacts *[]mondoov1.ResourceContactInput) error {
 	var updateMutation struct {
 		UpdateSpace struct {
 			Space struct {
@@ -100,6 +108,9 @@ func (c *ExtendedGqlClient) UpdateSpace(ctx context.Context, spaceID, name, desc
 	}
 	if annotations != nil {
 		updateInput.Annotations = annotations
+	}
+	if contacts != nil {
+		updateInput.Contacts = contacts
 	}
 	tflog.Trace(ctx, "UpdateSpaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
@@ -129,7 +140,8 @@ type spacePayload struct {
 	Description  string
 	Organization orgPayload
 	Settings     *MondooSpaceSettingsInput
-	Annotations  []AnnotationPayload `graphql:"annotations"`
+	Annotations  []AnnotationPayload      `graphql:"annotations"`
+	Contacts     []ResourceContactPayload `graphql:"contacts"`
 }
 
 type MondooSpaceSettingsInput struct {
@@ -148,7 +160,8 @@ type orgPayload struct {
 	Name        string
 	Description string
 	Company     string
-	Annotations []AnnotationPayload `graphql:"annotations"`
+	Annotations []AnnotationPayload      `graphql:"annotations"`
+	Contacts    []ResourceContactPayload `graphql:"contacts"`
 	SpacesCount int
 	SpacesList  struct {
 		TotalCount int
@@ -205,7 +218,7 @@ func (c *ExtendedGqlClient) GetSpace(ctx context.Context, mrn string) (spacePayl
 	return q.Space, nil
 }
 
-func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *string, name string, description *string, company *string, annotations *[]mondoov1.AnnotationInput) (orgPayload, error) {
+func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *string, name string, description *string, company *string, annotations *[]mondoov1.AnnotationInput, contacts *[]mondoov1.ResourceContactInput) (orgPayload, error) {
 	var createMutation struct {
 		CreateOrganization orgPayload `graphql:"createOrganization(input: $input)"`
 	}
@@ -229,6 +242,10 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 		createInput.Annotations = annotations
 	}
 
+	if contacts != nil {
+		createInput.Contacts = contacts
+	}
+
 	tflog.Trace(ctx, "CreateOrganizationInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createInput),
 	})
@@ -239,7 +256,7 @@ func (c *ExtendedGqlClient) CreateOrganization(ctx context.Context, orgID *strin
 	return createMutation.CreateOrganization, err
 }
 
-func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn string, name string, description *string, company *string, annotations *[]mondoov1.AnnotationInput) error {
+func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn string, name string, description *string, company *string, annotations *[]mondoov1.AnnotationInput, contacts *[]mondoov1.ResourceContactInput) error {
 	var updateMutation struct {
 		UpdateOrganization struct {
 			Organization struct {
@@ -265,6 +282,10 @@ func (c *ExtendedGqlClient) UpdateOrganization(ctx context.Context, orgMrn strin
 
 	if annotations != nil {
 		updateInput.Annotations = annotations
+	}
+
+	if contacts != nil {
+		updateInput.Contacts = contacts
 	}
 
 	tflog.Trace(ctx, "UpdateOrganizationInput", map[string]interface{}{

@@ -88,6 +88,77 @@ resource "mondoo_workspace" "test" {
 `, spaceID, name, env)
 }
 
+func TestAccWorkspaceResourceWithContacts(t *testing.T) {
+	randName := fmt.Sprintf("test-ws-contacts-%d", rand.Intn(10000))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create with contacts
+			{
+				Config: testAccWorkspaceResourceConfigWithContacts(accSpace.ID(), randName, []string{
+					"alice@example.com",
+					"bob@example.com",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "name", randName),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "contacts.#", "2"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "contacts.0", "alice@example.com"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "contacts.1", "bob@example.com"),
+				),
+			},
+			// Update contacts
+			{
+				Config: testAccWorkspaceResourceConfigWithContacts(accSpace.ID(), randName, []string{
+					"charlie@example.com",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "contacts.#", "1"),
+					resource.TestCheckResourceAttr("mondoo_workspace.test", "contacts.0", "charlie@example.com"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccWorkspaceResourceConfigWithContacts(spaceID, name string, contacts []string) string {
+	contactsHCL := ""
+	for _, c := range contacts {
+		contactsHCL += fmt.Sprintf("    %q,\n", c)
+	}
+	return fmt.Sprintf(`
+resource "mondoo_workspace" "test" {
+  space_id = %[1]q
+  name     = %[2]q
+
+  contacts = [
+%[4]s  ]
+
+  asset_selections = [
+    {
+      conditions = [
+        {
+          operator = "AND"
+          key_value_condition = {
+            field    = "LABELS"
+            operator = "CONTAINS"
+            values = [
+              {
+                key   = "environment"
+                value = "test"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+`, spaceID, name, "", contactsHCL)
+}
+
 func testAccWorkspaceResourceWithSpaceInProviderConfig(spaceID, name, env string) string {
 	return fmt.Sprintf(`
 provider "mondoo" {

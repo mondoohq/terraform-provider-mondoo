@@ -45,6 +45,7 @@ type SpaceModel struct {
 	SpaceMrn      types.String `tfsdk:"mrn"`
 	SpaceSettings types.Object `tfsdk:"space_settings"`
 	Annotations   types.Map    `tfsdk:"annotations"`
+	Contacts      types.List   `tfsdk:"contacts"`
 }
 
 type SpaceSettingsInput struct {
@@ -245,6 +246,11 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
+			"contacts": schema.ListAttribute{
+				MarkdownDescription: "Contacts for the space. Each entry is an identity: user MRN, team MRN, or email address.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
 			"space_settings": schema.SingleNestedAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -441,6 +447,7 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 		OrgMrn:      mondoov1.String(orgPrefix + data.OrgID.ValueString()),
 		Settings:    ExpandSpaceSettings(spaceSettings),
 		Annotations: expandAnnotations(data.Annotations),
+		Contacts:    expandContacts(data.Contacts),
 	}
 
 	// Do GraphQL request to API to create the resource.
@@ -475,6 +482,7 @@ func (r *SpaceResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 
 	data.Annotations = flattenAnnotations(payload.Annotations)
+	data.Contacts = flattenContacts(payload.Contacts)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -512,6 +520,7 @@ func (r *SpaceResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		OrgID:         types.StringValue(spacePayload.Organization.Id),
 		SpaceSettings: spaceSettings,
 		Annotations:   flattenAnnotations(spacePayload.Annotations),
+		Contacts:      flattenContacts(spacePayload.Contacts),
 	}
 
 	if spacePayload.Description != "" {
@@ -568,6 +577,7 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		data.Description.ValueString(),
 		ExpandSpaceSettings(spaceSettings),
 		expandAnnotations(data.Annotations),
+		expandContacts(data.Contacts),
 	)
 	if err != nil {
 		resp.Diagnostics.
@@ -624,6 +634,7 @@ func (r *SpaceResource) ImportState(ctx context.Context, req resource.ImportStat
 		OrgID:         types.StringValue(spacePayload.Organization.Id),
 		SpaceSettings: spaceSettings,
 		Annotations:   flattenAnnotations(spacePayload.Annotations),
+		Contacts:      flattenContacts(spacePayload.Contacts),
 	}
 
 	if spacePayload.Description != "" {
@@ -910,6 +921,36 @@ func flattenAnnotations(annotations []AnnotationPayload) types.Map {
 	}
 	m, _ := types.MapValue(types.StringType, elements)
 	return m
+}
+
+// expandContacts converts a Terraform list of strings to a slice of ResourceContactInput.
+func expandContacts(l types.List) *[]mondoov1.ResourceContactInput {
+	if l.IsNull() || l.IsUnknown() {
+		return nil
+	}
+
+	elements := l.Elements()
+	result := make([]mondoov1.ResourceContactInput, 0, len(elements))
+	for _, v := range elements {
+		result = append(result, mondoov1.ResourceContactInput{
+			Identity: mondoov1.String(v.(types.String).ValueString()),
+		})
+	}
+	return &result
+}
+
+// flattenContacts converts a slice of ResourceContactPayload to a Terraform list of identity strings.
+func flattenContacts(contacts []ResourceContactPayload) types.List {
+	if len(contacts) == 0 {
+		return types.ListNull(types.StringType)
+	}
+
+	elements := make([]attr.Value, 0, len(contacts))
+	for _, c := range contacts {
+		elements = append(elements, types.StringValue(string(c.Identity)))
+	}
+	l, _ := types.ListValue(types.StringType, elements)
+	return l
 }
 
 func flattenExceptionsConfig(in *mondoov1.ExceptionsConfigurationInput) *ExceptionsConfiguration {

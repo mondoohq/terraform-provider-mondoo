@@ -33,6 +33,7 @@ type OrganizationDataSourceModel struct {
 	OrgMrn      types.String `tfsdk:"mrn"`
 	Name        types.String `tfsdk:"name"`
 	Annotations types.Map    `tfsdk:"annotations"`
+	Contacts    types.List   `tfsdk:"contacts"`
 	Spaces      types.List   `tfsdk:"spaces"`
 }
 
@@ -73,6 +74,11 @@ func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.Sche
 			},
 			"annotations": schema.MapAttribute{
 				MarkdownDescription: "Annotations for the organization as key-value pairs.",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
+			"contacts": schema.ListAttribute{
+				MarkdownDescription: "Contacts for the organization. Each entry is an identity: user MRN, team MRN, or email address.",
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
@@ -143,6 +149,7 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 	data.OrgMrn = types.StringValue(payload.Mrn)
 	data.Name = types.StringValue(payload.Name)
 	data.Annotations = flattenAnnotations(payload.Annotations)
+	data.Contacts = flattenContacts(payload.Contacts)
 	data.Spaces = ConvertListValue(spaces)
 
 	// Save data into Terraform state

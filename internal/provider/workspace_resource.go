@@ -43,6 +43,8 @@ type WorkspaceResourceModel struct {
 	Description types.String `tfsdk:"description"`
 	// A list of workspace selections. (Required.)
 	Selections []WorkspaceSelectionModel `tfsdk:"asset_selections"`
+	// Contacts for the workspace.
+	Contacts types.List `tfsdk:"contacts"`
 }
 
 type WorkspaceSelectionModel struct {
@@ -249,6 +251,11 @@ func (r *WorkspaceResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					},
 				},
 			},
+			"contacts": schema.ListAttribute{
+				MarkdownDescription: "Contacts for the workspace. Each entry is an identity: user MRN, team MRN, or email address.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
 		},
 	}
 }
@@ -377,11 +384,12 @@ func renderSelectionsFromModel(data *WorkspaceResourceModel) mondoov1.WorkspaceS
 }
 
 type Workspace struct {
-	Mrn         string              `json:"mrn"`
-	OwnerMrn    string              `json:"ownerMrn"`
-	Name        string              `json:"name"`
-	Description string              `json:"description,omitempty"`
-	Selections  WorkspaceSelections `json:"selections"`
+	Mrn         string                   `json:"mrn"`
+	OwnerMrn    string                   `json:"ownerMrn"`
+	Name        string                   `json:"name"`
+	Description string                   `json:"description,omitempty"`
+	Selections  WorkspaceSelections      `json:"selections"`
+	Contacts    []ResourceContactPayload `graphql:"contacts"`
 }
 type WorkspaceSelections struct {
 	Selections []WorkspaceSelection `json:"selections"`
@@ -458,6 +466,7 @@ func (r *WorkspaceResource) Create(ctx context.Context, req resource.CreateReque
 		Name:        mondoov1.String(data.Name.ValueString()),
 		Description: mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
 		Selections:  renderSelectionsFromModel(&data),
+		Contacts:    expandContacts(data.Contacts),
 	}
 
 	tflog.Debug(ctx, "CreateWorkspaceInput", map[string]interface{}{
@@ -489,6 +498,7 @@ func (r *WorkspaceResource) Create(ctx context.Context, req resource.CreateReque
 	data.Name = types.StringValue(createMutation.Workspace.Name)
 	data.Description = types.StringValue(createMutation.Workspace.Description)
 	data.Selections = renderSelectionsFromGraphql(createMutation.Workspace.Selections)
+	data.Contacts = flattenContacts(createMutation.Workspace.Contacts)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -523,6 +533,7 @@ func (r *WorkspaceResource) queryWorkspace(ctx context.Context, mrn string) (Wor
 		Name:        types.StringValue(q.Workspace.Name),
 		Description: types.StringValue(q.Workspace.Description),
 		Selections:  renderSelectionsFromGraphql(q.Workspace.Selections),
+		Contacts:    flattenContacts(q.Workspace.Contacts),
 	}, nil
 }
 
@@ -576,6 +587,7 @@ func (r *WorkspaceResource) Update(ctx context.Context, req resource.UpdateReque
 		Name:        mondoov1.NewStringPtr(mondoov1.String(data.Name.ValueString())),
 		Description: mondoov1.NewStringPtr(mondoov1.String(data.Description.ValueString())),
 		Selections:  &selections,
+		Contacts:    expandContacts(data.Contacts),
 	}
 
 	tflog.Debug(ctx, "CreateWorkspaceInput", map[string]interface{}{
@@ -607,6 +619,7 @@ func (r *WorkspaceResource) Update(ctx context.Context, req resource.UpdateReque
 	data.Name = types.StringValue(createMutation.Workspace.Name)
 	data.Description = types.StringValue(createMutation.Workspace.Description)
 	data.Selections = renderSelectionsFromGraphql(createMutation.Workspace.Selections)
+	data.Contacts = flattenContacts(createMutation.Workspace.Contacts)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
