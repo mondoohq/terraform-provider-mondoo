@@ -163,66 +163,6 @@ resource "mondoo_space" "test" {
 `, resourceOrgID, name, annotationsHCL)
 }
 
-func TestAccSpaceResourceWithContacts(t *testing.T) {
-	orgID, err := getOrgId()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Create with contacts
-			{
-				Config: testAccSpaceResourceConfigWithContacts(orgID, "contacts-space", []string{
-					"alice@example.com",
-					"bob@example.com",
-				}),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_space.test", "name", "contacts-space"),
-					resource.TestCheckResourceAttr("mondoo_space.test", "contacts.#", "2"),
-					resource.TestCheckResourceAttr("mondoo_space.test", "contacts.0", "alice@example.com"),
-					resource.TestCheckResourceAttr("mondoo_space.test", "contacts.1", "bob@example.com"),
-				),
-			},
-			// ImportState testing
-			{
-				ResourceName:      "mondoo_space.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			// Update contacts
-			{
-				Config: testAccSpaceResourceConfigWithContacts(orgID, "contacts-space", []string{
-					"charlie@example.com",
-				}),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_space.test", "contacts.#", "1"),
-					resource.TestCheckResourceAttr("mondoo_space.test", "contacts.0", "charlie@example.com"),
-				),
-			},
-			// Delete testing automatically occurs in TestCase
-		},
-	})
-}
-
-func testAccSpaceResourceConfigWithContacts(resourceOrgID string, name string, contacts []string) string {
-	contactsHCL := ""
-	for _, c := range contacts {
-		contactsHCL += fmt.Sprintf("    %q,\n", c)
-	}
-	return fmt.Sprintf(`
-resource "mondoo_space" "test" {
-  org_id = %[1]q
-  name   = %[2]q
-
-  contacts = [
-%[3]s  ]
-}
-`, resourceOrgID, name, contactsHCL)
-}
-
 func TestAccSpaceResourceWithSettings(t *testing.T) {
 	orgID, err := getOrgId()
 	if err != nil {

@@ -22,6 +22,7 @@ resource "mondoo_team" "team_1" {
   name        = "team-1"
   description = "Team 1"
   scope_mrn   = mondoo_space.my_space.mrn
+  email = "team1@mondoo.com"
 }
 
 # Create another team scoped to the organization
@@ -29,6 +30,7 @@ resource "mondoo_team" "team_2" {
   name        = "team-2"
   description = "Team 2"
   scope_mrn   = data.mondoo_organization.current.mrn
+  email = "team2@mondoo.com"
 }
 
 resource "mondoo_team_external_group_mapping" "team_2" {

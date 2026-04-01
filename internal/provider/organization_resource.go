@@ -35,7 +35,6 @@ type organizationResourceModel struct {
 	Description types.String `tfsdk:"description"`
 	Company     types.String `tfsdk:"company"`
 	Annotations types.Map    `tfsdk:"annotations"`
-	Contacts    types.List   `tfsdk:"contacts"`
 }
 
 func (r *organizationResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -83,11 +82,6 @@ func (r *organizationResource) Schema(ctx context.Context, req resource.SchemaRe
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
-			"contacts": schema.ListAttribute{
-				MarkdownDescription: "Contacts for the organization. Each entry is an identity: user MRN, team MRN, or email address.",
-				Optional:            true,
-				ElementType:         types.StringType,
-			},
 		},
 	}
 }
@@ -128,7 +122,6 @@ func (r *organizationResource) Create(ctx context.Context, req resource.CreateRe
 		data.Description.ValueStringPointer(),
 		data.Company.ValueStringPointer(),
 		expandAnnotations(data.Annotations),
-		expandContacts(data.Contacts),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create organization", err.Error())
@@ -143,7 +136,6 @@ func (r *organizationResource) Create(ctx context.Context, req resource.CreateRe
 	ctx = tflog.SetField(ctx, "org_mrn", data.OrgMrn)
 
 	data.Annotations = flattenAnnotations(payload.Annotations)
-	data.Contacts = flattenContacts(payload.Contacts)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -190,7 +182,6 @@ func (r *organizationResource) Update(ctx context.Context, req resource.UpdateRe
 		data.Description.ValueStringPointer(),
 		data.Company.ValueStringPointer(),
 		expandAnnotations(data.Annotations),
-		expandContacts(data.Contacts),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update organization", err.Error())
@@ -237,7 +228,6 @@ func (r *organizationResource) ImportState(ctx context.Context, req resource.Imp
 		Description: types.StringValue(orgPayload.Description),
 		Company:     types.StringValue(orgPayload.Company),
 		Annotations: flattenAnnotations(orgPayload.Annotations),
-		Contacts:    flattenContacts(orgPayload.Contacts),
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }
