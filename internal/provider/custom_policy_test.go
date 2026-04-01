@@ -1,4 +1,4 @@
-// Copyright (c) Mondoo, Inc.
+// Copyright Mondoo, Inc. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package provider
@@ -23,7 +23,7 @@ func TestAccCustomPolicyResource(t *testing.T) {
 			{
 				Config: testAccCustomPolicyResourceConfig(orgID, "./testdata/policy_1.mql.yaml"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_custom_policy.my_policy", "crc32c", "65df84fe"),
+					resource.TestCheckResourceAttr("mondoo_custom_policy.my_policy", "crc32c", "cf4443a2"),
 				),
 			},
 			// ImportState testing
@@ -37,7 +37,7 @@ func TestAccCustomPolicyResource(t *testing.T) {
 			{
 				Config: testAccCustomPolicyResourceConfig(orgID, "./testdata/policy_2.mql.yaml"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_custom_policy.my_policy", "crc32c", "4e19b479"),
+					resource.TestCheckResourceAttr("mondoo_custom_policy.my_policy", "crc32c", "4a12c92c"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase

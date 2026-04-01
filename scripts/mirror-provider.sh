@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright Mondoo, Inc. 2024, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
 
 # create a .terraformrc file only if the file is not present
 write_terraform_rc() {
