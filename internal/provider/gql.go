@@ -1231,12 +1231,14 @@ type CreateTeamInput struct {
 	Name        mondoov1.String  `json:"name"`
 	Description mondoov1.String  `json:"description"`
 	ScopeMrn    mondoov1.String  `json:"scopeMrn"`
+	Email       *mondoov1.String `json:"email,omitempty"`
 }
 
 type UpdateTeamInput struct {
-	Mrn         mondoov1.String `json:"mrn"`
-	Name        mondoov1.String `json:"name"`
-	Description mondoov1.String `json:"description"`
+	Mrn         mondoov1.String  `json:"mrn"`
+	Name        mondoov1.String  `json:"name"`
+	Description mondoov1.String  `json:"description"`
+	Email       *mondoov1.String `json:"email,omitempty"`
 }
 
 type TeamPayload struct {
@@ -1244,6 +1246,7 @@ type TeamPayload struct {
 	Mrn         mondoov1.String `json:"mrn"`
 	Name        mondoov1.String `json:"name"`
 	Description mondoov1.String `json:"description"`
+	Email       mondoov1.String `json:"email"`
 	ScopeMrn    mondoov1.String `json:"scopeMrn"`
 	CreatedAt   mondoov1.String `json:"createdAt"`
 	UpdatedAt   mondoov1.String `json:"updatedAt"`

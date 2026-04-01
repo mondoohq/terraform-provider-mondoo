@@ -36,6 +36,7 @@ type TeamResourceModel struct {
 	Mrn         types.String `tfsdk:"mrn"`
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
+	Email       types.String `tfsdk:"email"`
 	ScopeMrn    types.String `tfsdk:"scope_mrn"`
 }
 
@@ -100,6 +101,10 @@ resource "mondoo_iam_binding" "security_team_permissions" {
 				Optional:            true,
 				Computed:            true,
 			},
+			"email": schema.StringAttribute{
+				MarkdownDescription: "Contact email for the team.",
+				Optional:            true,
+			},
 			"scope_mrn": schema.StringAttribute{
 				MarkdownDescription: "MRN of the scope (organization or space) that owns this team.",
 				Required:            true,
@@ -151,6 +156,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		input.Id = mondoov1.NewStringPtr(mondoov1.String(data.Id.ValueString()))
 	}
 
+	if !data.Email.IsNull() && !data.Email.IsUnknown() {
+		input.Email = mondoov1.NewStringPtr(mondoov1.String(data.Email.ValueString()))
+	}
+
 	team, err := r.client.CreateTeam(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -165,6 +174,9 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	data.Mrn = types.StringValue(string(team.Mrn))
 	data.Name = types.StringValue(string(team.Name))
 	data.Description = types.StringValue(string(team.Description))
+	if team.Email != "" {
+		data.Email = types.StringValue(string(team.Email))
+	}
 	data.ScopeMrn = types.StringValue(string(team.ScopeMrn))
 
 	tflog.Trace(ctx, "created team", map[string]interface{}{
@@ -198,7 +210,11 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	data.Id = types.StringValue(string(team.Id))
 	data.Name = types.StringValue(string(team.Name))
 	data.Description = types.StringValue(string(team.Description))
-
+	if team.Email != "" {
+		data.Email = types.StringValue(string(team.Email))
+	} else {
+		data.Email = types.StringNull()
+	}
 	data.ScopeMrn = types.StringValue(string(team.ScopeMrn))
 
 	// Save updated data into Terraform state
@@ -215,11 +231,15 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	// Update the team using GraphQL mutation
-	team, err := r.client.UpdateTeam(ctx, UpdateTeamInput{
+	updateInput := UpdateTeamInput{
 		Mrn:         mondoov1.String(data.Mrn.ValueString()),
 		Name:        mondoov1.String(data.Name.ValueString()),
 		Description: mondoov1.String(data.Description.ValueString()),
-	})
+	}
+	if !data.Email.IsNull() && !data.Email.IsUnknown() {
+		updateInput.Email = mondoov1.NewStringPtr(mondoov1.String(data.Email.ValueString()))
+	}
+	team, err := r.client.UpdateTeam(ctx, updateInput)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating team",
@@ -231,6 +251,11 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	// Update the model with response data
 	data.Name = types.StringValue(string(team.Name))
 	data.Description = types.StringValue(string(team.Description))
+	if team.Email != "" {
+		data.Email = types.StringValue(string(team.Email))
+	} else {
+		data.Email = types.StringNull()
+	}
 
 	tflog.Trace(ctx, "updated team", map[string]interface{}{
 		"mrn": data.Mrn.ValueString(),
