@@ -229,8 +229,7 @@ func flattenContactIdentities(contacts []ResourceContactPayload) types.List {
 	for _, c := range contacts {
 		elements = append(elements, types.StringValue(string(c.Identity)))
 	}
-	l, _ := types.ListValue(types.StringType, elements)
-	return l
+	return types.ListValueMust(types.StringType, elements)
 }
 
 // reconcileContacts preserves user-provided identities when the server resolves
@@ -286,6 +285,5 @@ func reconcileContacts(stateContacts types.List, serverContacts []ResourceContac
 		elements = append(elements, types.StringValue(identity))
 	}
 
-	l, _ := types.ListValue(types.StringType, elements)
-	return l
+	return types.ListValueMust(types.StringType, elements)
 }

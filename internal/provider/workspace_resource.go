@@ -382,7 +382,7 @@ type Workspace struct {
 	Name        string                   `json:"name"`
 	Description string                   `json:"description,omitempty"`
 	Selections  WorkspaceSelections      `json:"selections"`
-	Contacts    []ResourceContactPayload `graphql:"contacts"`
+	Contacts    []ResourceContactPayload `json:"contacts"`
 }
 type WorkspaceSelections struct {
 	Selections []WorkspaceSelection `json:"selections"`
