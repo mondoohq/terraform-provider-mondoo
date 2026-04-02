@@ -377,12 +377,11 @@ func renderSelectionsFromModel(data *WorkspaceResourceModel) mondoov1.WorkspaceS
 }
 
 type Workspace struct {
-	Mrn         string                   `json:"mrn"`
-	OwnerMrn    string                   `json:"ownerMrn"`
-	Name        string                   `json:"name"`
-	Description string                   `json:"description,omitempty"`
-	Selections  WorkspaceSelections      `json:"selections"`
-	Contacts    []ResourceContactPayload `json:"contacts"`
+	Mrn         string              `json:"mrn"`
+	OwnerMrn    string              `json:"ownerMrn"`
+	Name        string              `json:"name"`
+	Description string              `json:"description,omitempty"`
+	Selections  WorkspaceSelections `json:"selections"`
 }
 type WorkspaceSelections struct {
 	Selections []WorkspaceSelection `json:"selections"`

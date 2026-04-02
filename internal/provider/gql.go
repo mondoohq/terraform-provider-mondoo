@@ -86,37 +86,21 @@ func (c *ExtendedGqlClient) SetResourceContacts(ctx context.Context, resourceMrn
 	return mutation.SetResourceContacts, err
 }
 
-// GetResourceContacts reads contacts for a resource by querying the appropriate
-// resource type (space, organization, or workspace) based on the MRN prefix.
+// GetResourceContacts reads contacts for a resource by MRN using the
+// standalone getResourceContacts query.
 func (c *ExtendedGqlClient) GetResourceContacts(ctx context.Context, resourceMrn string) ([]ResourceContactPayload, error) {
-	if strings.HasPrefix(resourceMrn, spacePrefix) {
-		space, err := c.GetSpace(ctx, resourceMrn)
-		if err != nil {
-			return nil, err
-		}
-		return space.Contacts, nil
-	}
-	if strings.HasPrefix(resourceMrn, orgPrefix) {
-		org, err := c.GetOrganization(ctx, resourceMrn)
-		if err != nil {
-			return nil, err
-		}
-		return org.Contacts, nil
-	}
-	// Workspace — query inline since there's no dedicated GetWorkspace on the client
 	var q struct {
-		Workspace struct {
-			Contacts []ResourceContactPayload `graphql:"contacts"`
-		} `graphql:"workspace(mrn: $mrn)"`
+		GetResourceContacts []ResourceContactPayload `graphql:"getResourceContacts(resourceMrn: $resourceMrn)"`
 	}
 	variables := map[string]interface{}{
-		"mrn": mondoov1.String(resourceMrn),
+		"resourceMrn": mondoov1.String(resourceMrn),
 	}
+
 	err := c.Query(ctx, &q, variables)
 	if err != nil {
 		return nil, err
 	}
-	return q.Workspace.Contacts, nil
+	return q.GetResourceContacts, nil
 }
 
 type createSpacePayload struct {
@@ -192,8 +176,7 @@ type spacePayload struct {
 	Description  string
 	Organization orgPayload
 	Settings     *MondooSpaceSettingsInput
-	Annotations  []AnnotationPayload      `graphql:"annotations"`
-	Contacts     []ResourceContactPayload `graphql:"contacts"`
+	Annotations  []AnnotationPayload `graphql:"annotations"`
 }
 
 type MondooSpaceSettingsInput struct {
@@ -212,8 +195,7 @@ type orgPayload struct {
 	Name        string
 	Description string
 	Company     string
-	Annotations []AnnotationPayload      `graphql:"annotations"`
-	Contacts    []ResourceContactPayload `graphql:"contacts"`
+	Annotations []AnnotationPayload `graphql:"annotations"`
 	SpacesCount int
 	SpacesList  struct {
 		TotalCount int
