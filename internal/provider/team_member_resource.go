@@ -74,6 +74,9 @@ resource "mondoo_team_member" "alice" {
 			"member_mrn": schema.StringAttribute{
 				MarkdownDescription: "MRN of the member. Empty if the user has not yet registered.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
