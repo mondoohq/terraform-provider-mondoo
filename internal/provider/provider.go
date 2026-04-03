@@ -222,6 +222,7 @@ func (p *MondooProvider) Resources(_ context.Context) []func() resource.Resource
 		NewOrganizationResource,
 		NewTeamResource,
 		NewTeamExternalGroupMappingResource,
+		NewResourceContactsResource,
 		NewIAMBindingResource,
 		NewExportGSCBucketResource,
 		NewExportS3BucketResource,

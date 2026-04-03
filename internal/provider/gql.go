@@ -56,6 +56,53 @@ type AnnotationPayload struct {
 	Value mondoov1.String
 }
 
+type ResourceContactPayload struct {
+	ContactType mondoov1.ResourceContactType `graphql:"contactType"`
+	Identity    mondoov1.String              `graphql:"identity"`
+	Email       mondoov1.String              `graphql:"email"`
+	Name        mondoov1.String              `graphql:"name"`
+}
+
+type SetResourceContactsInput struct {
+	ResourceMrn mondoov1.String                 `json:"resourceMrn"`
+	Contacts    []mondoov1.ResourceContactInput `json:"contacts"`
+}
+
+func (c *ExtendedGqlClient) SetResourceContacts(ctx context.Context, resourceMrn string, contacts []mondoov1.ResourceContactInput) ([]ResourceContactPayload, error) {
+	var mutation struct {
+		SetResourceContacts []ResourceContactPayload `graphql:"setResourceContacts(input: $input)"`
+	}
+
+	input := SetResourceContactsInput{
+		ResourceMrn: mondoov1.String(resourceMrn),
+		Contacts:    contacts,
+	}
+
+	tflog.Trace(ctx, "SetResourceContacts", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	err := c.Mutate(ctx, &mutation, input, nil)
+	return mutation.SetResourceContacts, err
+}
+
+// GetResourceContacts reads contacts for a resource by MRN using the
+// standalone getResourceContacts query.
+func (c *ExtendedGqlClient) GetResourceContacts(ctx context.Context, resourceMrn string) ([]ResourceContactPayload, error) {
+	var q struct {
+		GetResourceContacts []ResourceContactPayload `graphql:"getResourceContacts(resourceMrn: $resourceMrn)"`
+	}
+	variables := map[string]interface{}{
+		"resourceMrn": mondoov1.String(resourceMrn),
+	}
+
+	err := c.Query(ctx, &q, variables)
+	if err != nil {
+		return nil, err
+	}
+	return q.GetResourceContacts, nil
+}
+
 type createSpacePayload struct {
 	Id          mondoov1.ID
 	Mrn         mondoov1.String
@@ -1210,12 +1257,14 @@ type CreateTeamInput struct {
 	Name        mondoov1.String  `json:"name"`
 	Description mondoov1.String  `json:"description"`
 	ScopeMrn    mondoov1.String  `json:"scopeMrn"`
+	Email       *mondoov1.String `json:"email,omitempty"`
 }
 
 type UpdateTeamInput struct {
-	Mrn         mondoov1.String `json:"mrn"`
-	Name        mondoov1.String `json:"name"`
-	Description mondoov1.String `json:"description"`
+	Mrn         mondoov1.String  `json:"mrn"`
+	Name        mondoov1.String  `json:"name"`
+	Description mondoov1.String  `json:"description"`
+	Email       *mondoov1.String `json:"email,omitempty"`
 }
 
 type TeamPayload struct {
@@ -1223,6 +1272,7 @@ type TeamPayload struct {
 	Mrn         mondoov1.String `json:"mrn"`
 	Name        mondoov1.String `json:"name"`
 	Description mondoov1.String `json:"description"`
+	Email       mondoov1.String `json:"email"`
 	ScopeMrn    mondoov1.String `json:"scopeMrn"`
 	CreatedAt   mondoov1.String `json:"createdAt"`
 	UpdatedAt   mondoov1.String `json:"updatedAt"`
