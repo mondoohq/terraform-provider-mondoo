@@ -119,27 +119,19 @@ func (r *IAMBindingResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	// Convert roles to the format expected by the API
-	var roleInputs []RoleInput
+	// Convert roles to normalized MRN strings
 	var roleStrings []string
 	data.Roles.ElementsAs(ctx, &roleStrings, false)
+	var roles []mondoov1.String
 	for _, role := range roleStrings {
-		// Normalize role names to full MRNs
-		normalizedRole := customtypes.NormalizeRoleMRN(role)
-		roleInputs = append(roleInputs, RoleInput{
-			Mrn: mondoov1.String(normalizedRole),
-		})
+		roles = append(roles, mondoov1.String(customtypes.NormalizeRoleMRN(role)))
 	}
 
 	// Set roles using the setRoles mutation
 	input := SetRolesInput{
 		ScopeMrn: mondoov1.String(data.ResourceMrn.ValueString()),
-		Updates: []SetRoleInput{
-			{
-				EntityMrn: mondoov1.String(data.IdentityMrn.ValueString()),
-				Roles:     roleInputs,
-			},
-		},
+		Identity: mondoov1.String(data.IdentityMrn.ValueString()),
+		Roles:    roles,
 	}
 
 	_, err := r.client.SetRoles(ctx, input)
@@ -202,27 +194,19 @@ func (r *IAMBindingResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	// Convert roles to the format expected by the API
-	var roleInputs []RoleInput
+	// Convert roles to normalized MRN strings
 	var roleStrings []string
 	data.Roles.ElementsAs(ctx, &roleStrings, false)
+	var roles []mondoov1.String
 	for _, role := range roleStrings {
-		// Normalize role names to full MRNs
-		normalizedRole := customtypes.NormalizeRoleMRN(role)
-		roleInputs = append(roleInputs, RoleInput{
-			Mrn: mondoov1.String(normalizedRole),
-		})
+		roles = append(roles, mondoov1.String(customtypes.NormalizeRoleMRN(role)))
 	}
 
 	// Update roles using the setRoles mutation
 	input := SetRolesInput{
 		ScopeMrn: mondoov1.String(data.ResourceMrn.ValueString()),
-		Updates: []SetRoleInput{
-			{
-				EntityMrn: mondoov1.String(data.IdentityMrn.ValueString()),
-				Roles:     roleInputs,
-			},
-		},
+		Identity: mondoov1.String(data.IdentityMrn.ValueString()),
+		Roles:    roles,
 	}
 
 	_, err := r.client.SetRoles(ctx, input)
@@ -248,12 +232,8 @@ func (r *IAMBindingResource) Delete(ctx context.Context, req resource.DeleteRequ
 	// Remove roles by setting an empty role list
 	input := SetRolesInput{
 		ScopeMrn: mondoov1.String(data.ResourceMrn.ValueString()),
-		Updates: []SetRoleInput{
-			{
-				EntityMrn: mondoov1.String(data.IdentityMrn.ValueString()),
-				Roles:     []RoleInput{}, // Empty list removes all roles
-			},
-		},
+		Identity: mondoov1.String(data.IdentityMrn.ValueString()),
+		Roles:    []mondoov1.String{},
 	}
 
 	_, err := r.client.SetRoles(ctx, input)
