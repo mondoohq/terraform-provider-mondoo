@@ -6,7 +6,9 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -17,6 +19,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &TeamMemberResource{}
+var _ resource.ResourceWithImportState = &TeamMemberResource{}
 
 func NewTeamMemberResource() resource.Resource {
 	return &TeamMemberResource{}
@@ -199,4 +202,19 @@ func (r *TeamMemberResource) Delete(ctx context.Context, req resource.DeleteRequ
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove team member, got error: %s", err))
 		return
 	}
+}
+
+func (r *TeamMemberResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Import ID format: <team_mrn>:<identity>
+	parts := strings.SplitN(req.ID, ":", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		resp.Diagnostics.AddError(
+			"Invalid Import ID",
+			fmt.Sprintf("Expected import ID format: <team_mrn>:<identity>, got: %s", req.ID),
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_mrn"), parts[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), parts[1])...)
 }

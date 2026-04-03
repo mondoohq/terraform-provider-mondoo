@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccTeamMemberResource(t *testing.T) {
@@ -22,6 +23,19 @@ func TestAccTeamMemberResource(t *testing.T) {
 					resource.TestCheckResourceAttr("mondoo_team_member.test", "identity", "alice@example.com"),
 					resource.TestCheckResourceAttrSet("mondoo_team_member.test", "team_mrn"),
 				),
+			},
+			// ImportState testing
+			{
+				ResourceName:      "mondoo_team_member.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs, ok := s.RootModule().Resources["mondoo_team_member.test"]
+					if !ok {
+						return "", fmt.Errorf("resource not found: mondoo_team_member.test")
+					}
+					return rs.Primary.Attributes["team_mrn"] + ":" + rs.Primary.Attributes["identity"], nil
+				},
 			},
 			// Delete testing automatically occurs in TestCase
 		},
