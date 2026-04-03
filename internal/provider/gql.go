@@ -1374,6 +1374,77 @@ func (c *ExtendedGqlClient) RemoveTeamExternalGroupMapping(ctx context.Context, 
 	return c.Mutate(ctx, &mutation, mondoov1.String(mrn), nil)
 }
 
+// Team Member types and methods
+
+type AddTeamMemberInput struct {
+	TeamMrn  mondoov1.String  `json:"teamMrn"`
+	Identity *mondoov1.String `json:"identity,omitempty"`
+}
+
+type AddTeamMemberPayload struct {
+	CreatedPending mondoov1.Boolean `json:"createdPending"`
+	MemberMrn      *mondoov1.String `json:"memberMrn"`
+}
+
+type RemoveTeamMemberInput struct {
+	TeamMrn  mondoov1.String  `json:"teamMrn"`
+	Identity *mondoov1.String `json:"identity,omitempty"`
+}
+
+type TeamMemberPayload struct {
+	Mrn   *mondoov1.String `json:"mrn"`
+	Email mondoov1.String  `json:"email"`
+	Name  *mondoov1.String `json:"name"`
+}
+
+func (c *ExtendedGqlClient) AddTeamMember(ctx context.Context, input AddTeamMemberInput) (AddTeamMemberPayload, error) {
+	var mutation struct {
+		AddTeamMember AddTeamMemberPayload `graphql:"addTeamMember(input: $input)"`
+	}
+
+	tflog.Trace(ctx, "AddTeamMemberInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	err := c.Mutate(ctx, &mutation, input, nil)
+	return mutation.AddTeamMember, err
+}
+
+func (c *ExtendedGqlClient) GetTeamMember(ctx context.Context, teamMrn string, identity string) (*TeamMemberPayload, error) {
+	var query struct {
+		TeamMember *TeamMemberPayload `graphql:"teamMember(teamMrn: $teamMrn, identity: $identity)"`
+	}
+	variables := map[string]interface{}{
+		"teamMrn":  mondoov1.String(teamMrn),
+		"identity": mondoov1.String(identity),
+	}
+
+	tflog.Trace(ctx, "GetTeamMember", map[string]interface{}{
+		"teamMrn":  teamMrn,
+		"identity": identity,
+	})
+
+	err := c.Query(ctx, &query, variables)
+	if err != nil {
+		return nil, err
+	}
+	return query.TeamMember, nil
+}
+
+func (c *ExtendedGqlClient) RemoveTeamMember(ctx context.Context, input RemoveTeamMemberInput) error {
+	var mutation struct {
+		RemoveTeamMember struct {
+			MemberMrn *mondoov1.String `json:"memberMrn"`
+		} `graphql:"removeTeamMember(input: $input)"`
+	}
+
+	tflog.Trace(ctx, "RemoveTeamMemberInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	return c.Mutate(ctx, &mutation, input, nil)
+}
+
 type RoleInput struct {
 	Mrn mondoov1.String `json:"mrn"`
 }
