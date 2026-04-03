@@ -26,9 +26,10 @@ func TestAccTeamMemberResource(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				ResourceName:      "mondoo_team_member.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:                         "mondoo_team_member.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "team_mrn",
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rs, ok := s.RootModule().Resources["mondoo_team_member.test"]
 					if !ok {
