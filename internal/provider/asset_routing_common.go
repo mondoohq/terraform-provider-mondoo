@@ -18,26 +18,31 @@ type AssetRoutingConditionModel struct {
 	Key      types.String `tfsdk:"key"`
 }
 
-// assetRoutingConditionSchemaAttributes returns the schema attributes for a routing condition,
+// assetRoutingConditionSchemaBlock returns a ListNestedBlock for routing conditions,
 // reusable by both the table and rule resources.
-func assetRoutingConditionSchemaAttributes() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"field": schema.StringAttribute{
-			MarkdownDescription: "The field to match on. Valid values: `HOSTNAME`, `PLATFORM`, `LABEL`.",
-			Required:            true,
-		},
-		"operator": schema.StringAttribute{
-			MarkdownDescription: "The comparison operator. Valid values: `EQUAL`, `NOT_EQUAL`, `CONTAINS`, `MATCHES`.",
-			Required:            true,
-		},
-		"values": schema.ListAttribute{
-			MarkdownDescription: "List of values to match against. A condition matches if the field matches any of the listed values (OR logic).",
-			Required:            true,
-			ElementType:         types.StringType,
-		},
-		"key": schema.StringAttribute{
-			MarkdownDescription: "The label key to match on. Required when `field` is `LABEL`.",
-			Optional:            true,
+func assetRoutingConditionSchemaBlock() schema.ListNestedBlock {
+	return schema.ListNestedBlock{
+		MarkdownDescription: "Conditions that must all match for this rule to apply (AND logic). If empty, the rule matches all assets (catch-all).",
+		NestedObject: schema.NestedBlockObject{
+			Attributes: map[string]schema.Attribute{
+				"field": schema.StringAttribute{
+					MarkdownDescription: "The field to match on. Valid values: `HOSTNAME`, `PLATFORM`, `LABEL`.",
+					Required:            true,
+				},
+				"operator": schema.StringAttribute{
+					MarkdownDescription: "The comparison operator. Valid values: `EQUAL`, `NOT_EQUAL`, `CONTAINS`, `MATCHES`.",
+					Required:            true,
+				},
+				"values": schema.ListAttribute{
+					MarkdownDescription: "List of values to match against. A condition matches if the field matches any of the listed values (OR logic).",
+					Required:            true,
+					ElementType:         types.StringType,
+				},
+				"key": schema.StringAttribute{
+					MarkdownDescription: "The label key to match on. Required when `field` is `LABEL`.",
+					Optional:            true,
+				},
+			},
 		},
 	}
 }
