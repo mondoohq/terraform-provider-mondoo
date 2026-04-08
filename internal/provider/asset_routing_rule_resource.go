@@ -71,13 +71,9 @@ func (r *AssetRoutingRuleResource) Schema(_ context.Context, _ resource.SchemaRe
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
-			"condition": schema.ListNestedAttribute{
-				MarkdownDescription: "Conditions that must all match for this rule to apply (AND logic). If empty, the rule matches all assets (catch-all).",
-				Optional:            true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: assetRoutingConditionSchemaAttributes(),
-				},
-			},
+		},
+		Blocks: map[string]schema.Block{
+			"condition": assetRoutingConditionSchemaBlock(),
 		},
 	}
 }

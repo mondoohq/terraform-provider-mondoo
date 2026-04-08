@@ -54,22 +54,19 @@ func (r *AssetRoutingTableResource) Schema(_ context.Context, _ resource.SchemaR
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"rule": schema.ListNestedAttribute{
+		},
+		Blocks: map[string]schema.Block{
+			"rule": schema.ListNestedBlock{
 				MarkdownDescription: "Ordered list of routing rules. Priority is determined by position (first = highest priority). A rule with no conditions acts as a catch-all.",
-				Required:            true,
-				NestedObject: schema.NestedAttributeObject{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"target_space_mrn": schema.StringAttribute{
 							MarkdownDescription: "The MRN of the space where matching assets will be routed.",
 							Required:            true,
 						},
-						"condition": schema.ListNestedAttribute{
-							MarkdownDescription: "Conditions that must all match for this rule to apply (AND logic). If empty, the rule matches all assets (catch-all).",
-							Optional:            true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: assetRoutingConditionSchemaAttributes(),
-							},
-						},
+					},
+					Blocks: map[string]schema.Block{
+						"condition": assetRoutingConditionSchemaBlock(),
 					},
 				},
 			},
