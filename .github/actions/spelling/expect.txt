@@ -11,6 +11,7 @@ connectionstrings
 crowdstrike
 Cwj
 DXhjr
+Dynatrace
 FIGc
 Gci
 gcs
@@ -20,6 +21,7 @@ JFUz
 Jhb
 jira
 KBp
+linux
 ljq
 LQV
 mrns
@@ -29,6 +31,7 @@ NATGW
 NCIs
 NHar
 ocid
+OCSF
 Ooe
 Plutx
 QFKc
@@ -36,6 +39,7 @@ Qhgn
 qpbi
 querypack
 Qwc
+rhel
 scim
 startswith
 Tcy

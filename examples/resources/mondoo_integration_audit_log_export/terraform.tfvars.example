@@ -1,0 +1,4 @@
+gcp_project   = "audit-log-example"
+gcp_region    = "us-central1"
+mondoo_org_id = "your-mondoo-org-id"
+bucket_name   = "mondoo-audit-log-export-test"
