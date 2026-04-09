@@ -148,7 +148,7 @@ func (r *ExportGcsBucketResource) Create(ctx context.Context, req resource.Creat
 			GcsBucketConfigurationOptions: &mondoov1.GcsBucketConfigurationOptionsInput{
 				Output:         mondoov1.BucketOutputTypeJsonl,
 				Bucket:         mondoov1.String(data.BucketName.ValueString()),
-				ServiceAccount: mondoov1.String(data.Credential.PrivateKey.ValueString()),
+				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
 			},
 		})
 
@@ -216,7 +216,7 @@ func (r *ExportGcsBucketResource) Update(ctx context.Context, req resource.Updat
 			GcsBucketConfigurationOptions: &mondoov1.GcsBucketConfigurationOptionsInput{
 				Output:         mondoov1.BucketOutputTypeJsonl,
 				Bucket:         mondoov1.String(data.BucketName.ValueString()),
-				ServiceAccount: mondoov1.String(data.Credential.PrivateKey.ValueString()),
+				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
 			},
 		})
 

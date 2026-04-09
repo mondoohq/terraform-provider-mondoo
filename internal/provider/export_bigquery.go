@@ -143,7 +143,7 @@ func (r *ExportBigQueryResource) Create(ctx context.Context, req resource.Create
 		mondoov1.ClientIntegrationConfigurationInput{
 			BigqueryConfigurationOptions: &mondoov1.BigqueryConfigurationOptionsInput{
 				DatasetId:      mondoov1.String(data.DatasetID.ValueString()),
-				ServiceAccount: mondoov1.String(data.ServiceAccountKey.ValueString()),
+				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.ServiceAccountKey.ValueString())),
 			},
 		})
 
@@ -218,7 +218,7 @@ func (r *ExportBigQueryResource) Update(ctx context.Context, req resource.Update
 		mondoov1.ClientIntegrationConfigurationInput{
 			BigqueryConfigurationOptions: &mondoov1.BigqueryConfigurationOptionsInput{
 				DatasetId:      mondoov1.String(data.DatasetID.ValueString()),
-				ServiceAccount: mondoov1.String(data.ServiceAccountKey.ValueString()),
+				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.ServiceAccountKey.ValueString())),
 			},
 		})
 
