@@ -50,6 +50,35 @@ func TestAccExportBigQueryResource(t *testing.T) {
 	})
 }
 
+func TestAccExportBigQueryResourceWithScopeMrn(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing with scope_mrn
+			{
+				Config: testExportBigQueryIntegrationWithScopeMrn("bigquery-scope-mrn", "project-id.dataset_id", accSpace.MRN(), "ServiceAccount_JSON_1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "name", "bigquery-scope-mrn"),
+					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "dataset_id", "project-id.dataset_id"),
+					resource.TestCheckResourceAttr("mondoo_export_bigquery.test", "scope_mrn", accSpace.MRN()),
+				),
+			},
+			// Import testing
+			{
+				ResourceName: "mondoo_export_bigquery.test",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_export_bigquery.test"].Primary.Attributes["mrn"], nil
+				},
+				ImportStateVerifyIdentifierAttribute: "mrn",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIgnore:              []string{"service_account_key"},
+			},
+		},
+	})
+}
+
 func testExportBigQueryIntegration(name string, datasetId string, spaceId string, serviceAccountKey string) string {
 	return fmt.Sprintf(`
 	resource "mondoo_export_bigquery" "test" {
@@ -59,4 +88,15 @@ func testExportBigQueryIntegration(name string, datasetId string, spaceId string
 		service_account_key = "%s"
 	}
 	`, name, datasetId, spaceId, serviceAccountKey)
+}
+
+func testExportBigQueryIntegrationWithScopeMrn(name string, datasetId string, scopeMrn string, serviceAccountKey string) string {
+	return fmt.Sprintf(`
+	resource "mondoo_export_bigquery" "test" {
+		name                = "%s"
+		dataset_id          = "%s"
+		scope_mrn           = "%s"
+		service_account_key = "%s"
+	}
+	`, name, datasetId, scopeMrn, serviceAccountKey)
 }

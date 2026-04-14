@@ -667,7 +667,7 @@ func (c *ExtendedGqlClient) CreateIntegration(ctx context.Context, spaceMrn, nam
 	}
 
 	createInput := mondoov1.CreateClientIntegrationInput{
-		SpaceMrn:             mondoov1.String(spaceMrn),
+		SpaceMrn:             mondoov1.NewStringPtr(mondoov1.String(spaceMrn)),
 		Name:                 mondoov1.String(name),
 		Type:                 typ,
 		LongLivedToken:       false,
@@ -675,6 +675,35 @@ func (c *ExtendedGqlClient) CreateIntegration(ctx context.Context, spaceMrn, nam
 	}
 
 	tflog.Trace(ctx, "CreateClientIntegrationInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", createInput),
+	})
+
+	err := c.Mutate(ctx, &createMutation, createInput, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &createMutation.CreateClientIntegration.Integration, nil
+}
+
+// CreateScopedIntegration creates an integration using the new ScopeMrn field,
+// which supports space, organization, and platform-level scoping.
+func (c *ExtendedGqlClient) CreateScopedIntegration(ctx context.Context, scopeMrn, name string, typ mondoov1.ClientIntegrationType, opts mondoov1.ClientIntegrationConfigurationInput) (*CreateClientIntegrationPayload, error) {
+	var createMutation struct {
+		CreateClientIntegration struct {
+			Integration CreateClientIntegrationPayload
+		} `graphql:"createClientIntegration(input: $input)"`
+	}
+
+	createInput := mondoov1.CreateClientIntegrationInput{
+		ScopeMrn:             mondoov1.NewStringPtr(mondoov1.String(scopeMrn)),
+		SpaceMrn:             mondoov1.NewStringPtr(mondoov1.String(scopeMrn)), // backward compat with older servers
+		Name:                 mondoov1.String(name),
+		Type:                 typ,
+		LongLivedToken:       false,
+		ConfigurationOptions: opts,
+	}
+
+	tflog.Trace(ctx, "CreateScopedIntegrationInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createInput),
 	})
 
@@ -913,6 +942,21 @@ func (i Integration) SpaceID() string {
 		return mrnSplit[l-3]
 	}
 	return ""
+}
+
+// ScopeMRN returns the scope MRN of the integration by stripping the /integrations/{ID} suffix.
+// Works for space, org, or platform-scoped integration MRNs.
+func (i Integration) ScopeMRN() string {
+	idx := strings.LastIndex(i.Mrn, "/integrations/")
+	if idx == -1 {
+		return ""
+	}
+	return i.Mrn[:idx]
+}
+
+// IsSpaceScoped returns true if the integration belongs to a space (vs. org or platform).
+func (i Integration) IsSpaceScoped() bool {
+	return strings.Contains(i.Mrn, "/spaces/")
 }
 
 type ClientIntegration struct {
@@ -1195,17 +1239,20 @@ func (c *ExtendedGqlClient) ImportIntegration(ctx context.Context, req resource.
 		return nil, false
 	}
 
-	spaceID := integration.SpaceID()
-	if c.Space().ID() != "" && c.Space().ID() != spaceID {
-		// The provider is configured to manage resources in a different space than the one the
-		// resource is currently configured, we won't allow that
-		resp.Diagnostics.AddError(
-			"Conflict Error",
-			fmt.Sprintf(
-				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
-				c.Space().ID(), spaceID),
-		)
-		return nil, false
+	// Only validate space match for space-scoped integrations
+	if integration.IsSpaceScoped() {
+		spaceID := integration.SpaceID()
+		if c.Space().ID() != "" && c.Space().ID() != spaceID {
+			// The provider is configured to manage resources in a different space than the one the
+			// resource is currently configured, we won't allow that
+			resp.Diagnostics.AddError(
+				"Conflict Error",
+				fmt.Sprintf(
+					"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+					c.Space().ID(), spaceID),
+			)
+			return nil, false
+		}
 	}
 
 	return &integration, true

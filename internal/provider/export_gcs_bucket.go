@@ -6,12 +6,16 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -28,6 +32,21 @@ type ExportGcsBucketResource struct {
 	client *ExtendedGqlClient
 }
 
+type ExportGcsBucketResourceModel struct {
+	// scope
+	SpaceID  types.String `tfsdk:"space_id"`
+	ScopeMrn types.String `tfsdk:"scope_mrn"`
+
+	// integration details
+	Mrn          types.String `tfsdk:"mrn"`
+	Name         types.String `tfsdk:"name"`
+	BucketName   types.String `tfsdk:"bucket_name"`
+	ExportFormat types.String `tfsdk:"export_format"`
+
+	// credentials
+	Credential gcsBucketExportCredentialModel `tfsdk:"credentials"`
+}
+
 func (r *ExportGcsBucketResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_export_gcs_bucket"
 }
@@ -37,12 +56,12 @@ func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.Schem
 		MarkdownDescription: `Export data to a Google Cloud Storage bucket.
 			## Example Usage
 			` + "```hcl" + `
-			resource "mondoo_gcs_bucket_export" "test" {
-				name         = "bucket-export-integration"
-				bucket_name  = "my-bucket-name"
-				space_id     = "your-space-id"
+			resource "mondoo_export_gcs_bucket" "test" {
+				name          = "bucket-export-integration"
+				bucket_name   = "my-bucket-name"
+				scope_mrn     = "//captain.api.mondoo.app/spaces/your-space-id"
 				export_format = "jsonl"
-				  credentials = {
+				credentials = {
 					private_key = base64decode(google_service_account_key.mondoo_integration.private_key)
 				}
 			}
@@ -51,10 +70,25 @@ func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.Schem
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
+				DeprecationMessage:  "Use `scope_mrn` instead. This attribute will be removed in a future version.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("scope_mrn")),
+				},
+			},
+			"scope_mrn": schema.StringAttribute{
+				MarkdownDescription: "The MRN of the scope (space, organization, or platform) for the export integration.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("space_id")),
 				},
 			},
 			"mrn": schema.StringAttribute{
@@ -114,7 +148,7 @@ func (r *ExportGcsBucketResource) Configure(ctx context.Context, req resource.Co
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -124,58 +158,87 @@ func (r *ExportGcsBucketResource) Configure(ctx context.Context, req resource.Co
 }
 
 func (r *ExportGcsBucketResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data GcsBucketExportResourceModel
+	var data ExportGcsBucketResourceModel
 
 	// Read the plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
-	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
-	// Create the export integration using the client
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
-		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeGcsBucket,
-		mondoov1.ClientIntegrationConfigurationInput{
-			GcsBucketConfigurationOptions: &mondoov1.GcsBucketConfigurationOptionsInput{
-				Output:         mondoov1.BucketOutputTypeJsonl,
-				Bucket:         mondoov1.String(data.BucketName.ValueString()),
-				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
-			},
-		})
-
-	if err != nil {
-		resp.Diagnostics.AddError("Error creating GCS bucket export integration", err.Error())
-		return
+	// Determine output format
+	outputFormat := mondoov1.BucketOutputTypeJsonl
+	if strings.ToLower(data.ExportFormat.ValueString()) == "csv" {
+		outputFormat = mondoov1.BucketOutputTypeCsv
 	}
-	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunExport)
+
+	configOpts := mondoov1.ClientIntegrationConfigurationInput{
+		GcsBucketConfigurationOptions: &mondoov1.GcsBucketConfigurationOptionsInput{
+			Output:         outputFormat,
+			Bucket:         mondoov1.String(data.BucketName.ValueString()),
+			ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
+		},
+	}
+
+	var integration *CreateClientIntegrationPayload
+	if !data.ScopeMrn.IsNull() && data.ScopeMrn.ValueString() != "" {
+		// New path: use scope_mrn directly
+		scopeMrn := data.ScopeMrn.ValueString()
+		ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
+
+		var err error
+		integration, err = r.client.CreateScopedIntegration(ctx,
+			scopeMrn,
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeGcsBucket,
+			configOpts)
+		if err != nil {
+			resp.Diagnostics.AddError("Error creating GCS bucket export integration", err.Error())
+			return
+		}
+
+		data.ScopeMrn = types.StringValue(scopeMrn)
+	} else {
+		// Legacy path: use space_id
+		space, err := r.client.ComputeSpace(data.SpaceID)
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+			return
+		}
+		ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
+		integration, err = r.client.CreateIntegration(ctx,
+			space.MRN(),
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeGcsBucket,
+			configOpts)
+		if err != nil {
+			resp.Diagnostics.AddError("Error creating GCS bucket export integration", err.Error())
+			return
+		}
+
+		data.SpaceID = types.StringValue(space.ID())
+		data.ScopeMrn = types.StringValue(space.MRN())
+	}
+
+	_, err := r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunExport)
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
 				fmt.Sprintf("Unable to trigger export for integration. Got error: %s", err),
 			)
-		return
 	}
 
-	// Save space mrn into the Terraform state.
+	// Save data into the Terraform state
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *ExportGcsBucketResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data GcsBucketExportResourceModel
+	var data ExportGcsBucketResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -191,7 +254,7 @@ func (r *ExportGcsBucketResource) Read(ctx context.Context, req resource.ReadReq
 }
 
 func (r *ExportGcsBucketResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data GcsBucketExportResourceModel
+	var data ExportGcsBucketResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -199,22 +262,20 @@ func (r *ExportGcsBucketResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
+	// Determine output format
+	outputFormat := mondoov1.BucketOutputTypeJsonl
+	if strings.ToLower(data.ExportFormat.ValueString()) == "csv" {
+		outputFormat = mondoov1.BucketOutputTypeCsv
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	// Do GraphQL request to API to update the resource.
-	_, err = r.client.UpdateIntegration(ctx,
+	_, err := r.client.UpdateIntegration(ctx,
 		data.Mrn.ValueString(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeGcsBucket,
 		mondoov1.ClientIntegrationConfigurationInput{
 			GcsBucketConfigurationOptions: &mondoov1.GcsBucketConfigurationOptionsInput{
-				Output:         mondoov1.BucketOutputTypeJsonl,
+				Output:         outputFormat,
 				Bucket:         mondoov1.String(data.BucketName.ValueString()),
 				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
 			},
@@ -230,7 +291,7 @@ func (r *ExportGcsBucketResource) Update(ctx context.Context, req resource.Updat
 }
 
 func (r *ExportGcsBucketResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data GcsBucketExportResourceModel
+	var data ExportGcsBucketResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -250,16 +311,20 @@ func (r *ExportGcsBucketResource) ImportState(ctx context.Context, req resource.
 		return
 	}
 
-	model := GcsBucketExportResourceModel{
+	model := ExportGcsBucketResourceModel{
 		Mrn:          types.StringValue(integration.Mrn),
 		Name:         types.StringValue(integration.Name),
-		SpaceID:      types.StringValue(integration.SpaceID()),
+		ScopeMrn:     types.StringValue(integration.ScopeMRN()),
 		BucketName:   types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.Bucket),
 		ExportFormat: types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.Output),
 
 		Credential: gcsBucketExportCredentialModel{
 			PrivateKey: types.StringPointerValue(nil),
 		},
+	}
+
+	if integration.IsSpaceScoped() {
+		model.SpaceID = types.StringValue(integration.SpaceID())
 	}
 
 	resp.State.Set(ctx, &model)

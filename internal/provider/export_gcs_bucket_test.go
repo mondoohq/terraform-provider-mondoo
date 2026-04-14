@@ -50,6 +50,35 @@ func TestAccExportGCSBucketResource(t *testing.T) {
 	})
 }
 
+func TestAccExportGCSBucketResourceWithScopeMrn(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing with scope_mrn
+			{
+				Config: testExportGCSIntegrationWithScopeMrn("bucket-export-scope-mrn", "my-bucket-name", accSpace.MRN(), "CSV", "ServiceAccount_1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_export_gcs_bucket.test", "name", "bucket-export-scope-mrn"),
+					resource.TestCheckResourceAttr("mondoo_export_gcs_bucket.test", "bucket_name", "my-bucket-name"),
+					resource.TestCheckResourceAttr("mondoo_export_gcs_bucket.test", "scope_mrn", accSpace.MRN()),
+				),
+			},
+			// Import testing
+			{
+				ResourceName: "mondoo_export_gcs_bucket.test",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_export_gcs_bucket.test"].Primary.Attributes["mrn"], nil
+				},
+				ImportStateVerifyIdentifierAttribute: "mrn",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIgnore:              []string{"credentials"},
+			},
+		},
+	})
+}
+
 func testExportGCSIntegration(name string, bucketName string, spaceId string, output string, serviceAccount string) string {
 	return fmt.Sprintf(`
 	resource "mondoo_export_gcs_bucket" "test" {
@@ -62,4 +91,18 @@ func testExportGCSIntegration(name string, bucketName string, spaceId string, ou
 		}
 	}
 	`, name, bucketName, spaceId, output, serviceAccount)
+}
+
+func testExportGCSIntegrationWithScopeMrn(name string, bucketName string, scopeMrn string, output string, serviceAccount string) string {
+	return fmt.Sprintf(`
+	resource "mondoo_export_gcs_bucket" "test" {
+		name          = "%s"
+		bucket_name   = "%s"
+		scope_mrn     = "%s"
+		export_format = "%s"
+		credentials = {
+			private_key = "%s"
+		}
+	}
+	`, name, bucketName, scopeMrn, output, serviceAccount)
 }

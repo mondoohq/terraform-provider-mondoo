@@ -53,6 +53,37 @@ func TestAccS3ExportResource(t *testing.T) {
 	})
 }
 
+func TestAccS3ExportResourceWithScopeMrn(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing with scope_mrn
+			{
+				Config: testS3ExportIntegrationWithScopeMrn("s3-export-scope-mrn", "my-mondoo-exports", "us-west-2", accSpace.MRN(), "jsonl", "AKIAIOSFODNN7EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_export_s3.test", "name", "s3-export-scope-mrn"),
+					resource.TestCheckResourceAttr("mondoo_export_s3.test", "bucket_name", "my-mondoo-exports"),
+					resource.TestCheckResourceAttr("mondoo_export_s3.test", "region", "us-west-2"),
+					resource.TestCheckResourceAttr("mondoo_export_s3.test", "export_format", "jsonl"),
+					resource.TestCheckResourceAttr("mondoo_export_s3.test", "scope_mrn", accSpace.MRN()),
+				),
+			},
+			// Import testing
+			{
+				ResourceName: "mondoo_export_s3.test",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_export_s3.test"].Primary.Attributes["mrn"], nil
+				},
+				ImportStateVerifyIdentifierAttribute: "mrn",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIgnore:              []string{"credentials"},
+			},
+		},
+	})
+}
+
 func testS3ExportIntegration(name string, bucket string, region string, spaceId string, output string, accessKey string, secretKey string) string {
 	return fmt.Sprintf(`
 	resource "mondoo_export_s3" "test" {
@@ -69,4 +100,22 @@ func testS3ExportIntegration(name string, bucket string, region string, spaceId 
 		}
 	}
 	`, name, bucket, region, spaceId, output, accessKey, secretKey)
+}
+
+func testS3ExportIntegrationWithScopeMrn(name string, bucket string, region string, scopeMrn string, output string, accessKey string, secretKey string) string {
+	return fmt.Sprintf(`
+	resource "mondoo_export_s3" "test" {
+		name          = "%s"
+		bucket_name   = "%s"
+		region        = "%s"
+		scope_mrn     = "%s"
+		export_format = "%s"
+		credentials = {
+			key = {
+				access_key = "%s"
+				secret_key = "%s"
+			}
+		}
+	}
+	`, name, bucket, region, scopeMrn, output, accessKey, secretKey)
 }
