@@ -73,7 +73,7 @@ func TestAccExportGCSBucketResourceWithScopeMrn(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "mrn",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
-				ImportStateVerifyIgnore:              []string{"credentials", "space_id"},
+				ImportStateVerifyIgnore:              []string{"credentials", "space_id", "export_format"},
 			},
 		},
 	})
