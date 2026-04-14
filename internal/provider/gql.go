@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -18,6 +19,17 @@ import (
 )
 
 const orgPrefix = "//captain.api.mondoo.app/organizations/"
+
+var validIntegrationMRN = regexp.MustCompile(`^(//integration\.api\.mondoo\.app/(spaces|organizations)/[\w\d-]+/integrations/[\w\d-]+)$`)
+var validPlatformIntegrationMRN = regexp.MustCompile(`^(//integration\.api\.mondoo\.app/integrations/[\w\d-]+)$`)
+
+func IsValidIntegrationMrn(mrn string) bool {
+	return validIntegrationMRN.MatchString(mrn) || validPlatformIntegrationMRN.MatchString(mrn)
+}
+
+func IsValidPlatformIntegrationMrn(mrn string) bool {
+	return validPlatformIntegrationMRN.MatchString(mrn)
+}
 
 // The extended GraphQL client allows us to pass additional information to
 // resources and data sources, things like the Mondoo space.
@@ -944,14 +956,29 @@ func (i Integration) SpaceID() string {
 	return ""
 }
 
-// ScopeMRN returns the scope MRN of the integration by stripping the /integrations/{ID} suffix.
-// Works for space, org, or platform-scoped integration MRNs.
+// ScopeMRN returns the scope MRN (using the captain API domain) for the integration.
+// Integration MRNs use integration.api.mondoo.app, but scope MRNs use captain.api.mondoo.app.
+//
+// Examples:
+//
+//	//integration.api.mondoo.app/spaces/{ID}/integrations/{ID} → //captain.api.mondoo.app/spaces/{ID}
+//	//integration.api.mondoo.app/organizations/{ID}/integrations/{ID} → //captain.api.mondoo.app/organizations/{ID}
+//	//integration.api.mondoo.app/integrations/{ID} → //platform.api.mondoo.app
 func (i Integration) ScopeMRN() string {
+	if IsValidPlatformIntegrationMrn(i.Mrn) {
+		return "//platform.api.mondoo.app"
+	}
+	if !IsValidIntegrationMrn(i.Mrn) {
+		return ""
+	}
+	// Extract the scope path segment (e.g. "spaces/{ID}" or "organizations/{ID}")
 	idx := strings.LastIndex(i.Mrn, "/integrations/")
 	if idx == -1 {
 		return ""
 	}
-	return i.Mrn[:idx]
+	path := i.Mrn[:idx]
+	path = strings.Replace(path, "//integration.api.mondoo.app/", "//captain.api.mondoo.app/", 1)
+	return path
 }
 
 // IsSpaceScoped returns true if the integration belongs to a space (vs. org or platform).

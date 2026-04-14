@@ -171,6 +171,7 @@ func (r *ExportBigQueryResource) Create(ctx context.Context, req resource.Create
 			return
 		}
 
+		data.SpaceID = types.StringValue("")
 		data.ScopeMrn = types.StringValue(scopeMrn)
 	} else {
 		// Legacy path: use space_id
