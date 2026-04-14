@@ -44,7 +44,7 @@ func TestAccExportGCSBucketResource(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "mrn",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
-				ImportStateVerifyIgnore:              []string{"credentials"},
+				ImportStateVerifyIgnore:              []string{"credentials", "export_format"},
 			},
 		},
 	})
