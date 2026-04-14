@@ -317,7 +317,7 @@ func (r *ExportGcsBucketResource) ImportState(ctx context.Context, req resource.
 		Name:         types.StringValue(integration.Name),
 		ScopeMrn:     types.StringValue(integration.ScopeMRN()),
 		BucketName:   types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.Bucket),
-		ExportFormat: types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.Output),
+		ExportFormat: types.StringValue(strings.ToLower(integration.ConfigurationOptions.GcsBucketConfigurationOptions.Output)),
 
 		Credential: gcsBucketExportCredentialModel{
 			PrivateKey: types.StringPointerValue(nil),

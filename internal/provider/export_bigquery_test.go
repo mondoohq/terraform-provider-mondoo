@@ -73,7 +73,7 @@ func TestAccExportBigQueryResourceWithScopeMrn(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "mrn",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
-				ImportStateVerifyIgnore:              []string{"service_account_key"},
+				ImportStateVerifyIgnore:              []string{"service_account_key", "space_id"},
 			},
 		},
 	})

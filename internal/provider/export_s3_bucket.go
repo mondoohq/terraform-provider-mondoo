@@ -352,7 +352,7 @@ func (r *S3BucketExportResource) ImportState(ctx context.Context, req resource.I
 		ScopeMrn:     types.StringValue(integration.ScopeMRN()),
 		Bucket:       types.StringValue(integration.ConfigurationOptions.AwsS3ConfigurationOptions.Bucket),
 		Region:       types.StringValue(integration.ConfigurationOptions.AwsS3ConfigurationOptions.Region),
-		ExportFormat: types.StringValue(integration.ConfigurationOptions.AwsS3ConfigurationOptions.Output),
+		ExportFormat: types.StringValue(strings.ToLower(integration.ConfigurationOptions.AwsS3ConfigurationOptions.Output)),
 
 		Credentials: s3BucketExportCredentialModel{
 			Key: s3BucketExportKeyModel{
