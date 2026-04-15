@@ -80,6 +80,7 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
 					stringvalidator.ConflictsWith(path.MatchRoot("space_id")),
