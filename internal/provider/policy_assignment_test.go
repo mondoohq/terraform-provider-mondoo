@@ -59,7 +59,7 @@ resource "mondoo_policy_assignment" "space" {
   policies = [
     "//policy.api.mondoo.app/policies/mondoo-aws-security",
   ]
-  
+
   state = %[2]q
 
   depends_on = [
@@ -67,4 +67,46 @@ resource "mondoo_policy_assignment" "space" {
   ]
 }
 `, resourceOrgID, state)
+}
+
+func TestAccPolicyAssignmentResourceWithScopeMrn(t *testing.T) {
+	orgID, err := getOrgId()
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccPolicyAssignmentResourceWithScopeMrnConfig(orgID, "enabled"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_policy_assignment.org", "state", "enabled"),
+				),
+			},
+			// Update and Read testing
+			{
+				Config: testAccPolicyAssignmentResourceWithScopeMrnConfig(orgID, "disabled"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_policy_assignment.org", "state", "disabled"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccPolicyAssignmentResourceWithScopeMrnConfig(orgID string, state string) string {
+	return fmt.Sprintf(`
+resource "mondoo_policy_assignment" "org" {
+  scope_mrn = "//captain.api.mondoo.app/organizations/%[1]s"
+
+  policies = [
+    "//policy.api.mondoo.app/policies/mondoo-aws-security",
+  ]
+
+  state = %[2]q
+}
+`, orgID, state)
 }
