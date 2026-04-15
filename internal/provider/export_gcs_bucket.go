@@ -197,7 +197,7 @@ func (r *ExportGcsBucketResource) Create(ctx context.Context, req resource.Creat
 			return
 		}
 
-		data.SpaceID = types.StringValue("")
+		data.SpaceID = types.StringNull()
 		data.ScopeMrn = types.StringValue(scopeMrn)
 	} else {
 		// Legacy path: use space_id

@@ -228,7 +228,7 @@ func (r *S3BucketExportResource) Create(ctx context.Context, req resource.Create
 			return
 		}
 
-		data.SpaceID = types.StringValue("")
+		data.SpaceID = types.StringNull()
 		data.ScopeMrn = types.StringValue(scopeMrn)
 	} else {
 		// Legacy path: use space_id

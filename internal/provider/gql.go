@@ -20,8 +20,8 @@ import (
 
 const orgPrefix = "//captain.api.mondoo.app/organizations/"
 
-var validIntegrationMRN = regexp.MustCompile(`^(//integration\.api\.mondoo\.app/(spaces|organizations)/[\w\d-]+/integrations/[\w\d-]+)$`)
-var validPlatformIntegrationMRN = regexp.MustCompile(`^(//integration\.api\.mondoo\.app/integrations/[\w\d-]+)$`)
+var validIntegrationMRN = regexp.MustCompile(`^(//integration\.api\.mondoo\.app/(spaces|organizations)/[\w-]+/integrations/[\w-]+)$`)
+var validPlatformIntegrationMRN = regexp.MustCompile(`^(//integration\.api\.mondoo\.app/integrations/[\w-]+)$`)
 
 func IsValidIntegrationMrn(mrn string) bool {
 	return validIntegrationMRN.MatchString(mrn) || validPlatformIntegrationMRN.MatchString(mrn)
@@ -708,7 +708,6 @@ func (c *ExtendedGqlClient) CreateScopedIntegration(ctx context.Context, scopeMr
 
 	createInput := mondoov1.CreateClientIntegrationInput{
 		ScopeMrn:             mondoov1.NewStringPtr(mondoov1.String(scopeMrn)),
-		SpaceMrn:             mondoov1.NewStringPtr(mondoov1.String(scopeMrn)), // backward compat with older servers
 		Name:                 mondoov1.String(name),
 		Type:                 typ,
 		LongLivedToken:       false,
