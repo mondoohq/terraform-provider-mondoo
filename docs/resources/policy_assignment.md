@@ -13,11 +13,21 @@ description: |-
 ## Example Usage
 
 ```terraform
+# Assign policies to a space (using provider-configured space)
 provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
 resource "mondoo_policy_assignment" "space" {
+  policies = [
+    "//policy.api.mondoo.app/policies/mondoo-aws-security",
+  ]
+}
+
+# Assign policies to an organization using scope_mrn
+resource "mondoo_policy_assignment" "org" {
+  scope_mrn = "//captain.api.mondoo.app/organizations/your-org-id"
+
   policies = [
     "//policy.api.mondoo.app/policies/mondoo-aws-security",
   ]
@@ -29,9 +39,10 @@ resource "mondoo_policy_assignment" "space" {
 
 ### Required
 
-- `policies` (List of String) Policies to assign to the space.
+- `policies` (List of String) Policies to assign to the scope.
 
 ### Optional
 
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `scope_mrn` (String) The MRN of the scope (space, organization, or platform) to assign policies to.
+- `space_id` (String, Deprecated) Mondoo space identifier. If there is no space ID, the provider space is used.
 - `state` (String) Policy assignment state (preview, enabled, or disabled).
