@@ -8,6 +8,7 @@ description: |-
   hcl
   resource "mondoo_export_bigquery" "example" {
   name                = "enterprise-demo-BigQuery"
+  scope_mrn           = "//captain.api.mondoo.app/spaces/your-space-id"
   dataset_id          = "project-id.dataset_id"
   service_account_key = file("service-account.json")
   }
@@ -20,6 +21,7 @@ Export data to Google BigQuery.
 			```hcl
 			resource "mondoo_export_bigquery" "example" {
 				name                = "enterprise-demo-BigQuery"
+				scope_mrn           = "//captain.api.mondoo.app/spaces/your-space-id"
 				dataset_id          = "project-id.dataset_id"
 				service_account_key = file("service-account.json")
 			}
@@ -38,7 +40,8 @@ Export data to Google BigQuery.
 
 ### Optional
 
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `scope_mrn` (String) The MRN of the scope (space, organization, or platform) for the export integration.
+- `space_id` (String, Deprecated) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

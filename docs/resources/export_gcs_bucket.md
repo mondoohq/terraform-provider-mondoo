@@ -6,10 +6,10 @@ description: |-
   Export data to a Google Cloud Storage bucket.
   ## Example Usage
   hcl
-  resource "mondoo_gcs_bucket_export" "test" {
-  name         = "bucket-export-integration"
-  bucket_name  = "my-bucket-name"
-  space_id     = "your-space-id"
+  resource "mondoo_export_gcs_bucket" "test" {
+  name          = "bucket-export-integration"
+  bucket_name   = "my-bucket-name"
+  scope_mrn     = "//captain.api.mondoo.app/spaces/your-space-id"
   export_format = "jsonl"
   credentials = {
   private_key = base64decode(google_service_account_key.mondoo_integration.private_key)
@@ -22,12 +22,12 @@ description: |-
 Export data to a Google Cloud Storage bucket.
 			## Example Usage
 			```hcl
-			resource "mondoo_gcs_bucket_export" "test" {
-				name         = "bucket-export-integration"
-				bucket_name  = "my-bucket-name"
-				space_id     = "your-space-id"
+			resource "mondoo_export_gcs_bucket" "test" {
+				name          = "bucket-export-integration"
+				bucket_name   = "my-bucket-name"
+				scope_mrn     = "//captain.api.mondoo.app/spaces/your-space-id"
 				export_format = "jsonl"
-				  credentials = {
+				credentials = {
 					private_key = base64decode(google_service_account_key.mondoo_integration.private_key)
 				}
 			}
@@ -47,7 +47,8 @@ Export data to a Google Cloud Storage bucket.
 ### Optional
 
 - `export_format` (String) Format of the export (JSONL or CSV), defaults to JSONL.
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `scope_mrn` (String) The MRN of the scope (space, organization, or platform) for the export integration.
+- `space_id` (String, Deprecated) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

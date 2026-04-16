@@ -7,9 +7,10 @@ description: |-
   ## Example Usage
   ```hcl
   resource "mondoo_export_s3" "s3_export" {
-  name        = "My S3 Export Integration"
-  bucket_name = "my-mondoo-exports"
-  region      = "us-west-2"
+  name          = "My S3 Export Integration"
+  bucket_name   = "my-mondoo-exports"
+  region        = "us-west-2"
+  scope_mrn     = "//captain.api.mondoo.app/spaces/your-space-id"
   export_format = "jsonl"
   			credentials = {
   				key = {
@@ -27,11 +28,12 @@ Export data to an Amazon S3 bucket.
 			## Example Usage
 			```hcl
 			resource "mondoo_export_s3" "s3_export" {
-				name        = "My S3 Export Integration"
-				bucket_name = "my-mondoo-exports"
-				region      = "us-west-2"
+				name          = "My S3 Export Integration"
+				bucket_name   = "my-mondoo-exports"
+				region        = "us-west-2"
+				scope_mrn     = "//captain.api.mondoo.app/spaces/your-space-id"
 				export_format = "jsonl"
-				
+
 				credentials = {
 					key = {
 						access_key = var.aws_access_key
@@ -56,7 +58,8 @@ Export data to an Amazon S3 bucket.
 ### Optional
 
 - `export_format` (String) Format of the export (JSONL or CSV), defaults to JSONL.
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `scope_mrn` (String) The MRN of the scope (space, organization, or platform) for the export integration.
+- `space_id` (String, Deprecated) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 

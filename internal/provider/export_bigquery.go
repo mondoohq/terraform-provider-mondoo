@@ -7,10 +7,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -29,7 +32,8 @@ type ExportBigQueryResource struct {
 
 type BigQueryExportResourceModel struct {
 	// scope
-	SpaceID types.String `tfsdk:"space_id"`
+	SpaceID  types.String `tfsdk:"space_id"`
+	ScopeMrn types.String `tfsdk:"scope_mrn"`
 
 	// integration details
 	Mrn       types.String `tfsdk:"mrn"`
@@ -51,6 +55,7 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 			` + "```hcl" + `
 			resource "mondoo_export_bigquery" "example" {
 				name                = "enterprise-demo-BigQuery"
+				scope_mrn           = "//captain.api.mondoo.app/spaces/your-space-id"
 				dataset_id          = "project-id.dataset_id"
 				service_account_key = file("service-account.json")
 			}
@@ -59,10 +64,26 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
+				DeprecationMessage:  "Use `scope_mrn` instead. This attribute will be removed in a future version.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("scope_mrn")),
+				},
+			},
+			"scope_mrn": schema.StringAttribute{
+				MarkdownDescription: "The MRN of the scope (space, organization, or platform) for the export integration.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("space_id")),
 				},
 			},
 			"mrn": schema.StringAttribute{
@@ -127,33 +148,57 @@ func (r *ExportBigQueryResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
+	configOpts := mondoov1.ClientIntegrationConfigurationInput{
+		BigqueryConfigurationOptions: &mondoov1.BigqueryConfigurationOptionsInput{
+			DatasetId:      mondoov1.String(data.DatasetID.ValueString()),
+			ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.ServiceAccountKey.ValueString())),
+		},
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
-	// Create the export integration using the client
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
-		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeBigquery,
-		mondoov1.ClientIntegrationConfigurationInput{
-			BigqueryConfigurationOptions: &mondoov1.BigqueryConfigurationOptionsInput{
-				DatasetId:      mondoov1.String(data.DatasetID.ValueString()),
-				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.ServiceAccountKey.ValueString())),
-			},
-		})
+	var integration *CreateClientIntegrationPayload
+	if !data.ScopeMrn.IsNull() && data.ScopeMrn.ValueString() != "" {
+		// New path: use scope_mrn directly
+		scopeMrn := data.ScopeMrn.ValueString()
+		ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
-	if err != nil {
-		resp.Diagnostics.AddError("Error creating BigQuery export integration", err.Error())
-		return
+		var err error
+		integration, err = r.client.CreateScopedIntegration(ctx,
+			scopeMrn,
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeBigquery,
+			configOpts)
+		if err != nil {
+			resp.Diagnostics.AddError("Error creating BigQuery export integration", err.Error())
+			return
+		}
+
+		data.SpaceID = types.StringNull()
+		data.ScopeMrn = types.StringValue(scopeMrn)
+	} else {
+		// Legacy path: use space_id
+		space, err := r.client.ComputeSpace(data.SpaceID)
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+			return
+		}
+		ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
+		integration, err = r.client.CreateIntegration(ctx,
+			space.MRN(),
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeBigquery,
+			configOpts)
+		if err != nil {
+			resp.Diagnostics.AddError("Error creating BigQuery export integration", err.Error())
+			return
+		}
+
+		data.SpaceID = types.StringValue(space.ID())
+		data.ScopeMrn = types.StringValue(space.MRN())
 	}
 
 	// Trigger export if enabled
-	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunExport)
+	_, err := r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunExport)
 	if err != nil {
 		resp.Diagnostics.AddWarning("Client Warning",
 			fmt.Sprintf("Unable to trigger export for integration. Got error: %s", err),
@@ -163,7 +208,6 @@ func (r *ExportBigQueryResource) Create(ctx context.Context, req resource.Create
 	// Save data into the Terraform state
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -202,16 +246,8 @@ func (r *ExportBigQueryResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
-	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
-
 	// Update the integration using the client
-	_, err = r.client.UpdateIntegration(ctx,
+	_, err := r.client.UpdateIntegration(ctx,
 		data.Mrn.ValueString(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeBigquery,
@@ -256,9 +292,13 @@ func (r *ExportBigQueryResource) ImportState(ctx context.Context, req resource.I
 	model := BigQueryExportResourceModel{
 		Mrn:               types.StringValue(integration.Mrn),
 		Name:              types.StringValue(integration.Name),
-		SpaceID:           types.StringValue(integration.SpaceID()),
+		ScopeMrn:          types.StringValue(integration.ScopeMRN()),
 		DatasetID:         types.StringValue(integration.ConfigurationOptions.BigqueryConfigurationOptions.DatasetId),
 		ServiceAccountKey: types.StringPointerValue(nil), // Don't expose sensitive data
+	}
+
+	if integration.IsSpaceScoped() {
+		model.SpaceID = types.StringValue(integration.SpaceID())
 	}
 
 	resp.State.Set(ctx, &model)

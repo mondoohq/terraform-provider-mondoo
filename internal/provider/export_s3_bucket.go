@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -31,7 +34,8 @@ type S3BucketExportResource struct {
 
 type S3BucketExportResourceModel struct {
 	// scope
-	SpaceID types.String `tfsdk:"space_id"`
+	SpaceID  types.String `tfsdk:"space_id"`
+	ScopeMrn types.String `tfsdk:"scope_mrn"`
 
 	// integration details
 	Mrn          types.String `tfsdk:"mrn"`
@@ -63,11 +67,12 @@ func (r *S3BucketExportResource) Schema(ctx context.Context, req resource.Schema
 			## Example Usage
 			` + "```hcl" + `
 			resource "mondoo_export_s3" "s3_export" {
-				name        = "My S3 Export Integration"
-				bucket_name = "my-mondoo-exports"
-				region      = "us-west-2"
+				name          = "My S3 Export Integration"
+				bucket_name   = "my-mondoo-exports"
+				region        = "us-west-2"
+				scope_mrn     = "//captain.api.mondoo.app/spaces/your-space-id"
 				export_format = "jsonl"
-				
+
 				credentials = {
 					key = {
 						access_key = var.aws_access_key
@@ -80,10 +85,26 @@ func (r *S3BucketExportResource) Schema(ctx context.Context, req resource.Schema
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
+				DeprecationMessage:  "Use `scope_mrn` instead. This attribute will be removed in a future version.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("scope_mrn")),
+				},
+			},
+			"scope_mrn": schema.StringAttribute{
+				MarkdownDescription: "The MRN of the scope (space, organization, or platform) for the export integration.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("space_id")),
 				},
 			},
 			"mrn": schema.StringAttribute{
@@ -175,41 +196,65 @@ func (r *S3BucketExportResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
-	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
-
 	// Determine output format
 	outputFormat := mondoov1.BucketOutputTypeJsonl
 	if strings.ToLower(data.ExportFormat.ValueString()) == "csv" {
 		outputFormat = mondoov1.BucketOutputTypeCsv
 	}
 
-	// Create the export integration using the client
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
-		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeAwsS3,
-		mondoov1.ClientIntegrationConfigurationInput{
-			AwsS3ConfigurationOptions: &mondoov1.AwsS3ConfigurationOptionsInput{
-				Output:          outputFormat,
-				Bucket:          mondoov1.String(data.Bucket.ValueString()),
-				Region:          mondoov1.String(data.Region.ValueString()),
-				AccessKey:       mondoov1.String(data.Credentials.Key.AccessKey.ValueString()),
-				SecretAccessKey: mondoov1.String(data.Credentials.Key.SecretKey.ValueString()),
-			},
-		})
-
-	if err != nil {
-		resp.Diagnostics.AddError("Error creating S3 bucket export integration", err.Error())
-		return
+	configOpts := mondoov1.ClientIntegrationConfigurationInput{
+		AwsS3ConfigurationOptions: &mondoov1.AwsS3ConfigurationOptionsInput{
+			Output:          outputFormat,
+			Bucket:          mondoov1.String(data.Bucket.ValueString()),
+			Region:          mondoov1.String(data.Region.ValueString()),
+			AccessKey:       mondoov1.String(data.Credentials.Key.AccessKey.ValueString()),
+			SecretAccessKey: mondoov1.String(data.Credentials.Key.SecretKey.ValueString()),
+		},
 	}
 
-	_, err = r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunExport)
+	var integration *CreateClientIntegrationPayload
+	if !data.ScopeMrn.IsNull() && data.ScopeMrn.ValueString() != "" {
+		// New path: use scope_mrn directly
+		scopeMrn := data.ScopeMrn.ValueString()
+		ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
+
+		var err error
+		integration, err = r.client.CreateScopedIntegration(ctx,
+			scopeMrn,
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeAwsS3,
+			configOpts)
+		if err != nil {
+			resp.Diagnostics.AddError("Error creating S3 bucket export integration", err.Error())
+			return
+		}
+
+		data.SpaceID = types.StringNull()
+		data.ScopeMrn = types.StringValue(scopeMrn)
+	} else {
+		// Legacy path: use space_id
+		space, err := r.client.ComputeSpace(data.SpaceID)
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+			return
+		}
+		ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+
+		integration, err = r.client.CreateIntegration(ctx,
+			space.MRN(),
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeAwsS3,
+			configOpts)
+		if err != nil {
+			resp.Diagnostics.AddError("Error creating S3 bucket export integration", err.Error())
+			return
+		}
+
+		data.SpaceID = types.StringValue(space.ID())
+		data.ScopeMrn = types.StringValue(space.MRN())
+	}
+
+	_, err := r.client.TriggerAction(ctx, string(integration.Mrn), mondoov1.ActionTypeRunExport)
 	if err != nil {
 		resp.Diagnostics.
 			AddWarning("Client Error",
@@ -220,7 +265,6 @@ func (r *S3BucketExportResource) Create(ctx context.Context, req resource.Create
 	// Save data into the Terraform state
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(space.ID())
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -251,14 +295,6 @@ func (r *S3BucketExportResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
-	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
-
 	// Determine output format
 	outputFormat := mondoov1.BucketOutputTypeJsonl
 	if strings.ToLower(data.ExportFormat.ValueString()) == "csv" {
@@ -266,7 +302,7 @@ func (r *S3BucketExportResource) Update(ctx context.Context, req resource.Update
 	}
 
 	// Update the integration using the client
-	_, err = r.client.UpdateIntegration(ctx,
+	_, err := r.client.UpdateIntegration(ctx,
 		data.Mrn.ValueString(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeAwsS3,
@@ -314,7 +350,7 @@ func (r *S3BucketExportResource) ImportState(ctx context.Context, req resource.I
 	model := S3BucketExportResourceModel{
 		Mrn:          types.StringValue(integration.Mrn),
 		Name:         types.StringValue(integration.Name),
-		SpaceID:      types.StringValue(integration.SpaceID()),
+		ScopeMrn:     types.StringValue(integration.ScopeMRN()),
 		Bucket:       types.StringValue(integration.ConfigurationOptions.AwsS3ConfigurationOptions.Bucket),
 		Region:       types.StringValue(integration.ConfigurationOptions.AwsS3ConfigurationOptions.Region),
 		ExportFormat: types.StringValue(integration.ConfigurationOptions.AwsS3ConfigurationOptions.Output),
@@ -325,6 +361,10 @@ func (r *S3BucketExportResource) ImportState(ctx context.Context, req resource.I
 				SecretKey: types.StringPointerValue(nil),
 			},
 		},
+	}
+
+	if integration.IsSpaceScoped() {
+		model.SpaceID = types.StringValue(integration.SpaceID())
 	}
 
 	resp.State.Set(ctx, &model)
