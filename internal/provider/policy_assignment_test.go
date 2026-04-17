@@ -82,14 +82,14 @@ func TestAccPolicyAssignmentResourceWithScopeMrn(t *testing.T) {
 			{
 				Config: testAccPolicyAssignmentResourceWithScopeMrnConfig(orgID, "enabled"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_policy_assignment.org", "state", "enabled"),
+					resource.TestCheckResourceAttr("mondoo_policy_assignment.scope_mrn", "state", "enabled"),
 				),
 			},
 			// Update and Read testing
 			{
 				Config: testAccPolicyAssignmentResourceWithScopeMrnConfig(orgID, "disabled"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("mondoo_policy_assignment.org", "state", "disabled"),
+					resource.TestCheckResourceAttr("mondoo_policy_assignment.scope_mrn", "state", "disabled"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -99,14 +99,23 @@ func TestAccPolicyAssignmentResourceWithScopeMrn(t *testing.T) {
 
 func testAccPolicyAssignmentResourceWithScopeMrnConfig(orgID string, state string) string {
 	return fmt.Sprintf(`
-resource "mondoo_policy_assignment" "org" {
-  scope_mrn = "//captain.api.mondoo.app/organizations/%[1]s"
+resource "mondoo_space" "scope_mrn_test" {
+  org_id = %[1]q
+  name   = "scope-mrn-policy-test"
+}
+
+resource "mondoo_policy_assignment" "scope_mrn" {
+  scope_mrn = mondoo_space.scope_mrn_test.mrn
 
   policies = [
     "//policy.api.mondoo.app/policies/mondoo-aws-security",
   ]
 
   state = %[2]q
+
+  depends_on = [
+    mondoo_space.scope_mrn_test
+  ]
 }
 `, orgID, state)
 }
