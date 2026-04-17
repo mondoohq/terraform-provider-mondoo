@@ -325,8 +325,8 @@ func (r *policyAssignmentResource) Delete(ctx context.Context, req resource.Dele
 	err = r.client.UnassignPolicy(ctx, scopeMrn, policyMrns)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating policy assignment",
-			fmt.Sprintf("Error creating policy assignment: %s", err),
+			"Error deleting policy assignment",
+			fmt.Sprintf("Error deleting policy assignment: %s", err),
 		)
 		return
 	}
