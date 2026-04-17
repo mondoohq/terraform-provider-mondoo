@@ -63,7 +63,9 @@ func (m BigQueryExportResourceModel) GetConfigurationOptions() *mondoov1.Bigquer
 
 	if m.Credentials != nil && m.Credentials.Wif != nil {
 		opts.WifAudience = mondoov1.NewStringPtr(mondoov1.String(m.Credentials.Wif.Audience.ValueString()))
-		opts.WifServiceAccountEmail = mondoov1.NewStringPtr(mondoov1.String(m.Credentials.Wif.ServiceAccountEmail.ValueString()))
+		if !m.Credentials.Wif.ServiceAccountEmail.IsNull() && !m.Credentials.Wif.ServiceAccountEmail.IsUnknown() {
+			opts.WifServiceAccountEmail = mondoov1.NewStringPtr(mondoov1.String(m.Credentials.Wif.ServiceAccountEmail.ValueString()))
+		}
 	}
 
 	return opts
@@ -155,8 +157,8 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 								Required:            true,
 							},
 							"service_account_email": schema.StringAttribute{
-								MarkdownDescription: "GCP service account email impersonated via workload identity federation.",
-								Required:            true,
+								MarkdownDescription: "Optional GCP service account email to impersonate via workload identity federation.",
+								Optional:            true,
 							},
 						},
 					},
@@ -305,7 +307,7 @@ func (r *ExportBigQueryResource) Read(ctx context.Context, req resource.ReadRequ
 	data.WifSubject = types.StringValue(opts.WifSubject)
 	if data.Credentials != nil && data.Credentials.Wif != nil {
 		data.Credentials.Wif.Audience = types.StringValue(opts.WifAudience)
-		data.Credentials.Wif.ServiceAccountEmail = types.StringValue(opts.WifServiceAccountEmail)
+		data.Credentials.Wif.ServiceAccountEmail = stringOrNull(opts.WifServiceAccountEmail)
 	}
 	// Note: We don't update service_account_key to avoid showing sensitive data
 
@@ -375,7 +377,7 @@ func (r *ExportBigQueryResource) ImportState(ctx context.Context, req resource.I
 		model.Credentials = &exportBigQueryCredentialsWrapper{
 			Wif: &gcpWifCredentialModel{
 				Audience:            types.StringValue(opts.WifAudience),
-				ServiceAccountEmail: types.StringValue(opts.WifServiceAccountEmail),
+				ServiceAccountEmail: stringOrNull(opts.WifServiceAccountEmail),
 			},
 		}
 	}

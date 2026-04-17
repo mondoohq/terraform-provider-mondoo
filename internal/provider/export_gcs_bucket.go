@@ -73,7 +73,9 @@ func (m ExportGcsBucketResourceModel) GetConfigurationOptions() *mondoov1.GcsBuc
 
 	if m.Credential.Wif != nil {
 		opts.WifAudience = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.Audience.ValueString()))
-		opts.WifServiceAccountEmail = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.ServiceAccountEmail.ValueString()))
+		if !m.Credential.Wif.ServiceAccountEmail.IsNull() && !m.Credential.Wif.ServiceAccountEmail.IsUnknown() {
+			opts.WifServiceAccountEmail = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.ServiceAccountEmail.ValueString()))
+		}
 	}
 
 	return opts
@@ -185,8 +187,8 @@ func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.Schem
 								Required:            true,
 							},
 							"service_account_email": schema.StringAttribute{
-								MarkdownDescription: "GCP service account email impersonated via workload identity federation.",
-								Required:            true,
+								MarkdownDescription: "Optional GCP service account email to impersonate via workload identity federation.",
+								Optional:            true,
 							},
 						},
 						Validators: []validator.Object{
@@ -331,7 +333,7 @@ func (r *ExportGcsBucketResource) Read(ctx context.Context, req resource.ReadReq
 	data.WifSubject = types.StringValue(opts.WifSubject)
 	if data.Credential.Wif != nil {
 		data.Credential.Wif.Audience = types.StringValue(opts.WifAudience)
-		data.Credential.Wif.ServiceAccountEmail = types.StringValue(opts.WifServiceAccountEmail)
+		data.Credential.Wif.ServiceAccountEmail = stringOrNull(opts.WifServiceAccountEmail)
 	}
 
 	// Save updated data into Terraform state
@@ -402,7 +404,7 @@ func (r *ExportGcsBucketResource) ImportState(ctx context.Context, req resource.
 	if opts.WifAudience != "" {
 		model.Credential.Wif = &gcpWifCredentialModel{
 			Audience:            types.StringValue(opts.WifAudience),
-			ServiceAccountEmail: types.StringValue(opts.WifServiceAccountEmail),
+			ServiceAccountEmail: stringOrNull(opts.WifServiceAccountEmail),
 		}
 	}
 

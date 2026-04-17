@@ -62,4 +62,7 @@ Optional:
 Required:
 
 - `audience` (String) WIF audience URL for GCP workload identity federation.
-- `service_account_email` (String) GCP service account email impersonated via workload identity federation.
+
+Optional:
+
+- `service_account_email` (String) Optional GCP service account email to impersonate via workload identity federation.

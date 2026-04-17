@@ -58,6 +58,13 @@ type gcpWifCredentialModel struct {
 	ServiceAccountEmail types.String `tfsdk:"service_account_email"`
 }
 
+func stringOrNull(s string) types.String {
+	if s == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(s)
+}
+
 func (m integrationGcpResourceModel) GetConfigurationOptions() *mondoov1.GcpConfigurationOptionsInput {
 	opts := &mondoov1.GcpConfigurationOptionsInput{
 		ProjectId:   mondoov1.NewStringPtr(mondoov1.String(m.ProjectId.ValueString())),
@@ -70,7 +77,9 @@ func (m integrationGcpResourceModel) GetConfigurationOptions() *mondoov1.GcpConf
 
 	if m.Credential.Wif != nil {
 		opts.WifAudience = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.Audience.ValueString()))
-		opts.WifServiceAccountEmail = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.ServiceAccountEmail.ValueString()))
+		if !m.Credential.Wif.ServiceAccountEmail.IsNull() && !m.Credential.Wif.ServiceAccountEmail.IsUnknown() {
+			opts.WifServiceAccountEmail = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.ServiceAccountEmail.ValueString()))
+		}
 	}
 
 	return opts
@@ -140,8 +149,8 @@ func (r *integrationGcpResource) Schema(ctx context.Context, req resource.Schema
 								Required:            true,
 							},
 							"service_account_email": schema.StringAttribute{
-								MarkdownDescription: "GCP service account email impersonated via workload identity federation.",
-								Required:            true,
+								MarkdownDescription: "Optional GCP service account email to impersonate via workload identity federation.",
+								Optional:            true,
 							},
 						},
 						Validators: []validator.Object{
@@ -270,7 +279,7 @@ func (r *integrationGcpResource) Read(ctx context.Context, req resource.ReadRequ
 	data.WifSubject = types.StringValue(opts.WifSubject)
 	if data.Credential.Wif != nil {
 		data.Credential.Wif.Audience = types.StringValue(opts.WifAudience)
-		data.Credential.Wif.ServiceAccountEmail = types.StringValue(opts.WifServiceAccountEmail)
+		data.Credential.Wif.ServiceAccountEmail = stringOrNull(opts.WifServiceAccountEmail)
 	}
 
 	// Save updated data into Terraform state
@@ -352,7 +361,7 @@ func (r *integrationGcpResource) ImportState(ctx context.Context, req resource.I
 	if opts.WifAudience != "" {
 		model.Credential.Wif = &gcpWifCredentialModel{
 			Audience:            types.StringValue(opts.WifAudience),
-			ServiceAccountEmail: types.StringValue(opts.WifServiceAccountEmail),
+			ServiceAccountEmail: stringOrNull(opts.WifServiceAccountEmail),
 		}
 	}
 
