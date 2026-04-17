@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -23,6 +25,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &ExportGcsBucketResource{}
+var _ resource.ResourceWithConfigValidators = &ExportGcsBucketResource{}
 
 func NewMondooExportGSCBucketResource() resource.Resource {
 	return &ExportGcsBucketResource{}
@@ -45,7 +48,35 @@ type ExportGcsBucketResourceModel struct {
 	WifSubject   types.String `tfsdk:"wif_subject"`
 
 	// credentials
-	Credential gcsBucketExportCredentialModel `tfsdk:"credentials"`
+	Credential exportGcsBucketCredentialModel `tfsdk:"credentials"`
+}
+
+type exportGcsBucketCredentialModel struct {
+	PrivateKey types.String           `tfsdk:"private_key"`
+	Wif        *gcpWifCredentialModel `tfsdk:"wif"`
+}
+
+func (m ExportGcsBucketResourceModel) GetConfigurationOptions() *mondoov1.GcsBucketConfigurationOptionsInput {
+	outputFormat := mondoov1.BucketOutputTypeJsonl
+	if strings.ToLower(m.ExportFormat.ValueString()) == "csv" {
+		outputFormat = mondoov1.BucketOutputTypeCsv
+	}
+
+	opts := &mondoov1.GcsBucketConfigurationOptionsInput{
+		Output: outputFormat,
+		Bucket: mondoov1.String(m.BucketName.ValueString()),
+	}
+
+	if !m.Credential.PrivateKey.IsNull() && !m.Credential.PrivateKey.IsUnknown() {
+		opts.ServiceAccount = mondoov1.NewStringPtr(mondoov1.String(m.Credential.PrivateKey.ValueString()))
+	}
+
+	if m.Credential.Wif != nil {
+		opts.WifAudience = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.Audience.ValueString()))
+		opts.WifServiceAccountEmail = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.ServiceAccountEmail.ValueString()))
+	}
+
+	return opts
 }
 
 func (r *ExportGcsBucketResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -132,17 +163,50 @@ func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 			"credentials": schema.SingleNestedAttribute{
-				MarkdownDescription: "Credentials for the Google Cloud Storage bucket.",
+				MarkdownDescription: "Credentials for the Google Cloud Storage bucket. Provide either a static service account `private_key` or a `wif` block for workload identity federation.",
 				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"private_key": schema.StringAttribute{
-						MarkdownDescription: "Private key for the service account in JSON format.",
-						Required:            true,
+						MarkdownDescription: "Private key for the service account in JSON format. Mutually exclusive with `wif`.",
+						Optional:            true,
 						Sensitive:           true,
+						Validators: []validator.String{
+							stringvalidator.ConflictsWith(
+								path.MatchRoot("credentials").AtName("wif"),
+							),
+						},
+					},
+					"wif": schema.SingleNestedAttribute{
+						MarkdownDescription: "Workload identity federation configuration. Mutually exclusive with `private_key`.",
+						Optional:            true,
+						Attributes: map[string]schema.Attribute{
+							"audience": schema.StringAttribute{
+								MarkdownDescription: "WIF audience URL for GCP workload identity federation.",
+								Required:            true,
+							},
+							"service_account_email": schema.StringAttribute{
+								MarkdownDescription: "GCP service account email impersonated via workload identity federation.",
+								Required:            true,
+							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(
+								path.MatchRoot("credentials").AtName("private_key"),
+							),
+						},
 					},
 				},
 			},
 		},
+	}
+}
+
+func (r *ExportGcsBucketResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("credentials").AtName("private_key"),
+			path.MatchRoot("credentials").AtName("wif"),
+		),
 	}
 }
 
@@ -175,18 +239,8 @@ func (r *ExportGcsBucketResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	// Determine output format
-	outputFormat := mondoov1.BucketOutputTypeJsonl
-	if strings.ToLower(data.ExportFormat.ValueString()) == "csv" {
-		outputFormat = mondoov1.BucketOutputTypeCsv
-	}
-
 	configOpts := mondoov1.ClientIntegrationConfigurationInput{
-		GcsBucketConfigurationOptions: &mondoov1.GcsBucketConfigurationOptionsInput{
-			Output:         outputFormat,
-			Bucket:         mondoov1.String(data.BucketName.ValueString()),
-			ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
-		},
+		GcsBucketConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	var integration *CreateClientIntegrationPayload
@@ -273,7 +327,12 @@ func (r *ExportGcsBucketResource) Read(ctx context.Context, req resource.ReadReq
 		resp.Diagnostics.AddError("Error reading GCS bucket export integration", err.Error())
 		return
 	}
-	data.WifSubject = types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.WifSubject)
+	opts := integration.ConfigurationOptions.GcsBucketConfigurationOptions
+	data.WifSubject = types.StringValue(opts.WifSubject)
+	if data.Credential.Wif != nil {
+		data.Credential.Wif.Audience = types.StringValue(opts.WifAudience)
+		data.Credential.Wif.ServiceAccountEmail = types.StringValue(opts.WifServiceAccountEmail)
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -288,23 +347,13 @@ func (r *ExportGcsBucketResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	// Determine output format
-	outputFormat := mondoov1.BucketOutputTypeJsonl
-	if strings.ToLower(data.ExportFormat.ValueString()) == "csv" {
-		outputFormat = mondoov1.BucketOutputTypeCsv
-	}
-
 	// Do GraphQL request to API to update the resource.
 	_, err := r.client.UpdateIntegration(ctx,
 		data.Mrn.ValueString(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeGcsBucket,
 		mondoov1.ClientIntegrationConfigurationInput{
-			GcsBucketConfigurationOptions: &mondoov1.GcsBucketConfigurationOptionsInput{
-				Output:         outputFormat,
-				Bucket:         mondoov1.String(data.BucketName.ValueString()),
-				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
-			},
+			GcsBucketConfigurationOptions: data.GetConfigurationOptions(),
 		})
 
 	if err != nil {
@@ -337,17 +386,24 @@ func (r *ExportGcsBucketResource) ImportState(ctx context.Context, req resource.
 		return
 	}
 
+	opts := integration.ConfigurationOptions.GcsBucketConfigurationOptions
 	model := ExportGcsBucketResourceModel{
 		Mrn:          types.StringValue(integration.Mrn),
 		Name:         types.StringValue(integration.Name),
 		ScopeMrn:     types.StringValue(integration.ScopeMRN()),
-		BucketName:   types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.Bucket),
-		ExportFormat: types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.Output),
-		WifSubject:   types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.WifSubject),
+		BucketName:   types.StringValue(opts.Bucket),
+		ExportFormat: types.StringValue(opts.Output),
+		WifSubject:   types.StringValue(opts.WifSubject),
 
-		Credential: gcsBucketExportCredentialModel{
+		Credential: exportGcsBucketCredentialModel{
 			PrivateKey: types.StringPointerValue(nil),
 		},
+	}
+	if opts.WifAudience != "" {
+		model.Credential.Wif = &gcpWifCredentialModel{
+			Audience:            types.StringValue(opts.WifAudience),
+			ServiceAccountEmail: types.StringValue(opts.WifServiceAccountEmail),
+		}
 	}
 
 	if integration.IsSpaceScoped() {

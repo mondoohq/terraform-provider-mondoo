@@ -36,14 +36,30 @@ Export data to Google BigQuery.
 
 - `dataset_id` (String) Target BigQuery dataset (project-id.dataset_id).
 - `name` (String) A descriptive name for the integration.
-- `service_account_key` (String, Sensitive) Google service account JSON key content.
 
 ### Optional
 
+- `credentials` (Attributes) Credentials for the BigQuery export. Provide `wif` for workload identity federation instead of the top-level `service_account_key`. (see [below for nested schema](#nestedatt--credentials))
 - `scope_mrn` (String) The MRN of the scope (space, organization, or platform) for the export integration.
+- `service_account_key` (String, Sensitive) Google service account JSON key content. Mutually exclusive with `credentials.wif`.
 - `space_id` (String, Deprecated) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 
 - `mrn` (String) Mondoo resource name (MRN) of the integration.
 - `wif_subject` (String) Computed OIDC subject used when Mondoo requests a WIF token for this integration. Configure your cloud provider's trust policy to accept this subject.
+
+<a id="nestedatt--credentials"></a>
+### Nested Schema for `credentials`
+
+Optional:
+
+- `wif` (Attributes) Workload identity federation configuration. Mutually exclusive with `service_account_key`. (see [below for nested schema](#nestedatt--credentials--wif))
+
+<a id="nestedatt--credentials--wif"></a>
+### Nested Schema for `credentials.wif`
+
+Required:
+
+- `audience` (String) WIF audience URL for GCP workload identity federation.
+- `service_account_email` (String) GCP service account email impersonated via workload identity federation.

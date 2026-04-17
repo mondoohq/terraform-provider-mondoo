@@ -73,7 +73,7 @@ resource "mondoo_integration_gcp" "name" {
 
 ### Required
 
-- `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
+- `credentials` (Attributes) Credentials for the GCP integration. Provide either a static service account `private_key` or a `wif` block for workload identity federation. (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
 
 ### Optional
@@ -89,9 +89,18 @@ resource "mondoo_integration_gcp" "name" {
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`
 
+Optional:
+
+- `private_key` (String, Sensitive) GCP service account JSON key. Mutually exclusive with `wif`.
+- `wif` (Attributes) Workload identity federation configuration. Mutually exclusive with `private_key`. (see [below for nested schema](#nestedatt--credentials--wif))
+
+<a id="nestedatt--credentials--wif"></a>
+### Nested Schema for `credentials.wif`
+
 Required:
 
-- `private_key` (String, Sensitive)
+- `audience` (String) WIF audience URL for GCP workload identity federation.
+- `service_account_email` (String) GCP service account email impersonated via workload identity federation.
 
 ## Import
 

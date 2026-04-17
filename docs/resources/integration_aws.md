@@ -47,7 +47,7 @@ resource "mondoo_integration_aws" "name" {
 
 ### Required
 
-- `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
+- `credentials` (Attributes) Credentials for the AWS integration. Exactly one of `role`, `key`, or `wif` must be configured. (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
 
 ### Optional
@@ -64,8 +64,9 @@ resource "mondoo_integration_aws" "name" {
 
 Optional:
 
-- `key` (Attributes) (see [below for nested schema](#nestedatt--credentials--key))
-- `role` (Attributes) (see [below for nested schema](#nestedatt--credentials--role))
+- `key` (Attributes) Static IAM access key credentials. Mutually exclusive with `role` and `wif`. (see [below for nested schema](#nestedatt--credentials--key))
+- `role` (Attributes) IAM role credentials. Mutually exclusive with `key` and `wif`. (see [below for nested schema](#nestedatt--credentials--role))
+- `wif` (Attributes) Workload identity federation credentials. Uses Mondoo as an OIDC identity provider to assume an IAM role via web identity. Mutually exclusive with `role` and `key`. (see [below for nested schema](#nestedatt--credentials--wif))
 
 <a id="nestedatt--credentials--key"></a>
 ### Nested Schema for `credentials.key`
@@ -86,6 +87,15 @@ Required:
 Optional:
 
 - `external_id` (String, Sensitive)
+
+
+<a id="nestedatt--credentials--wif"></a>
+### Nested Schema for `credentials.wif`
+
+Required:
+
+- `audience` (String) Audience value configured in the AWS IAM OIDC identity provider.
+- `role_arn` (String) ARN of the IAM role to assume via web identity federation.
 
 ## Import
 
