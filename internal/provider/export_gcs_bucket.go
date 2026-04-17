@@ -42,6 +42,7 @@ type ExportGcsBucketResourceModel struct {
 	Name         types.String `tfsdk:"name"`
 	BucketName   types.String `tfsdk:"bucket_name"`
 	ExportFormat types.String `tfsdk:"export_format"`
+	WifSubject   types.String `tfsdk:"wif_subject"`
 
 	// credentials
 	Credential gcsBucketExportCredentialModel `tfsdk:"credentials"`
@@ -121,6 +122,13 @@ func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.Schem
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"wif_subject": schema.StringAttribute{
+				MarkdownDescription: "Computed OIDC subject used when Mondoo requests a WIF token for this integration. Configure your cloud provider's trust policy to accept this subject.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"credentials": schema.SingleNestedAttribute{
@@ -235,6 +243,16 @@ func (r *ExportGcsBucketResource) Create(ctx context.Context, req resource.Creat
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
 
+	// Fetch the full integration to populate server-computed fields (e.g. wif_subject)
+	fetched, err := r.client.GetClientIntegration(ctx, string(integration.Mrn))
+	if err != nil {
+		resp.Diagnostics.AddWarning("Client Warning",
+			fmt.Sprintf("Unable to fetch integration after create to populate computed fields. Got error: %s", err))
+		data.WifSubject = types.StringNull()
+	} else {
+		data.WifSubject = types.StringValue(fetched.ConfigurationOptions.GcsBucketConfigurationOptions.WifSubject)
+	}
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -249,7 +267,13 @@ func (r *ExportGcsBucketResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	// Read API call logic
+	// Refresh server-computed fields (e.g. wif_subject) from the API.
+	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading GCS bucket export integration", err.Error())
+		return
+	}
+	data.WifSubject = types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.WifSubject)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -319,6 +343,7 @@ func (r *ExportGcsBucketResource) ImportState(ctx context.Context, req resource.
 		ScopeMrn:     types.StringValue(integration.ScopeMRN()),
 		BucketName:   types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.Bucket),
 		ExportFormat: types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.Output),
+		WifSubject:   types.StringValue(integration.ConfigurationOptions.GcsBucketConfigurationOptions.WifSubject),
 
 		Credential: gcsBucketExportCredentialModel{
 			PrivateKey: types.StringPointerValue(nil),

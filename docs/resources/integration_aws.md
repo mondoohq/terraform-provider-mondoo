@@ -57,6 +57,7 @@ resource "mondoo_integration_aws" "name" {
 ### Read-Only
 
 - `mrn` (String) Integration identifier
+- `wif_subject` (String) Computed OIDC subject used when Mondoo requests a WIF token for this integration. Configure your cloud provider's trust policy to accept this subject.
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`

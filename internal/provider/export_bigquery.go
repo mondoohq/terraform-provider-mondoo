@@ -36,9 +36,10 @@ type BigQueryExportResourceModel struct {
 	ScopeMrn types.String `tfsdk:"scope_mrn"`
 
 	// integration details
-	Mrn       types.String `tfsdk:"mrn"`
-	Name      types.String `tfsdk:"name"`
-	DatasetID types.String `tfsdk:"dataset_id"`
+	Mrn        types.String `tfsdk:"mrn"`
+	Name       types.String `tfsdk:"name"`
+	DatasetID  types.String `tfsdk:"dataset_id"`
+	WifSubject types.String `tfsdk:"wif_subject"`
 
 	// credentials
 	ServiceAccountKey types.String `tfsdk:"service_account_key"`
@@ -113,6 +114,13 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 				Sensitive:           true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"wif_subject": schema.StringAttribute{
+				MarkdownDescription: "Computed OIDC subject used when Mondoo requests a WIF token for this integration. Configure your cloud provider's trust policy to accept this subject.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},
@@ -209,6 +217,16 @@ func (r *ExportBigQueryResource) Create(ctx context.Context, req resource.Create
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
 
+	// Fetch the full integration to populate server-computed fields (e.g. wif_subject)
+	fetched, err := r.client.GetClientIntegration(ctx, string(integration.Mrn))
+	if err != nil {
+		resp.Diagnostics.AddWarning("Client Warning",
+			fmt.Sprintf("Unable to fetch integration after create to populate computed fields. Got error: %s", err))
+		data.WifSubject = types.StringNull()
+	} else {
+		data.WifSubject = types.StringValue(fetched.ConfigurationOptions.BigqueryConfigurationOptions.WifSubject)
+	}
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -231,6 +249,7 @@ func (r *ExportBigQueryResource) Read(ctx context.Context, req resource.ReadRequ
 
 	// Update the state with the latest information
 	data.Name = types.StringValue(integration.Name)
+	data.WifSubject = types.StringValue(integration.ConfigurationOptions.BigqueryConfigurationOptions.WifSubject)
 	// Note: We don't update service_account_key to avoid showing sensitive data
 
 	// Save updated data into Terraform state
@@ -294,6 +313,7 @@ func (r *ExportBigQueryResource) ImportState(ctx context.Context, req resource.I
 		Name:              types.StringValue(integration.Name),
 		ScopeMrn:          types.StringValue(integration.ScopeMRN()),
 		DatasetID:         types.StringValue(integration.ConfigurationOptions.BigqueryConfigurationOptions.DatasetId),
+		WifSubject:        types.StringValue(integration.ConfigurationOptions.BigqueryConfigurationOptions.WifSubject),
 		ServiceAccountKey: types.StringPointerValue(nil), // Don't expose sensitive data
 	}
 

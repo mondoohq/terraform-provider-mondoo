@@ -46,3 +46,4 @@ Export data to Google BigQuery.
 ### Read-Only
 
 - `mrn` (String) Mondoo resource name (MRN) of the integration.
+- `wif_subject` (String) Computed OIDC subject used when Mondoo requests a WIF token for this integration. Configure your cloud provider's trust policy to accept this subject.

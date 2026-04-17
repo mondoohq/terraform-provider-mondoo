@@ -35,9 +35,10 @@ type integrationGcpResourceModel struct {
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
-	Mrn       types.String `tfsdk:"mrn"`
-	Name      types.String `tfsdk:"name"`
-	ProjectId types.String `tfsdk:"project_id"`
+	Mrn        types.String `tfsdk:"mrn"`
+	Name       types.String `tfsdk:"name"`
+	ProjectId  types.String `tfsdk:"project_id"`
+	WifSubject types.String `tfsdk:"wif_subject"`
 
 	// credentials
 	Credential integrationGcpCredentialModel `tfsdk:"credentials"`
@@ -80,6 +81,13 @@ func (r *integrationGcpResource) Schema(ctx context.Context, req resource.Schema
 			"project_id": schema.StringAttribute{
 				MarkdownDescription: "GCP project ID",
 				Optional:            true,
+			},
+			"wif_subject": schema.StringAttribute{
+				MarkdownDescription: "Computed OIDC subject used when Mondoo requests a WIF token for this integration. Configure your cloud provider's trust policy to accept this subject.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"credentials": schema.SingleNestedAttribute{
 				Required: true,
@@ -169,6 +177,16 @@ func (r *integrationGcpResource) Create(ctx context.Context, req resource.Create
 	data.Name = types.StringValue(string(integration.Name))
 	data.SpaceID = types.StringValue(space.ID())
 
+	// Fetch the full integration to populate server-computed fields (e.g. wif_subject)
+	fetched, err := r.client.GetClientIntegration(ctx, string(integration.Mrn))
+	if err != nil {
+		resp.Diagnostics.AddWarning("Client Warning",
+			fmt.Sprintf("Unable to fetch integration after create to populate computed fields. Got error: %s", err))
+		data.WifSubject = types.StringNull()
+	} else {
+		data.WifSubject = types.StringValue(fetched.ConfigurationOptions.GcpConfigurationOptions.WifSubject)
+	}
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -183,7 +201,13 @@ func (r *integrationGcpResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	// Read API call logic
+	// Refresh server-computed fields (e.g. wif_subject) from the API.
+	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading GCP integration", err.Error())
+		return
+	}
+	data.WifSubject = types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.WifSubject)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -255,10 +279,11 @@ func (r *integrationGcpResource) ImportState(ctx context.Context, req resource.I
 	}
 
 	model := integrationGcpResourceModel{
-		Mrn:       types.StringValue(integration.Mrn),
-		Name:      types.StringValue(integration.Name),
-		SpaceID:   types.StringValue(integration.SpaceID()),
-		ProjectId: types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.ProjectId),
+		Mrn:        types.StringValue(integration.Mrn),
+		Name:       types.StringValue(integration.Name),
+		SpaceID:    types.StringValue(integration.SpaceID()),
+		ProjectId:  types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.ProjectId),
+		WifSubject: types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.WifSubject),
 		Credential: integrationGcpCredentialModel{
 			PrivateKey: types.StringPointerValue(nil),
 		},

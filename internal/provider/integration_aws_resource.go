@@ -38,8 +38,9 @@ type integrationAwsResourceModel struct {
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
-	Mrn  types.String `tfsdk:"mrn"`
-	Name types.String `tfsdk:"name"`
+	Mrn        types.String `tfsdk:"mrn"`
+	Name       types.String `tfsdk:"name"`
+	WifSubject types.String `tfsdk:"wif_subject"`
 
 	// AWS credentials
 	Credential integrationAwsCredentialModel `tfsdk:"credentials"`
@@ -114,6 +115,13 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtMost(250),
+				},
+			},
+			"wif_subject": schema.StringAttribute{
+				MarkdownDescription: "Computed OIDC subject used when Mondoo requests a WIF token for this integration. Configure your cloud provider's trust policy to accept this subject.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"credentials": schema.SingleNestedAttribute{
@@ -229,6 +237,16 @@ func (r *integrationAwsResource) Create(ctx context.Context, req resource.Create
 	data.Name = types.StringValue(string(integration.Name))
 	data.SpaceID = types.StringValue(space.ID())
 
+	// Fetch the full integration to populate server-computed fields (e.g. wif_subject)
+	fetched, err := r.client.GetClientIntegration(ctx, string(integration.Mrn))
+	if err != nil {
+		resp.Diagnostics.AddWarning("Client Warning",
+			fmt.Sprintf("Unable to fetch integration after create to populate computed fields. Got error: %s", err))
+		data.WifSubject = types.StringNull()
+	} else {
+		data.WifSubject = types.StringValue(fetched.ConfigurationOptions.HostedAwsConfigurationOptions.WifSubject)
+	}
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -243,7 +261,13 @@ func (r *integrationAwsResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	// Read API call logic
+	// Refresh server-computed fields (e.g. wif_subject) from the API.
+	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading AWS integration", err.Error())
+		return
+	}
+	data.WifSubject = types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.WifSubject)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -310,9 +334,10 @@ func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.I
 	}
 
 	model := integrationAwsResourceModel{
-		SpaceID: types.StringValue(integration.SpaceID()),
-		Mrn:     types.StringValue(integration.Mrn),
-		Name:    types.StringValue(integration.Name),
+		SpaceID:    types.StringValue(integration.SpaceID()),
+		Mrn:        types.StringValue(integration.Mrn),
+		Name:       types.StringValue(integration.Name),
+		WifSubject: types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.WifSubject),
 		Credential: integrationAwsCredentialModel{
 			Role: &roleCredentialModel{
 				RoleArn:    types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.Role),
