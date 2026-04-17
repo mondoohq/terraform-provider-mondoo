@@ -839,9 +839,11 @@ type GithubConfigurationOptions struct {
 }
 
 type GcsBucketConfigurationOptions struct {
-	Bucket     string
-	Output     string
-	WifSubject string
+	Bucket                 string
+	Output                 string
+	WifAudience            string
+	WifServiceAccountEmail string
+	WifSubject             string
 }
 
 type AwsS3ConfigurationOptions struct {
@@ -851,8 +853,10 @@ type AwsS3ConfigurationOptions struct {
 }
 
 type BigqueryConfigurationOptions struct {
-	DatasetId  string
-	WifSubject string
+	DatasetId              string
+	WifAudience            string
+	WifServiceAccountEmail string
+	WifSubject             string
 }
 
 type GitlabConfigurationOptions struct {
@@ -877,13 +881,17 @@ type MsIntuneConfigurationOptions struct {
 type HostedAwsConfigurationOptions struct {
 	AccessKeyId string
 	Role        string
+	WifAudience string
+	WifRoleArn  string
 	WifSubject  string
 }
 
 type GcpConfigurationOptions struct {
-	ProjectId   string
-	DiscoverAll bool
-	WifSubject  string
+	ProjectId              string
+	DiscoverAll            bool
+	WifAudience            string
+	WifServiceAccountEmail string
+	WifSubject             string
 }
 
 type ShodanConfigurationOptions struct {

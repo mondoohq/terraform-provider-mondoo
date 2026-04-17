@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -21,6 +24,7 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationGcpResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationGcpResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationGcpResource)(nil)
 
 func NewIntegrationGcpResource() resource.Resource {
 	return &integrationGcpResource{}
@@ -45,7 +49,40 @@ type integrationGcpResourceModel struct {
 }
 
 type integrationGcpCredentialModel struct {
-	PrivateKey types.String `tfsdk:"private_key"`
+	PrivateKey types.String           `tfsdk:"private_key"`
+	Wif        *gcpWifCredentialModel `tfsdk:"wif"`
+}
+
+type gcpWifCredentialModel struct {
+	Audience            types.String `tfsdk:"audience"`
+	ServiceAccountEmail types.String `tfsdk:"service_account_email"`
+}
+
+func stringOrNull(s string) types.String {
+	if s == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(s)
+}
+
+func (m integrationGcpResourceModel) GetConfigurationOptions() *mondoov1.GcpConfigurationOptionsInput {
+	opts := &mondoov1.GcpConfigurationOptionsInput{
+		ProjectId:   mondoov1.NewStringPtr(mondoov1.String(m.ProjectId.ValueString())),
+		DiscoverAll: mondoov1.NewBooleanPtr(mondoov1.Boolean(true)),
+	}
+
+	if !m.Credential.PrivateKey.IsNull() && !m.Credential.PrivateKey.IsUnknown() {
+		opts.ServiceAccount = mondoov1.NewStringPtr(mondoov1.String(m.Credential.PrivateKey.ValueString()))
+	}
+
+	if m.Credential.Wif != nil {
+		opts.WifAudience = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.Audience.ValueString()))
+		if !m.Credential.Wif.ServiceAccountEmail.IsNull() && !m.Credential.Wif.ServiceAccountEmail.IsUnknown() {
+			opts.WifServiceAccountEmail = mondoov1.NewStringPtr(mondoov1.String(m.Credential.Wif.ServiceAccountEmail.ValueString()))
+		}
+	}
+
+	return opts
 }
 
 func (r *integrationGcpResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -90,15 +127,50 @@ func (r *integrationGcpResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"credentials": schema.SingleNestedAttribute{
-				Required: true,
+				MarkdownDescription: "Credentials for the GCP integration. Provide either a static service account `private_key` or a `wif` block for workload identity federation.",
+				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"private_key": schema.StringAttribute{
-						Required:  true,
-						Sensitive: true,
+						MarkdownDescription: "GCP service account JSON key. Mutually exclusive with `wif`.",
+						Optional:            true,
+						Sensitive:           true,
+						Validators: []validator.String{
+							stringvalidator.ConflictsWith(
+								path.MatchRoot("credentials").AtName("wif"),
+							),
+						},
+					},
+					"wif": schema.SingleNestedAttribute{
+						MarkdownDescription: "Workload identity federation configuration. Mutually exclusive with `private_key`.",
+						Optional:            true,
+						Attributes: map[string]schema.Attribute{
+							"audience": schema.StringAttribute{
+								MarkdownDescription: "WIF audience URL for GCP workload identity federation.",
+								Required:            true,
+							},
+							"service_account_email": schema.StringAttribute{
+								MarkdownDescription: "Optional GCP service account email to impersonate via workload identity federation.",
+								Optional:            true,
+							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(
+								path.MatchRoot("credentials").AtName("private_key"),
+							),
+						},
 					},
 				},
 			},
 		},
+	}
+}
+
+func (r *integrationGcpResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("credentials").AtName("private_key"),
+			path.MatchRoot("credentials").AtName("wif"),
+		),
 	}
 }
 
@@ -147,11 +219,7 @@ func (r *integrationGcpResource) Create(ctx context.Context, req resource.Create
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeGcp,
 		mondoov1.ClientIntegrationConfigurationInput{
-			GcpConfigurationOptions: &mondoov1.GcpConfigurationOptionsInput{
-				ProjectId:      mondoov1.NewStringPtr(mondoov1.String(data.ProjectId.ValueString())),
-				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
-				DiscoverAll:    mondoov1.NewBooleanPtr(mondoov1.Boolean(true)),
-			},
+			GcpConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -207,7 +275,12 @@ func (r *integrationGcpResource) Read(ctx context.Context, req resource.ReadRequ
 		resp.Diagnostics.AddError("Error reading GCP integration", err.Error())
 		return
 	}
-	data.WifSubject = types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.WifSubject)
+	opts := integration.ConfigurationOptions.GcpConfigurationOptions
+	data.WifSubject = types.StringValue(opts.WifSubject)
+	if data.Credential.Wif != nil {
+		data.Credential.Wif.Audience = types.StringValue(opts.WifAudience)
+		data.Credential.Wif.ServiceAccountEmail = stringOrNull(opts.WifServiceAccountEmail)
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -225,11 +298,7 @@ func (r *integrationGcpResource) Update(ctx context.Context, req resource.Update
 
 	// Do GraphQL request to API to update the resource.
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		GcpConfigurationOptions: &mondoov1.GcpConfigurationOptionsInput{
-			ProjectId:      mondoov1.NewStringPtr(mondoov1.String(data.ProjectId.ValueString())),
-			ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
-			DiscoverAll:    mondoov1.NewBooleanPtr(mondoov1.Boolean(true)),
-		},
+		GcpConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	_, err := r.client.UpdateIntegration(ctx,
@@ -278,15 +347,22 @@ func (r *integrationGcpResource) ImportState(ctx context.Context, req resource.I
 		return
 	}
 
+	opts := integration.ConfigurationOptions.GcpConfigurationOptions
 	model := integrationGcpResourceModel{
 		Mrn:        types.StringValue(integration.Mrn),
 		Name:       types.StringValue(integration.Name),
 		SpaceID:    types.StringValue(integration.SpaceID()),
-		ProjectId:  types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.ProjectId),
-		WifSubject: types.StringValue(integration.ConfigurationOptions.GcpConfigurationOptions.WifSubject),
+		ProjectId:  types.StringValue(opts.ProjectId),
+		WifSubject: types.StringValue(opts.WifSubject),
 		Credential: integrationGcpCredentialModel{
 			PrivateKey: types.StringPointerValue(nil),
 		},
+	}
+	if opts.WifAudience != "" {
+		model.Credential.Wif = &gcpWifCredentialModel{
+			Audience:            types.StringValue(opts.WifAudience),
+			ServiceAccountEmail: stringOrNull(opts.WifServiceAccountEmail),
+		}
 	}
 
 	resp.State.Set(ctx, &model)

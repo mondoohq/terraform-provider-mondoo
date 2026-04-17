@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -24,6 +25,7 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationAwsResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationAwsResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationAwsResource)(nil)
 
 func NewIntegrationAwsResource() resource.Resource {
 	return &integrationAwsResource{}
@@ -49,6 +51,7 @@ type integrationAwsResourceModel struct {
 type integrationAwsCredentialModel struct {
 	Role *roleCredentialModel      `tfsdk:"role"`
 	Key  *accessKeyCredentialModel `tfsdk:"key"`
+	Wif  *awsWifCredentialModel    `tfsdk:"wif"`
 }
 
 type roleCredentialModel struct {
@@ -59,6 +62,11 @@ type roleCredentialModel struct {
 type accessKeyCredentialModel struct {
 	AccessKey types.String `tfsdk:"access_key"`
 	SecretKey types.String `tfsdk:"secret_key"`
+}
+
+type awsWifCredentialModel struct {
+	Audience types.String `tfsdk:"audience"`
+	RoleArn  types.String `tfsdk:"role_arn"`
 }
 
 func (m integrationAwsResourceModel) GetConfigurationOptions() *mondoov1.HostedAwsConfigurationOptionsInput {
@@ -81,6 +89,13 @@ func (m integrationAwsResourceModel) GetConfigurationOptions() *mondoov1.HostedA
 		opts.RoleCredential = &mondoov1.AWSRoleCredential{
 			Role:       mondoov1.String(m.Credential.Role.RoleArn.ValueString()),
 			ExternalId: externalID,
+		}
+	}
+
+	if m.Credential.Wif != nil {
+		opts.WifCredential = &mondoov1.AWSWifCredential{
+			Audience: mondoov1.String(m.Credential.Wif.Audience.ValueString()),
+			RoleArn:  mondoov1.String(m.Credential.Wif.RoleArn.ValueString()),
 		}
 	}
 
@@ -125,10 +140,12 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"credentials": schema.SingleNestedAttribute{
-				Required: true,
+				MarkdownDescription: "Credentials for the AWS integration. Exactly one of `role`, `key`, or `wif` must be configured.",
+				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"role": schema.SingleNestedAttribute{
-						Optional: true,
+						MarkdownDescription: "IAM role credentials. Mutually exclusive with `key` and `wif`.",
+						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"role_arn": schema.StringAttribute{
 								Required:  true,
@@ -140,14 +157,15 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 							},
 						},
 						Validators: []validator.Object{
-							// Validate this attribute must not be configured with other_attr.
-							objectvalidator.ConflictsWith(path.Expressions{
+							objectvalidator.ConflictsWith(
 								path.MatchRoot("credentials").AtName("key"),
-							}...),
+								path.MatchRoot("credentials").AtName("wif"),
+							),
 						},
 					},
 					"key": schema.SingleNestedAttribute{
-						Optional: true,
+						MarkdownDescription: "Static IAM access key credentials. Mutually exclusive with `role` and `wif`.",
+						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"access_key": schema.StringAttribute{
 								Required:  true,
@@ -170,10 +188,46 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 								},
 							},
 						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(
+								path.MatchRoot("credentials").AtName("role"),
+								path.MatchRoot("credentials").AtName("wif"),
+							),
+						},
+					},
+					"wif": schema.SingleNestedAttribute{
+						MarkdownDescription: "Workload identity federation credentials. Uses Mondoo as an OIDC identity provider to assume an IAM role via web identity. Mutually exclusive with `role` and `key`.",
+						Optional:            true,
+						Attributes: map[string]schema.Attribute{
+							"audience": schema.StringAttribute{
+								MarkdownDescription: "Audience value configured in the AWS IAM OIDC identity provider.",
+								Required:            true,
+							},
+							"role_arn": schema.StringAttribute{
+								MarkdownDescription: "ARN of the IAM role to assume via web identity federation.",
+								Required:            true,
+							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(
+								path.MatchRoot("credentials").AtName("role"),
+								path.MatchRoot("credentials").AtName("key"),
+							),
+						},
 					},
 				},
 			},
 		},
+	}
+}
+
+func (r *integrationAwsResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("credentials").AtName("role"),
+			path.MatchRoot("credentials").AtName("key"),
+			path.MatchRoot("credentials").AtName("wif"),
+		),
 	}
 }
 
@@ -267,7 +321,12 @@ func (r *integrationAwsResource) Read(ctx context.Context, req resource.ReadRequ
 		resp.Diagnostics.AddError("Error reading AWS integration", err.Error())
 		return
 	}
-	data.WifSubject = types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.WifSubject)
+	opts := integration.ConfigurationOptions.HostedAwsConfigurationOptions
+	data.WifSubject = types.StringValue(opts.WifSubject)
+	if data.Credential.Wif != nil {
+		data.Credential.Wif.Audience = types.StringValue(opts.WifAudience)
+		data.Credential.Wif.RoleArn = types.StringValue(opts.WifRoleArn)
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -333,21 +392,30 @@ func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.I
 		return
 	}
 
+	opts := integration.ConfigurationOptions.HostedAwsConfigurationOptions
 	model := integrationAwsResourceModel{
 		SpaceID:    types.StringValue(integration.SpaceID()),
 		Mrn:        types.StringValue(integration.Mrn),
 		Name:       types.StringValue(integration.Name),
-		WifSubject: types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.WifSubject),
-		Credential: integrationAwsCredentialModel{
-			Role: &roleCredentialModel{
-				RoleArn:    types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.Role),
-				ExternalId: types.StringPointerValue(nil), // cannot be imported
-			},
-			Key: &accessKeyCredentialModel{
-				AccessKey: types.StringValue(integration.ConfigurationOptions.HostedAwsConfigurationOptions.AccessKeyId),
-				SecretKey: types.StringPointerValue(nil), // cannot be imported
-			},
-		},
+		WifSubject: types.StringValue(opts.WifSubject),
+	}
+
+	switch {
+	case opts.WifAudience != "" || opts.WifRoleArn != "":
+		model.Credential.Wif = &awsWifCredentialModel{
+			Audience: types.StringValue(opts.WifAudience),
+			RoleArn:  types.StringValue(opts.WifRoleArn),
+		}
+	case opts.AccessKeyId != "":
+		model.Credential.Key = &accessKeyCredentialModel{
+			AccessKey: types.StringValue(opts.AccessKeyId),
+			SecretKey: types.StringPointerValue(nil), // cannot be imported
+		}
+	case opts.Role != "":
+		model.Credential.Role = &roleCredentialModel{
+			RoleArn:    types.StringValue(opts.Role),
+			ExternalId: types.StringPointerValue(nil), // cannot be imported
+		}
 	}
 
 	resp.State.Set(ctx, &model)

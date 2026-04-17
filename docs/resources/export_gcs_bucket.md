@@ -41,7 +41,7 @@ Export data to a Google Cloud Storage bucket.
 ### Required
 
 - `bucket_name` (String) Name of the Google Cloud Storage bucket to export data to.
-- `credentials` (Attributes) Credentials for the Google Cloud Storage bucket. (see [below for nested schema](#nestedatt--credentials))
+- `credentials` (Attributes) Credentials for the Google Cloud Storage bucket. Provide either a static service account `private_key` or a `wif` block for workload identity federation. (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the export integration.
 
 ### Optional
@@ -58,6 +58,18 @@ Export data to a Google Cloud Storage bucket.
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`
 
+Optional:
+
+- `private_key` (String, Sensitive) Private key for the service account in JSON format. Mutually exclusive with `wif`.
+- `wif` (Attributes) Workload identity federation configuration. Mutually exclusive with `private_key`. (see [below for nested schema](#nestedatt--credentials--wif))
+
+<a id="nestedatt--credentials--wif"></a>
+### Nested Schema for `credentials.wif`
+
 Required:
 
-- `private_key` (String, Sensitive) Private key for the service account in JSON format.
+- `audience` (String) WIF audience URL for GCP workload identity federation.
+
+Optional:
+
+- `service_account_email` (String) Optional GCP service account email to impersonate via workload identity federation.
