@@ -1,4 +1,4 @@
-// Copyright (c) Mondoo, Inc.
+// Copyright Mondoo, Inc. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package provider
@@ -27,8 +27,8 @@ type AssetRoutingTableResource struct {
 }
 
 type AssetRoutingTableResourceModel struct {
-	OrgMrn types.String                  `tfsdk:"org_mrn"`
-	Rules  []AssetRoutingTableRuleModel  `tfsdk:"rule"`
+	OrgMrn types.String                 `tfsdk:"org_mrn"`
+	Rules  []AssetRoutingTableRuleModel `tfsdk:"rule"`
 }
 
 type AssetRoutingTableRuleModel struct {
