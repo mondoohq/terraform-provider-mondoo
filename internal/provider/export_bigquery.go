@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -21,6 +22,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &ExportBigQueryResource{}
+var _ resource.ResourceWithConfigValidators = &ExportBigQueryResource{}
 
 func NewMondooExportBigQueryResource() resource.Resource {
 	return &ExportBigQueryResource{}
@@ -42,7 +44,31 @@ type BigQueryExportResourceModel struct {
 	WifSubject types.String `tfsdk:"wif_subject"`
 
 	// credentials
-	ServiceAccountKey types.String `tfsdk:"service_account_key"`
+	ServiceAccountKey types.String                      `tfsdk:"service_account_key"`
+	Credentials       *exportBigQueryCredentialsWrapper `tfsdk:"credentials"`
+}
+
+type exportBigQueryCredentialsWrapper struct {
+	Wif *gcpWifCredentialModel `tfsdk:"wif"`
+}
+
+func (m BigQueryExportResourceModel) GetConfigurationOptions() *mondoov1.BigqueryConfigurationOptionsInput {
+	opts := &mondoov1.BigqueryConfigurationOptionsInput{
+		DatasetId: mondoov1.String(m.DatasetID.ValueString()),
+	}
+
+	if !m.ServiceAccountKey.IsNull() && !m.ServiceAccountKey.IsUnknown() {
+		opts.ServiceAccount = mondoov1.NewStringPtr(mondoov1.String(m.ServiceAccountKey.ValueString()))
+	}
+
+	if m.Credentials != nil && m.Credentials.Wif != nil {
+		opts.WifAudience = mondoov1.NewStringPtr(mondoov1.String(m.Credentials.Wif.Audience.ValueString()))
+		if !m.Credentials.Wif.ServiceAccountEmail.IsNull() && !m.Credentials.Wif.ServiceAccountEmail.IsUnknown() {
+			opts.WifServiceAccountEmail = mondoov1.NewStringPtr(mondoov1.String(m.Credentials.Wif.ServiceAccountEmail.ValueString()))
+		}
+	}
+
+	return opts
 }
 
 func (r *ExportBigQueryResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -109,11 +135,28 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"service_account_key": schema.StringAttribute{
-				MarkdownDescription: "Google service account JSON key content.",
-				Required:            true,
+				MarkdownDescription: "Google service account JSON key content. Mutually exclusive with `credentials.wif`.",
+				Optional:            true,
 				Sensitive:           true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+			},
+			"credentials": schema.SingleNestedAttribute{
+				MarkdownDescription: "Credentials for the BigQuery export. Provide `wif` for workload identity federation instead of the top-level `service_account_key`.",
+				Optional:            true,
+				Attributes: map[string]schema.Attribute{
+					"wif": schema.SingleNestedAttribute{
+						MarkdownDescription: "Workload identity federation configuration. Mutually exclusive with `service_account_key`.",
+						Optional:            true,
+						Attributes: map[string]schema.Attribute{
+							"audience": schema.StringAttribute{
+								MarkdownDescription: "WIF audience URL for GCP workload identity federation.",
+								Required:            true,
+							},
+							"service_account_email": schema.StringAttribute{
+								MarkdownDescription: "Optional GCP service account email to impersonate via workload identity federation.",
+								Optional:            true,
+							},
+						},
+					},
 				},
 			},
 			"wif_subject": schema.StringAttribute{
@@ -124,6 +167,15 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 		},
+	}
+}
+
+func (r *ExportBigQueryResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("service_account_key"),
+			path.MatchRoot("credentials").AtName("wif"),
+		),
 	}
 }
 
@@ -157,10 +209,7 @@ func (r *ExportBigQueryResource) Create(ctx context.Context, req resource.Create
 	}
 
 	configOpts := mondoov1.ClientIntegrationConfigurationInput{
-		BigqueryConfigurationOptions: &mondoov1.BigqueryConfigurationOptionsInput{
-			DatasetId:      mondoov1.String(data.DatasetID.ValueString()),
-			ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.ServiceAccountKey.ValueString())),
-		},
+		BigqueryConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	var integration *CreateClientIntegrationPayload
@@ -248,8 +297,13 @@ func (r *ExportBigQueryResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	// Update the state with the latest information
+	opts := integration.ConfigurationOptions.BigqueryConfigurationOptions
 	data.Name = types.StringValue(integration.Name)
-	data.WifSubject = types.StringValue(integration.ConfigurationOptions.BigqueryConfigurationOptions.WifSubject)
+	data.WifSubject = types.StringValue(opts.WifSubject)
+	if data.Credentials != nil && data.Credentials.Wif != nil {
+		data.Credentials.Wif.Audience = types.StringValue(opts.WifAudience)
+		data.Credentials.Wif.ServiceAccountEmail = stringOrNull(opts.WifServiceAccountEmail)
+	}
 	// Note: We don't update service_account_key to avoid showing sensitive data
 
 	// Save updated data into Terraform state
@@ -271,10 +325,7 @@ func (r *ExportBigQueryResource) Update(ctx context.Context, req resource.Update
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeBigquery,
 		mondoov1.ClientIntegrationConfigurationInput{
-			BigqueryConfigurationOptions: &mondoov1.BigqueryConfigurationOptionsInput{
-				DatasetId:      mondoov1.String(data.DatasetID.ValueString()),
-				ServiceAccount: mondoov1.NewStringPtr(mondoov1.String(data.ServiceAccountKey.ValueString())),
-			},
+			BigqueryConfigurationOptions: data.GetConfigurationOptions(),
 		})
 
 	if err != nil {
@@ -308,13 +359,22 @@ func (r *ExportBigQueryResource) ImportState(ctx context.Context, req resource.I
 		return
 	}
 
+	opts := integration.ConfigurationOptions.BigqueryConfigurationOptions
 	model := BigQueryExportResourceModel{
 		Mrn:               types.StringValue(integration.Mrn),
 		Name:              types.StringValue(integration.Name),
 		ScopeMrn:          types.StringValue(integration.ScopeMRN()),
-		DatasetID:         types.StringValue(integration.ConfigurationOptions.BigqueryConfigurationOptions.DatasetId),
-		WifSubject:        types.StringValue(integration.ConfigurationOptions.BigqueryConfigurationOptions.WifSubject),
+		DatasetID:         types.StringValue(opts.DatasetId),
+		WifSubject:        types.StringValue(opts.WifSubject),
 		ServiceAccountKey: types.StringPointerValue(nil), // Don't expose sensitive data
+	}
+	if opts.WifAudience != "" {
+		model.Credentials = &exportBigQueryCredentialsWrapper{
+			Wif: &gcpWifCredentialModel{
+				Audience:            types.StringValue(opts.WifAudience),
+				ServiceAccountEmail: stringOrNull(opts.WifServiceAccountEmail),
+			},
+		}
 	}
 
 	if integration.IsSpaceScoped() {
