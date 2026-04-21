@@ -1732,3 +1732,161 @@ func (c *ExtendedGqlClient) GetException(ctx context.Context, scopeMrn string, i
 	})
 	return &listExceptionGroups.ListExceptionGroups.Edges[0].Node, nil
 }
+
+// Asset routing types
+
+type AssetRoutingConditionField string
+
+const (
+	AssetRoutingConditionFieldHostname AssetRoutingConditionField = "HOSTNAME"
+	AssetRoutingConditionFieldPlatform AssetRoutingConditionField = "PLATFORM"
+	AssetRoutingConditionFieldLabel    AssetRoutingConditionField = "LABEL"
+)
+
+type AssetRoutingConditionOperator string
+
+const (
+	AssetRoutingConditionOperatorEqual    AssetRoutingConditionOperator = "EQUAL"
+	AssetRoutingConditionOperatorNotEqual AssetRoutingConditionOperator = "NOT_EQUAL"
+	AssetRoutingConditionOperatorContains AssetRoutingConditionOperator = "CONTAINS"
+	AssetRoutingConditionOperatorMatches  AssetRoutingConditionOperator = "MATCHES"
+)
+
+// Input types for asset routing mutations
+
+type AssetRoutingConditionInput struct {
+	Field    AssetRoutingConditionField    `json:"field"`
+	Operator AssetRoutingConditionOperator `json:"operator"`
+	Values   []mondoov1.String             `json:"values"`
+	Key      *mondoov1.String              `json:"key,omitempty"`
+}
+
+type AssetRoutingRuleInput struct {
+	TargetSpaceMrn mondoov1.String              `json:"targetSpaceMrn"`
+	Conditions     []AssetRoutingConditionInput `json:"conditions"`
+}
+
+type SetAssetRoutingTableInput struct {
+	OrgMrn mondoov1.String         `json:"orgMrn"`
+	Rules  []AssetRoutingRuleInput `json:"rules"`
+}
+
+type CreateAssetRoutingRuleInput struct {
+	OrgMrn         mondoov1.String              `json:"orgMrn"`
+	TargetSpaceMrn mondoov1.String              `json:"targetSpaceMrn"`
+	Priority       mondoov1.Int                 `json:"priority"`
+	Conditions     []AssetRoutingConditionInput `json:"conditions"`
+}
+
+type UpdateAssetRoutingRuleInput struct {
+	RuleMrn        mondoov1.String              `json:"ruleMrn"`
+	TargetSpaceMrn mondoov1.String              `json:"targetSpaceMrn"`
+	Priority       mondoov1.Int                 `json:"priority"`
+	Conditions     []AssetRoutingConditionInput `json:"conditions"`
+}
+
+// Payload types for asset routing responses
+
+type AssetRoutingConditionPayload struct {
+	Field    string   `json:"field" graphql:"field"`
+	Operator string   `json:"operator" graphql:"operator"`
+	Values   []string `json:"values" graphql:"values"`
+	Key      string   `json:"key" graphql:"key"`
+}
+
+type AssetRoutingRulePayload struct {
+	Mrn            string                         `json:"mrn" graphql:"mrn"`
+	TargetSpaceMrn string                         `json:"targetSpaceMrn" graphql:"targetSpaceMrn"`
+	Priority       int                            `json:"priority" graphql:"priority"`
+	Conditions     []AssetRoutingConditionPayload `json:"conditions" graphql:"conditions"`
+}
+
+type AssetRoutingTablePayload struct {
+	OrgMrn string                    `json:"orgMrn" graphql:"orgMrn"`
+	Rules  []AssetRoutingRulePayload `json:"rules" graphql:"rules"`
+}
+
+// Asset routing client methods
+
+func (c *ExtendedGqlClient) SetAssetRoutingTable(ctx context.Context, input SetAssetRoutingTableInput) (AssetRoutingTablePayload, error) {
+	var mutation struct {
+		SetAssetRoutingTable AssetRoutingTablePayload `graphql:"setAssetRoutingTable(input: $input)"`
+	}
+
+	tflog.Trace(ctx, "SetAssetRoutingTableInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	err := c.Mutate(ctx, &mutation, input, nil)
+	return mutation.SetAssetRoutingTable, err
+}
+
+func (c *ExtendedGqlClient) GetAssetRoutingTable(ctx context.Context, orgMrn string) (AssetRoutingTablePayload, error) {
+	var q struct {
+		AssetRoutingTable AssetRoutingTablePayload `graphql:"assetRoutingTable(orgMrn: $orgMrn)"`
+	}
+	variables := map[string]interface{}{
+		"orgMrn": mondoov1.String(orgMrn),
+	}
+
+	err := c.Query(ctx, &q, variables)
+	return q.AssetRoutingTable, err
+}
+
+func (c *ExtendedGqlClient) ClearAssetRoutingTable(ctx context.Context, orgMrn string) error {
+	var mutation struct {
+		ClearAssetRoutingTable mondoov1.Boolean `graphql:"clearAssetRoutingTable(orgMrn: $orgMrn)"`
+	}
+	variables := map[string]interface{}{
+		"orgMrn": mondoov1.String(orgMrn),
+	}
+	return c.Mutate(ctx, &mutation, nil, variables)
+}
+
+func (c *ExtendedGqlClient) CreateAssetRoutingRule(ctx context.Context, input CreateAssetRoutingRuleInput) (AssetRoutingRulePayload, error) {
+	var mutation struct {
+		CreateAssetRoutingRule AssetRoutingRulePayload `graphql:"createAssetRoutingRule(input: $input)"`
+	}
+
+	tflog.Trace(ctx, "CreateAssetRoutingRuleInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	err := c.Mutate(ctx, &mutation, input, nil)
+	return mutation.CreateAssetRoutingRule, err
+}
+
+func (c *ExtendedGqlClient) GetAssetRoutingRule(ctx context.Context, ruleMrn string) (AssetRoutingRulePayload, error) {
+	var q struct {
+		AssetRoutingRule AssetRoutingRulePayload `graphql:"assetRoutingRule(ruleMrn: $ruleMrn)"`
+	}
+	variables := map[string]interface{}{
+		"ruleMrn": mondoov1.String(ruleMrn),
+	}
+
+	err := c.Query(ctx, &q, variables)
+	return q.AssetRoutingRule, err
+}
+
+func (c *ExtendedGqlClient) UpdateAssetRoutingRule(ctx context.Context, input UpdateAssetRoutingRuleInput) (AssetRoutingRulePayload, error) {
+	var mutation struct {
+		UpdateAssetRoutingRule AssetRoutingRulePayload `graphql:"updateAssetRoutingRule(input: $input)"`
+	}
+
+	tflog.Trace(ctx, "UpdateAssetRoutingRuleInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	err := c.Mutate(ctx, &mutation, input, nil)
+	return mutation.UpdateAssetRoutingRule, err
+}
+
+func (c *ExtendedGqlClient) DeleteAssetRoutingRule(ctx context.Context, ruleMrn string) error {
+	var mutation struct {
+		DeleteAssetRoutingRule mondoov1.Boolean `graphql:"deleteAssetRoutingRule(ruleMrn: $ruleMrn)"`
+	}
+	variables := map[string]interface{}{
+		"ruleMrn": mondoov1.String(ruleMrn),
+	}
+	return c.Mutate(ctx, &mutation, nil, variables)
+}
