@@ -123,6 +123,10 @@ func (r *AssetRoutingTableResource) Read(ctx context.Context, req resource.ReadR
 	orgMrn := data.OrgMrn.ValueString()
 	result, err := r.client.GetAssetRoutingTable(ctx, orgMrn)
 	if err != nil {
+		if isNotFoundError(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to read asset routing table", err.Error())
 		return
 	}

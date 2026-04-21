@@ -4,7 +4,11 @@
 package provider
 
 import (
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
@@ -28,10 +32,16 @@ func assetRoutingConditionSchemaBlock() schema.ListNestedBlock {
 				"field": schema.StringAttribute{
 					MarkdownDescription: "The field to match on. Valid values: `HOSTNAME`, `PLATFORM`, `LABEL`.",
 					Required:            true,
+					Validators: []validator.String{
+						stringvalidator.OneOf("HOSTNAME", "PLATFORM", "LABEL"),
+					},
 				},
 				"operator": schema.StringAttribute{
 					MarkdownDescription: "The comparison operator. Valid values: `EQUAL`, `NOT_EQUAL`, `CONTAINS`, `MATCHES`.",
 					Required:            true,
+					Validators: []validator.String{
+						stringvalidator.OneOf("EQUAL", "NOT_EQUAL", "CONTAINS", "MATCHES"),
+					},
 				},
 				"values": schema.ListAttribute{
 					MarkdownDescription: "List of values to match against. A condition matches if the field matches any of the listed values (OR logic).",
@@ -72,6 +82,10 @@ func conditionsFromModel(conditions []AssetRoutingConditionModel) []AssetRouting
 		result[i] = input
 	}
 	return result
+}
+
+func isNotFoundError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "code = NotFound")
 }
 
 // conditionsToModel converts GraphQL condition payloads to Terraform models.

@@ -5,12 +5,18 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccAssetRoutingRuleResource(t *testing.T) {
+	if os.Getenv("RUN_ASSET_ROUTING_TESTS") != "true" {
+		t.Skip("skipping: asset routing tests only run on a single TF version to avoid parallel conflicts")
+	}
 	orgID, err := getOrgId()
 	if err != nil {
 		t.Skip("skipping: no org-scoped service account available")
@@ -47,9 +53,13 @@ func TestAccAssetRoutingRuleResource(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				ResourceName:      "mondoo_asset_routing_rule.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName: "mondoo_asset_routing_rule.test",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_asset_routing_rule.test"].Primary.Attributes["mrn"], nil
+				},
+				ImportStateVerifyIdentifierAttribute: "mrn",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
 			},
 			// Delete testing automatically occurs in TestCase
 		},
@@ -57,6 +67,9 @@ func TestAccAssetRoutingRuleResource(t *testing.T) {
 }
 
 func TestAccAssetRoutingRuleResourceWithLabel(t *testing.T) {
+	if os.Getenv("RUN_ASSET_ROUTING_TESTS") != "true" {
+		t.Skip("skipping: asset routing tests only run on a single TF version to avoid parallel conflicts")
+	}
 	orgID, err := getOrgId()
 	if err != nil {
 		t.Skip("skipping: no org-scoped service account available")

@@ -5,12 +5,16 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccAssetRoutingTableResource(t *testing.T) {
+	if os.Getenv("RUN_ASSET_ROUTING_TESTS") != "true" {
+		t.Skip("skipping: asset routing tests only run on a single TF version to avoid parallel conflicts")
+	}
 	orgID, err := getOrgId()
 	if err != nil {
 		t.Skip("skipping: no org-scoped service account available")
@@ -47,10 +51,11 @@ func TestAccAssetRoutingTableResource(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				ResourceName:      "mondoo_asset_routing_table.test",
-				ImportState:       true,
-				ImportStateId:     orgMrn,
-				ImportStateVerify: true,
+				ResourceName:                         "mondoo_asset_routing_table.test",
+				ImportState:                          true,
+				ImportStateId:                        orgMrn,
+				ImportStateVerifyIdentifierAttribute: "org_mrn",
+				ImportStateVerify:                    true,
 			},
 			// Delete testing automatically occurs in TestCase
 		},

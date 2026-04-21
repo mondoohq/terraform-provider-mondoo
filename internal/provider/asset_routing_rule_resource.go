@@ -6,10 +6,10 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -67,9 +67,6 @@ func (r *AssetRoutingRuleResource) Schema(_ context.Context, _ resource.SchemaRe
 			"priority": schema.Int64Attribute{
 				MarkdownDescription: "The priority of this rule. Lower values are evaluated first. Rules with the same priority are further sorted by specificity (number of conditions) and MRN.",
 				Required:            true,
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -136,6 +133,10 @@ func (r *AssetRoutingRuleResource) Read(ctx context.Context, req resource.ReadRe
 	ruleMrn := data.Mrn.ValueString()
 	result, err := r.client.GetAssetRoutingRule(ctx, ruleMrn)
 	if err != nil {
+		if isNotFoundError(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to read asset routing rule", err.Error())
 		return
 	}
@@ -229,7 +230,7 @@ func (r *AssetRoutingRuleResource) ImportState(ctx context.Context, req resource
 // Org MRN format: //captain.api.mondoo.app/organizations/{orgId}
 func orgMrnFromRuleMrn(ruleMrn string) (string, error) {
 	const prefix = "//policy.api.mondoo.app/organizations/"
-	if len(ruleMrn) < len(prefix) {
+	if !strings.HasPrefix(ruleMrn, prefix) {
 		return "", fmt.Errorf("invalid rule MRN format: %s", ruleMrn)
 	}
 
