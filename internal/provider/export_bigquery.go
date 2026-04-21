@@ -138,11 +138,6 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 				MarkdownDescription: "Google service account JSON key content. Mutually exclusive with `credentials.wif`.",
 				Optional:            true,
 				Sensitive:           true,
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(
-						path.MatchRoot("credentials").AtName("wif"),
-					),
-				},
 			},
 			"credentials": schema.SingleNestedAttribute{
 				MarkdownDescription: "Credentials for the BigQuery export. Provide `wif` for workload identity federation instead of the top-level `service_account_key`.",

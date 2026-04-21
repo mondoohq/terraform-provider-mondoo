@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -172,11 +171,6 @@ func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.Schem
 						MarkdownDescription: "Private key for the service account in JSON format. Mutually exclusive with `wif`.",
 						Optional:            true,
 						Sensitive:           true,
-						Validators: []validator.String{
-							stringvalidator.ConflictsWith(
-								path.MatchRoot("credentials").AtName("wif"),
-							),
-						},
 					},
 					"wif": schema.SingleNestedAttribute{
 						MarkdownDescription: "Workload identity federation configuration. Mutually exclusive with `private_key`.",
@@ -191,11 +185,6 @@ func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.Schem
 								Optional:            true,
 							},
 						},
-						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(
-								path.MatchRoot("credentials").AtName("private_key"),
-							),
-						},
 					},
 				},
 			},
@@ -205,7 +194,7 @@ func (r *ExportGcsBucketResource) Schema(ctx context.Context, req resource.Schem
 
 func (r *ExportGcsBucketResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
-		resourcevalidator.AtLeastOneOf(
+		resourcevalidator.ExactlyOneOf(
 			path.MatchRoot("credentials").AtName("private_key"),
 			path.MatchRoot("credentials").AtName("wif"),
 		),

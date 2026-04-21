@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -156,12 +155,6 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 								Sensitive: true,
 							},
 						},
-						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(
-								path.MatchRoot("credentials").AtName("key"),
-								path.MatchRoot("credentials").AtName("wif"),
-							),
-						},
 					},
 					"key": schema.SingleNestedAttribute{
 						MarkdownDescription: "Static IAM access key credentials. Mutually exclusive with `role` and `wif`.",
@@ -188,12 +181,6 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 								},
 							},
 						},
-						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(
-								path.MatchRoot("credentials").AtName("role"),
-								path.MatchRoot("credentials").AtName("wif"),
-							),
-						},
 					},
 					"wif": schema.SingleNestedAttribute{
 						MarkdownDescription: "Workload identity federation credentials. Uses Mondoo as an OIDC identity provider to assume an IAM role via web identity. Mutually exclusive with `role` and `key`.",
@@ -208,12 +195,6 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 								Required:            true,
 							},
 						},
-						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(
-								path.MatchRoot("credentials").AtName("role"),
-								path.MatchRoot("credentials").AtName("key"),
-							),
-						},
 					},
 				},
 			},
@@ -223,7 +204,7 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 
 func (r *integrationAwsResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
-		resourcevalidator.AtLeastOneOf(
+		resourcevalidator.ExactlyOneOf(
 			path.MatchRoot("credentials").AtName("role"),
 			path.MatchRoot("credentials").AtName("key"),
 			path.MatchRoot("credentials").AtName("wif"),
@@ -401,7 +382,7 @@ func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.I
 	}
 
 	switch {
-	case opts.WifAudience != "" || opts.WifRoleArn != "":
+	case opts.WifAudience != "" && opts.WifRoleArn != "":
 		model.Credential.Wif = &awsWifCredentialModel{
 			Audience: types.StringValue(opts.WifAudience),
 			RoleArn:  types.StringValue(opts.WifRoleArn),
