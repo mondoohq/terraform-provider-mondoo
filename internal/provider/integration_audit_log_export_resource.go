@@ -247,8 +247,8 @@ func (r *integrationAuditLogExportResource) Read(ctx context.Context, req resour
 	opts := integration.ConfigurationOptions.AuditLogExportConfigurationOptions
 	data.Bucket = types.StringValue(opts.Bucket)
 	data.IncludeHistorical = types.BoolValue(opts.IncludeHistorical)
-	data.WifAudience = types.StringValue(opts.WifAudience)
-	data.WifSAEmail = types.StringValue(opts.WifServiceAccountEmail)
+	data.WifAudience = types.StringPointerValue(opts.WifAudience)
+	data.WifSAEmail = types.StringPointerValue(opts.WifServiceAccountEmail)
 	data.ServiceAccountJSON = priorSAJSON
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -310,8 +310,8 @@ func (r *integrationAuditLogExportResource) ImportState(ctx context.Context, req
 		ScopeMrn:          types.StringValue(scopeMrn),
 		Bucket:            types.StringValue(opts.Bucket),
 		IncludeHistorical: types.BoolValue(opts.IncludeHistorical),
-		WifAudience:       types.StringValue(opts.WifAudience),
-		WifSAEmail:        types.StringValue(opts.WifServiceAccountEmail),
+		WifAudience:       types.StringPointerValue(opts.WifAudience),
+		WifSAEmail:        types.StringPointerValue(opts.WifServiceAccountEmail),
 	}
 
 	if orgID, ok := strings.CutPrefix(scopeMrn, orgPrefix); ok {

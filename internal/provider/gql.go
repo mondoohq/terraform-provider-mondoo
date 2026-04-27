@@ -839,10 +839,14 @@ type GithubConfigurationOptions struct {
 }
 
 type AuditLogExportConfigurationOptions struct {
-	Bucket                 string
-	IncludeHistorical      bool
-	WifAudience            string
-	WifServiceAccountEmail string
+	DestinationType    string
+	Bucket             string
+	Format             string
+	IntervalMinutes    int
+	IncludeHistorical  bool
+	WifAudience        *string
+	WifServiceAccountEmail *string
+	WifSubject         *string
 }
 
 type GcsBucketConfigurationOptions struct {
