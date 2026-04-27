@@ -215,7 +215,13 @@ func (r *integrationAuditLogExportResource) Read(ctx context.Context, req resour
 
 	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
-		resp.State.RemoveResource(ctx)
+		if isNotFoundError(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError("Client Error",
+			fmt.Sprintf("Unable to read audit log export integration: %s", err),
+		)
 		return
 	}
 

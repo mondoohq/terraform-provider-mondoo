@@ -76,15 +76,18 @@ resource "mondoo_integration_audit_log_export" "example" {
 }
 
 output "gcs_bucket" {
-  value = google_storage_bucket.audit_logs.name
+  description = "Name of the GCS bucket receiving audit log exports"
+  value       = google_storage_bucket.audit_logs.name
 }
 
 output "service_account_email" {
-  value = google_service_account.audit_export.email
+  description = "Email of the service account used for audit log export"
+  value       = google_service_account.audit_export.email
 }
 
 output "integration_mrn" {
-  value = mondoo_integration_audit_log_export.example.mrn
+  description = "MRN of the Mondoo audit log export integration"
+  value       = mondoo_integration_audit_log_export.example.mrn
 }
 ```
 
