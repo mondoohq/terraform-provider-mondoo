@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -21,6 +22,7 @@ import (
 )
 
 var _ resource.Resource = (*integrationAuditLogExportResource)(nil)
+var _ resource.ResourceWithImportState = (*integrationAuditLogExportResource)(nil)
 
 func NewIntegrationAuditLogExportResource() resource.Resource {
 	return &integrationAuditLogExportResource{}
@@ -55,8 +57,7 @@ func (m integrationAuditLogExportResourceModel) GetConfigurationOptions() mondoo
 	}
 
 	if !m.IncludeHistorical.IsNull() && !m.IncludeHistorical.IsUnknown() {
-		v := mondoov1.Boolean(m.IncludeHistorical.ValueBool())
-		opts.IncludeHistorical = &v
+		opts.IncludeHistorical = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.IncludeHistorical.ValueBool()))
 	}
 
 	if sa := m.ServiceAccountJSON.ValueString(); sa != "" {
@@ -90,12 +91,18 @@ func (r *integrationAuditLogExportResource) Schema(ctx context.Context, req reso
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("scope_mrn")),
+				},
 			},
 			"scope_mrn": schema.StringAttribute{
 				MarkdownDescription: "Scope MRN for the integration. Use `//platform.api.mondoo.app` for platform-level exports. Conflicts with `org_id`.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("org_id")),
 				},
 			},
 			"mrn": schema.StringAttribute{
@@ -206,6 +213,21 @@ func (r *integrationAuditLogExportResource) Read(ctx context.Context, req resour
 		return
 	}
 
+	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+	if err != nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	data.Mrn = types.StringValue(integration.Mrn)
+	data.Name = types.StringValue(integration.Name)
+
+	opts := integration.ConfigurationOptions.AuditLogExportConfigurationOptions
+	data.Bucket = types.StringValue(opts.Bucket)
+	data.IncludeHistorical = types.BoolValue(opts.IncludeHistorical)
+	data.WifAudience = types.StringValue(opts.WifAudience)
+	data.WifSAEmail = types.StringValue(opts.WifServiceAccountEmail)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -248,4 +270,24 @@ func (r *integrationAuditLogExportResource) Delete(ctx context.Context, req reso
 		)
 		return
 	}
+}
+
+func (r *integrationAuditLogExportResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
+		return
+	}
+
+	opts := integration.ConfigurationOptions.AuditLogExportConfigurationOptions
+	model := integrationAuditLogExportResourceModel{
+		Mrn:               types.StringValue(integration.Mrn),
+		Name:              types.StringValue(integration.Name),
+		ScopeMrn:          types.StringValue(integration.ScopeMRN()),
+		Bucket:            types.StringValue(opts.Bucket),
+		IncludeHistorical: types.BoolValue(opts.IncludeHistorical),
+		WifAudience:       types.StringValue(opts.WifAudience),
+		WifSAEmail:        types.StringValue(opts.WifServiceAccountEmail),
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }

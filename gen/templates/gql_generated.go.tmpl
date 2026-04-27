@@ -6,6 +6,7 @@
 package provider
 
 type ClientIntegrationConfigurationOptions struct {
+	AuditLogExportConfigurationOptions    AuditLogExportConfigurationOptions    `graphql:"... on AuditLogExportConfigurationOptions"`
 	AzureConfigurationOptions             AzureConfigurationOptions             `graphql:"... on AzureConfigurationOptions"`
 	CrowdstrikeFalconConfigurationOptions CrowdstrikeFalconConfigurationOptions `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
 	EmailConfigurationOptions             EmailConfigurationOptions             `graphql:"... on EmailConfigurationOptions"`
