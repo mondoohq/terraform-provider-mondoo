@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -155,6 +156,10 @@ func (r *integrationAuditLogExportResource) ConfigValidators(_ context.Context) 
 			path.MatchRoot("service_account_json"),
 			path.MatchRoot("wif_audience"),
 		),
+		resourcevalidator.RequiredTogether(
+			path.MatchRoot("wif_audience"),
+			path.MatchRoot("wif_service_account_email"),
+		),
 	}
 }
 
@@ -233,6 +238,9 @@ func (r *integrationAuditLogExportResource) Read(ctx context.Context, req resour
 		return
 	}
 
+	// Preserve write-only fields from prior state (API does not return credentials)
+	priorSAJSON := data.ServiceAccountJSON
+
 	data.Mrn = types.StringValue(integration.Mrn)
 	data.Name = types.StringValue(integration.Name)
 
@@ -241,6 +249,7 @@ func (r *integrationAuditLogExportResource) Read(ctx context.Context, req resour
 	data.IncludeHistorical = types.BoolValue(opts.IncludeHistorical)
 	data.WifAudience = types.StringValue(opts.WifAudience)
 	data.WifSAEmail = types.StringValue(opts.WifServiceAccountEmail)
+	data.ServiceAccountJSON = priorSAJSON
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -293,14 +302,20 @@ func (r *integrationAuditLogExportResource) ImportState(ctx context.Context, req
 	}
 
 	opts := integration.ConfigurationOptions.AuditLogExportConfigurationOptions
+	scopeMrn := integration.ScopeMRN()
+
 	model := integrationAuditLogExportResourceModel{
 		Mrn:               types.StringValue(integration.Mrn),
 		Name:              types.StringValue(integration.Name),
-		ScopeMrn:          types.StringValue(integration.ScopeMRN()),
+		ScopeMrn:          types.StringValue(scopeMrn),
 		Bucket:            types.StringValue(opts.Bucket),
 		IncludeHistorical: types.BoolValue(opts.IncludeHistorical),
 		WifAudience:       types.StringValue(opts.WifAudience),
 		WifSAEmail:        types.StringValue(opts.WifServiceAccountEmail),
+	}
+
+	if orgID, ok := strings.CutPrefix(scopeMrn, orgPrefix); ok {
+		model.OrgID = types.StringValue(orgID)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
