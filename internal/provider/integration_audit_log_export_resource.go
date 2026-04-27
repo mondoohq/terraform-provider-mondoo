@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -23,6 +23,7 @@ import (
 
 var _ resource.Resource = (*integrationAuditLogExportResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationAuditLogExportResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationAuditLogExportResource)(nil)
 
 func NewIntegrationAuditLogExportResource() resource.Resource {
 	return &integrationAuditLogExportResource{}
@@ -138,15 +139,22 @@ func (r *integrationAuditLogExportResource) Schema(ctx context.Context, req reso
 				MarkdownDescription: "WIF audience URL for GCP workload identity federation.",
 				Optional:            true,
 				Computed:            true,
-				Default:             stringdefault.StaticString(""),
 			},
 			"wif_service_account_email": schema.StringAttribute{
 				MarkdownDescription: "GCP service account email for WIF service account impersonation.",
 				Optional:            true,
 				Computed:            true,
-				Default:             stringdefault.StaticString(""),
 			},
 		},
+	}
+}
+
+func (r *integrationAuditLogExportResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("service_account_json"),
+			path.MatchRoot("wif_audience"),
+		),
 	}
 }
 
