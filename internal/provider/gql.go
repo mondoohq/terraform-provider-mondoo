@@ -838,6 +838,17 @@ type GithubConfigurationOptions struct {
 	DiscoverK8sManifests bool `graphql:"githubDiscoverK8sManifests: discoverK8sManifests"`
 }
 
+type AuditLogExportConfigurationOptions struct {
+	DestinationType    string
+	Bucket             string
+	Format             string
+	IntervalMinutes    int
+	IncludeHistorical  bool
+	WifAudience        *string
+	WifServiceAccountEmail *string
+	WifSubject         *string
+}
+
 type GcsBucketConfigurationOptions struct {
 	Bucket                 string
 	Output                 string

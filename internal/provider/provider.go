@@ -232,6 +232,7 @@ func (p *MondooProvider) Resources(_ context.Context) []func() resource.Resource
 		NewIntegrationMsIntuneResource,
 		NewAssetRoutingTableResource,
 		NewAssetRoutingRuleResource,
+		NewIntegrationAuditLogExportResource,
 	}...)
 }
 
