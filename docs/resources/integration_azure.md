@@ -273,26 +273,288 @@ resource "mondoo_integration_azure" "azure_integration" {
 }
 ```
 
+```terraform
+# Workload Identity Federation (keyless) example
+# -----------------------------------------------
+#
+# This example wires up a Mondoo Azure integration using Workload Identity
+# Federation (WIF). No certificate or client secret is stored — Mondoo
+# authenticates as a federated workload.
+#
+# DAG: azuread_application → mondoo_integration_azure(use_wif=true) →
+#      azuread_application_federated_identity_credential
+#
+# Usage:
+#   terraform init
+#   terraform apply -var tenant_id=<your-tenant-id> \
+#                   -var primary_subscription=<your-subscription-id>
+
+# Variables
+# ----------------------------------------------
+
+variable "tenant_id" {
+  description = "The Azure Active Directory Tenant ID"
+  type        = string
+  default     = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+}
+
+variable "primary_subscription" {
+  description = "The primary Azure Subscription ID"
+  type        = string
+  default     = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+}
+
+locals {
+  mondoo_security_integration_name = "Mondoo Security Integration (WIF)"
+}
+
+# Azure AD Application
+# ----------------------------------------------
+
+provider "azuread" {
+  tenant_id = var.tenant_id
+}
+
+data "azuread_client_config" "current" {}
+
+# Create the Azure AD application for Mondoo
+resource "azuread_application" "mondoo_security" {
+  display_name = local.mondoo_security_integration_name
+
+  required_resource_access {
+    resource_app_id = "00000003-0000-0000-c000-000000000000" # Microsoft Graph
+
+    resource_access {
+      id   = "246dd0d5-5bd0-4def-940b-0421030a5b68"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "e321f0bb-e7f7-481e-bb28-e3b0b32d4bd0"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "5e0edab9-c148-49d0-b423-ac253e121825"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "bf394140-e372-4bf9-a898-299cfc7564e5"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "6e472fd1-ad78-48da-a0f0-97ab2c6b769e"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "dc5007c0-2d7d-4c42-879c-2dab87571379"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "b0afded3-3588-46d8-8b3d-9842eff778da"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "7ab1d382-f21e-4acd-a863-ba3e13f7da61"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "197ee4e9-b993-4066-898f-d6aecc55125b"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "9a5d68dd-52b0-4cc2-bd40-abcf44ac3a30"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "f8f035bb-2cce-47fb-8bf5-7baf3ecbee48"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "dbb9058a-0e50-45d7-ae91-66909b5d4664"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "9e640839-a198-48fb-8b9a-013fd6f6cbcd"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "37730810-e9ba-4e46-b07e-8ca78d182097"
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "c7fbd983-d9aa-4fa7-84b8-17382c103bc4"
+      type = "Role"
+    }
+  }
+}
+
+# Create a service principal for the application
+resource "azuread_service_principal" "mondoo_security" {
+  client_id                    = azuread_application.mondoo_security.client_id
+  app_role_assignment_required = false
+  owners                       = [data.azuread_client_config.current.object_id]
+}
+
+# Azure Permissions
+# ----------------------------------------------
+
+provider "azurerm" {
+  tenant_id = var.tenant_id
+  features {}
+}
+
+data "azurerm_subscription" "primary" {
+  subscription_id = var.primary_subscription
+}
+
+data "azurerm_subscriptions" "available" {}
+
+# Custom role with the permissions Mondoo needs
+resource "azurerm_role_definition" "mondoo_security_role" {
+  name        = "tf-mondoo-security-role-wif"
+  description = "Permissions for Mondoo Security (WIF mode)"
+  scope       = data.azurerm_subscription.primary.id
+
+  permissions {
+    actions = [
+      "Microsoft.Authorization/*/read",
+      "Microsoft.ResourceHealth/availabilityStatuses/read",
+      "Microsoft.Insights/alertRules/*",
+      "Microsoft.Resources/deployments/*",
+      "Microsoft.Resources/subscriptions/resourceGroups/read",
+      "Microsoft.Support/*",
+      "Microsoft.Web/listSitesAssignedToHostName/read",
+      "Microsoft.Web/serverFarms/read",
+      "Microsoft.Web/sites/config/read",
+      "Microsoft.Web/sites/config/web/appsettings/read",
+      "Microsoft.Web/sites/config/web/connectionstrings/read",
+      "Microsoft.Web/sites/config/appsettings/read",
+      "Microsoft.web/sites/config/snapshots/read",
+      "Microsoft.Web/sites/config/list/action",
+      "Microsoft.Web/sites/read",
+      "Microsoft.KeyVault/checkNameAvailability/read",
+      "Microsoft.KeyVault/deletedVaults/read",
+      "Microsoft.KeyVault/locations/*/read",
+      "Microsoft.KeyVault/vaults/*/read",
+      "Microsoft.KeyVault/operations/read",
+      "Microsoft.Compute/virtualMachines/runCommands/read",
+      "Microsoft.Compute/virtualMachines/runCommands/write",
+      "Microsoft.Compute/virtualMachines/runCommands/delete"
+    ]
+    not_actions = []
+    data_actions = [
+      "Microsoft.KeyVault/vaults/*/read",
+      "Microsoft.KeyVault/vaults/secrets/readMetadata/action"
+    ]
+    not_data_actions = []
+  }
+
+  assignable_scopes = data.azurerm_subscriptions.available.subscriptions[*].id
+}
+
+resource "azurerm_role_assignment" "mondoo_security" {
+  count              = length(data.azurerm_subscriptions.available.subscriptions)
+  scope              = data.azurerm_subscriptions.available.subscriptions[count.index].id
+  role_definition_id = azurerm_role_definition.mondoo_security_role.role_definition_resource_id
+  principal_id       = azuread_service_principal.mondoo_security.object_id
+}
+
+resource "azurerm_role_assignment" "reader" {
+  count                = length(data.azurerm_subscriptions.available.subscriptions)
+  scope                = data.azurerm_subscriptions.available.subscriptions[count.index].id
+  role_definition_name = "Reader"
+  principal_id         = azuread_service_principal.mondoo_security.object_id
+}
+
+# Mondoo Integration (keyless / WIF)
+# ----------------------------------------------
+
+provider "mondoo" {
+  space = "hungry-poet-123456"
+}
+
+# Step 1: Create the Mondoo integration with use_wif=true.
+# Mondoo returns wif_subject and wif_issuer_url, which are used in step 2.
+resource "mondoo_integration_azure" "this" {
+  name      = "Azure ${local.mondoo_security_integration_name}"
+  tenant_id = var.tenant_id
+  client_id = azuread_application.mondoo_security.client_id
+  scan_vms  = true
+  use_wif   = true
+
+  depends_on = [
+    azuread_application.mondoo_security,
+    azuread_service_principal.mondoo_security,
+    azurerm_role_assignment.mondoo_security,
+    azurerm_role_assignment.reader,
+  ]
+}
+
+# Step 2: Wire up the federated identity credential using the subject/issuer
+# that Mondoo emits. This allows Mondoo to authenticate without a certificate.
+resource "azuread_application_federated_identity_credential" "mondoo" {
+  application_id = azuread_application.mondoo_security.id
+  display_name   = "mondoo"
+  issuer         = mondoo_integration_azure.this.wif_issuer_url
+  subject        = mondoo_integration_azure.this.wif_subject
+  audiences      = ["api://AzureADTokenExchange"]
+}
+
+# Outputs
+# ----------------------------------------------
+
+output "integration_mrn" {
+  value       = mondoo_integration_azure.this.mrn
+  description = "MRN of the Mondoo Azure integration"
+}
+
+output "wif_subject" {
+  value       = mondoo_integration_azure.this.wif_subject
+  description = "WIF subject configured on the federated identity credential"
+}
+
+output "wif_issuer_url" {
+  value       = mondoo_integration_azure.this.wif_issuer_url
+  description = "WIF issuer URL configured on the federated identity credential"
+}
+```
+
 <!-- schema generated by tfplugindocs -->
 ## Schema
 
 ### Required
 
 - `client_id` (String) Azure client ID.
-- `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
 - `tenant_id` (String) Azure tenant ID.
 
 ### Optional
 
+- `credentials` (Attributes) Certificate credentials for Azure integration. Mutually exclusive with `use_wif`. (see [below for nested schema](#nestedatt--credentials))
 - `scan_vms` (Boolean) Scan VMs.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 - `subscription_allow_list` (List of String) List of Azure subscriptions to scan.
 - `subscription_deny_list` (List of String) List of Azure subscriptions to exclude from scanning.
+- `use_wif` (Boolean) Use Workload Identity Federation (keyless) instead of a certificate. Mutually exclusive with `credentials`.
 
 ### Read-Only
 
 - `mrn` (String) Integration identifier
+- `wif_issuer_url` (String) The WIF issuer URL (populated by Mondoo after creation). Use as the `issuer` of the `azuread_application_federated_identity_credential` resource.
+- `wif_subject` (String) The WIF subject (populated by Mondoo after creation). Use as the `subject` of the `azuread_application_federated_identity_credential` resource.
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`
