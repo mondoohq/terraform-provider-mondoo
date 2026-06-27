@@ -816,6 +816,9 @@ type AzureConfigurationOptions struct {
 	SubscriptionsWhitelist []string
 	SubscriptionsBlacklist []string
 	ScanVms                bool
+	// INTERIM: hand-added; re-confirm via make generate once the server schema is deployed.
+	WifSubject   string
+	WifIssuerUrl string
 }
 
 type HostConfigurationOptions struct {

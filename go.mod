@@ -170,3 +170,5 @@ require (
 	moul.io/http2curl v1.0.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace go.mondoo.com/mondoo-go => /Users/vj/go/src/go.mondoo.io/mondoo-go
