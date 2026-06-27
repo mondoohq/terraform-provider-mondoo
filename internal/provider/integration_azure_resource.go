@@ -234,8 +234,11 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 	}
 	if data.UseWif.ValueBool() {
 		azureOpts.UseWif = mondoov1.NewBooleanPtr(mondoov1.Boolean(true))
-	} else {
+	} else if data.Credential != nil {
 		azureOpts.Certificate = mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString()))
+	} else {
+		resp.Diagnostics.AddError("Missing Azure credentials", "Set use_wif = true or provide a credentials block with pem_file.")
+		return
 	}
 
 	tflog.Debug(ctx, "Creating integration")
@@ -297,7 +300,16 @@ func (r *integrationAzureResource) Read(ctx context.Context, req resource.ReadRe
 	if data.Mrn.ValueString() != "" {
 		integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
 		if err != nil {
-			resp.State.RemoveResource(ctx)
+			// Only drop the resource from state when it genuinely no longer
+			// exists. A transient error (network, auth, server) must not cause
+			// Terraform to delete the resource from state.
+			if isNotFoundError(err) {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+			resp.Diagnostics.AddError("Client Error",
+				fmt.Sprintf("Unable to read Azure integration: %s", err),
+			)
 			return
 		}
 		data.WifSubject = types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.WifSubject)
@@ -346,8 +358,11 @@ func (r *integrationAzureResource) Update(ctx context.Context, req resource.Upda
 	}
 	if data.UseWif.ValueBool() {
 		azureOpts.UseWif = mondoov1.NewBooleanPtr(mondoov1.Boolean(true))
-	} else {
+	} else if data.Credential != nil {
 		azureOpts.Certificate = mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString()))
+	} else {
+		resp.Diagnostics.AddError("Missing Azure credentials", "Set use_wif = true or provide a credentials block with pem_file.")
+		return
 	}
 
 	opts := mondoov1.ClientIntegrationConfigurationInput{
