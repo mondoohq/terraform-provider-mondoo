@@ -277,7 +277,18 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 	// These are returned by the server after creation and used to wire up the
 	// azuread_application_federated_identity_credential resource.
 	fetchedIntegration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
-	if err == nil {
+	if err != nil {
+		// In WIF mode, empty wif_subject/wif_issuer_url would silently misconfigure
+		// the downstream azuread_application_federated_identity_credential, so surface it.
+		if data.UseWif.ValueBool() {
+			resp.Diagnostics.AddWarning(
+				"Unable to read WIF fields",
+				fmt.Sprintf("The integration was created, but its Workload Identity Federation fields "+
+					"(wif_subject, wif_issuer_url) could not be read back: %s. The federated identity "+
+					"credential may receive empty values; re-run 'terraform apply' to refresh.", err),
+			)
+		}
+	} else {
 		data.WifSubject = types.StringValue(fetchedIntegration.ConfigurationOptions.AzureConfigurationOptions.WifSubject)
 		data.WifIssuerUrl = types.StringValue(fetchedIntegration.ConfigurationOptions.AzureConfigurationOptions.WifIssuerUrl)
 	}
@@ -417,18 +428,31 @@ func (r *integrationAzureResource) ImportState(ctx context.Context, req resource
 	allowList := ConvertListValue(integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsWhitelist)
 	denyList := ConvertListValue(integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsBlacklist)
 
+	azureOpts := integration.ConfigurationOptions.AzureConfigurationOptions
 	model := integrationAzureResourceModel{
 		SpaceID:               types.StringValue(integration.SpaceID()),
 		Mrn:                   types.StringValue(integration.Mrn),
 		Name:                  types.StringValue(integration.Name),
-		ClientId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.ClientId),
-		TenantId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.TenantId),
+		ClientId:              types.StringValue(azureOpts.ClientId),
+		TenantId:              types.StringValue(azureOpts.TenantId),
 		SubscriptionAllowList: allowList,
 		SubscriptionDenyList:  denyList,
-		Credential:            nil,
-		ScanVms:               types.BoolValue(integration.ConfigurationOptions.AzureConfigurationOptions.ScanVms),
-		WifSubject:            types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.WifSubject),
-		WifIssuerUrl:          types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.WifIssuerUrl),
+		ScanVms:               types.BoolValue(azureOpts.ScanVms),
+		WifSubject:            types.StringValue(azureOpts.WifSubject),
+		WifIssuerUrl:          types.StringValue(azureOpts.WifIssuerUrl),
+	}
+
+	// Detect the auth mode from the API response so the imported state satisfies
+	// the ExactlyOneOf(use_wif, credentials) validator and matches the user's config.
+	if azureOpts.WifSubject != "" {
+		model.UseWif = types.BoolValue(true)
+		model.Credential = nil
+	} else {
+		// Certificate mode: the PEM is write-only and cannot be read back, so it
+		// is left null — re-supply it in config after import. Setting the
+		// credentials block keeps the import aligned with a certificate config.
+		model.UseWif = types.BoolNull()
+		model.Credential = &integrationAzureCredentialModel{PEMFile: types.StringNull()}
 	}
 
 	resp.State.Set(ctx, &model)
