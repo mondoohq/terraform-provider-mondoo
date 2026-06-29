@@ -176,7 +176,7 @@ func findField(obj any, fieldName string) (reflect.StructField, bool) {
 	val := reflect.TypeOf(obj)
 
 	// If the object is a pointer, get the underlying element
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 

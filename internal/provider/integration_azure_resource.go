@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -23,6 +24,7 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationAzureResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationAzureResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationAzureResource)(nil)
 
 func NewIntegrationAzureResource() resource.Resource {
 	return &integrationAzureResource{}
@@ -45,8 +47,13 @@ type integrationAzureResourceModel struct {
 	SubscriptionDenyList  types.List   `tfsdk:"subscription_deny_list"`
 	ScanVms               types.Bool   `tfsdk:"scan_vms"`
 
-	// credentials
-	Credential integrationAzureCredentialModel `tfsdk:"credentials"`
+	// WIF (Workload Identity Federation) — keyless mode
+	UseWif       types.Bool   `tfsdk:"use_wif"`
+	WifSubject   types.String `tfsdk:"wif_subject"`
+	WifIssuerUrl types.String `tfsdk:"wif_issuer_url"`
+
+	// credentials — certificate mode (nil when use_wif=true)
+	Credential *integrationAzureCredentialModel `tfsdk:"credentials"`
 }
 
 type integrationAzureCredentialModel struct {
@@ -55,6 +62,17 @@ type integrationAzureCredentialModel struct {
 
 func (r *integrationAzureResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_integration_azure"
+}
+
+// ConfigValidators enforces the mutual exclusion between use_wif and credentials.
+// Exactly one of the two must be configured.
+func (r *integrationAzureResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("use_wif"),
+			path.MatchRoot("credentials"),
+		),
+	}
 }
 
 func (r *integrationAzureResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -117,8 +135,27 @@ func (r *integrationAzureResource) Schema(ctx context.Context, req resource.Sche
 					}...),
 				},
 			},
+			"use_wif": schema.BoolAttribute{
+				MarkdownDescription: "Use Workload Identity Federation (keyless) instead of a certificate. Mutually exclusive with `credentials`.",
+				Optional:            true,
+			},
+			"wif_subject": schema.StringAttribute{
+				MarkdownDescription: "The WIF subject (populated by Mondoo after creation). Use as the `subject` of the `azuread_application_federated_identity_credential` resource.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"wif_issuer_url": schema.StringAttribute{
+				MarkdownDescription: "The WIF issuer URL (populated by Mondoo after creation). Use as the `issuer` of the `azuread_application_federated_identity_credential` resource.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"credentials": schema.SingleNestedAttribute{
-				Required: true,
+				MarkdownDescription: "Certificate credentials for Azure integration. Mutually exclusive with `use_wif`.",
+				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"pem_file": schema.StringAttribute{
 						MarkdownDescription: "PEM file for Azure integration.",
@@ -187,20 +224,30 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
+	// Build Azure configuration options — WIF mode or certificate mode.
+	azureOpts := &mondoov1.AzureConfigurationOptionsInput{
+		TenantId:               mondoov1.String(data.TenantId.ValueString()),
+		ClientId:               mondoov1.String(data.ClientId.ValueString()),
+		SubscriptionsWhitelist: &listAllow,
+		SubscriptionsBlacklist: &listDeny,
+		ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
+	}
+	if data.UseWif.ValueBool() {
+		azureOpts.UseWif = mondoov1.NewBooleanPtr(mondoov1.Boolean(true))
+	} else if data.Credential != nil {
+		azureOpts.Certificate = mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString()))
+	} else {
+		resp.Diagnostics.AddError("Missing Azure credentials", "Set use_wif = true or provide a credentials block with pem_file.")
+		return
+	}
+
 	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeAzure,
 		mondoov1.ClientIntegrationConfigurationInput{
-			AzureConfigurationOptions: &mondoov1.AzureConfigurationOptionsInput{
-				TenantId:               mondoov1.String(data.TenantId.ValueString()),
-				ClientId:               mondoov1.String(data.ClientId.ValueString()),
-				SubscriptionsWhitelist: &listAllow,
-				SubscriptionsBlacklist: &listDeny,
-				ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
-				Certificate:            mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
-			},
+			AzureConfigurationOptions: azureOpts,
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -226,6 +273,26 @@ func (r *integrationAzureResource) Create(ctx context.Context, req resource.Crea
 	data.Name = types.StringValue(string(integration.Name))
 	data.SpaceID = types.StringValue(space.ID())
 
+	// Populate WIF computed fields from the integration response.
+	// These are returned by the server after creation and used to wire up the
+	// azuread_application_federated_identity_credential resource.
+	fetchedIntegration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+	if err != nil {
+		// In WIF mode, empty wif_subject/wif_issuer_url would silently misconfigure
+		// the downstream azuread_application_federated_identity_credential, so surface it.
+		if data.UseWif.ValueBool() {
+			resp.Diagnostics.AddWarning(
+				"Unable to read WIF fields",
+				fmt.Sprintf("The integration was created, but its Workload Identity Federation fields "+
+					"(wif_subject, wif_issuer_url) could not be read back: %s. The federated identity "+
+					"credential may receive empty values; re-run 'terraform apply' to refresh.", err),
+			)
+		}
+	} else {
+		data.WifSubject = types.StringValue(fetchedIntegration.ConfigurationOptions.AzureConfigurationOptions.WifSubject)
+		data.WifIssuerUrl = types.StringValue(fetchedIntegration.ConfigurationOptions.AzureConfigurationOptions.WifIssuerUrl)
+	}
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -240,7 +307,25 @@ func (r *integrationAzureResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	// Read API call logic
+	// Fetch current state from the API to pick up computed WIF fields.
+	if data.Mrn.ValueString() != "" {
+		integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+		if err != nil {
+			// Only drop the resource from state when it genuinely no longer
+			// exists. A transient error (network, auth, server) must not cause
+			// Terraform to delete the resource from state.
+			if isNotFoundError(err) {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+			resp.Diagnostics.AddError("Client Error",
+				fmt.Sprintf("Unable to read Azure integration: %s", err),
+			)
+			return
+		}
+		data.WifSubject = types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.WifSubject)
+		data.WifIssuerUrl = types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.WifIssuerUrl)
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -274,15 +359,25 @@ func (r *integrationAzureResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
+	// Build Azure configuration options — WIF mode or certificate mode.
+	azureOpts := &mondoov1.AzureConfigurationOptionsInput{
+		TenantId:               mondoov1.String(data.TenantId.ValueString()),
+		ClientId:               mondoov1.String(data.ClientId.ValueString()),
+		SubscriptionsWhitelist: &listAllow,
+		SubscriptionsBlacklist: &listDeny,
+		ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
+	}
+	if data.UseWif.ValueBool() {
+		azureOpts.UseWif = mondoov1.NewBooleanPtr(mondoov1.Boolean(true))
+	} else if data.Credential != nil {
+		azureOpts.Certificate = mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString()))
+	} else {
+		resp.Diagnostics.AddError("Missing Azure credentials", "Set use_wif = true or provide a credentials block with pem_file.")
+		return
+	}
+
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		AzureConfigurationOptions: &mondoov1.AzureConfigurationOptionsInput{
-			TenantId:               mondoov1.String(data.TenantId.ValueString()),
-			ClientId:               mondoov1.String(data.ClientId.ValueString()),
-			SubscriptionsWhitelist: &listAllow,
-			SubscriptionsBlacklist: &listDeny,
-			ScanVms:                mondoov1.NewBooleanPtr(mondoov1.Boolean(data.ScanVms.ValueBool())),
-			Certificate:            mondoov1.NewStringPtr(mondoov1.String(data.Credential.PEMFile.ValueString())),
-		},
+		AzureConfigurationOptions: azureOpts,
 	}
 
 	_, err := r.client.UpdateIntegration(ctx,
@@ -333,18 +428,31 @@ func (r *integrationAzureResource) ImportState(ctx context.Context, req resource
 	allowList := ConvertListValue(integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsWhitelist)
 	denyList := ConvertListValue(integration.ConfigurationOptions.AzureConfigurationOptions.SubscriptionsBlacklist)
 
+	azureOpts := integration.ConfigurationOptions.AzureConfigurationOptions
 	model := integrationAzureResourceModel{
 		SpaceID:               types.StringValue(integration.SpaceID()),
 		Mrn:                   types.StringValue(integration.Mrn),
 		Name:                  types.StringValue(integration.Name),
-		ClientId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.ClientId),
-		TenantId:              types.StringValue(integration.ConfigurationOptions.AzureConfigurationOptions.TenantId),
+		ClientId:              types.StringValue(azureOpts.ClientId),
+		TenantId:              types.StringValue(azureOpts.TenantId),
 		SubscriptionAllowList: allowList,
 		SubscriptionDenyList:  denyList,
-		Credential: integrationAzureCredentialModel{
-			PEMFile: types.StringPointerValue(nil),
-		},
-		ScanVms: types.BoolValue(integration.ConfigurationOptions.AzureConfigurationOptions.ScanVms),
+		ScanVms:               types.BoolValue(azureOpts.ScanVms),
+		WifSubject:            types.StringValue(azureOpts.WifSubject),
+		WifIssuerUrl:          types.StringValue(azureOpts.WifIssuerUrl),
+	}
+
+	// Detect the auth mode from the API response so the imported state satisfies
+	// the ExactlyOneOf(use_wif, credentials) validator and matches the user's config.
+	if azureOpts.WifSubject != "" {
+		model.UseWif = types.BoolValue(true)
+		model.Credential = nil
+	} else {
+		// Certificate mode: the PEM is write-only and cannot be read back, so it
+		// is left null — re-supply it in config after import. Setting the
+		// credentials block keeps the import aligned with a certificate config.
+		model.UseWif = types.BoolNull()
+		model.Credential = &integrationAzureCredentialModel{PEMFile: types.StringNull()}
 	}
 
 	resp.State.Set(ctx, &model)

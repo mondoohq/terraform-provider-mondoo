@@ -816,6 +816,11 @@ type AzureConfigurationOptions struct {
 	SubscriptionsWhitelist []string
 	SubscriptionsBlacklist []string
 	ScanVms                bool
+	// Computed Workload Identity Federation fields returned by the server. The
+	// SDK generates inputs/enums/scalars only (no output types), so these are
+	// declared here on the provider's own read-back struct.
+	WifSubject   string
+	WifIssuerUrl string
 }
 
 type HostConfigurationOptions struct {
