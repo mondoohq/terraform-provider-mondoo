@@ -187,6 +187,14 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		ctx = tflog.SetField(ctx, "provider_space", space)
 	}
 
+	// Set a descriptive User-Agent so provider traffic is identifiable in server
+	// traces instead of the generic mondoo-go SDK UA (mondoo-graphql-client).
+	userAgent := "mondoo-terraform-provider/" + p.version
+	if space != "" {
+		userAgent += " space/" + space
+	}
+	opts = append(opts, option.WithUserAgent(userAgent))
+
 	tflog.Debug(ctx, "Creating Mondoo client")
 	client, err := mondoov1.NewClient(opts...)
 	if err != nil {
