@@ -80,7 +80,7 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 Optional:
 
 - `excluded_tags_filter` (Map of String) Exclude filter: projects whose tags match at least one of these key-value pairs are skipped, even if they match the include filter. A value of `*` matches any value for that tag key.
-- `scan_schedule_hours` (Number) How often (in hours) the deployed scanner runs a scan.
+- `scan_schedule_hours` (Number) How often (in hours) the deployed scanner runs a scan. Must be between 1 and 23.
 - `tags_filter` (Map of String) Include filter: when not empty, only projects whose tags match at least one of these key-value pairs are scanned. A value of `*` matches any value for that tag key.
 
 ## Import

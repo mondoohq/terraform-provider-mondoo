@@ -181,10 +181,10 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 						ElementType:         types.StringType,
 					},
 					"scan_schedule_hours": schema.Int32Attribute{
-						MarkdownDescription: "How often (in hours) the deployed scanner runs a scan.",
+						MarkdownDescription: "How often (in hours) the deployed scanner runs a scan. Must be between 1 and 23.",
 						Optional:            true,
 						Validators: []validator.Int32{
-							int32validator.AtLeast(1),
+							int32validator.Between(1, 23),
 						},
 					},
 				},
