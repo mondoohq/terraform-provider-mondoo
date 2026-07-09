@@ -61,11 +61,11 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 - `host_project_id` (String) The GCP project ID where the serverless scanner is deployed.
 - `name` (String) Name of the integration.
 - `region` (String) The GCP region where the serverless scanner is deployed.
-- `scope` (String) The GCP scope to scan. Accepts either a folder ID or an organization ID.
 
 ### Optional
 
 - `scan_configuration` (Attributes) Scan options that control what the deployed scanner scans. (see [below for nested schema](#nestedatt--scan_configuration))
+- `scope` (String) The GCP scope to scan. Accepts either a folder ID or an organization ID. When omitted, the scanner falls back to its default scope.
 - `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
 
 ### Read-Only
@@ -79,6 +79,7 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 Optional:
 
 - `excluded_tags_filter` (Map of String) Exclude filter: projects whose tags match at least one of these key-value pairs are skipped, even if they match the include filter. A value of `*` matches any value for that tag key.
+- `scan_schedule_hours` (Number) How often (in hours) the deployed scanner runs a scan.
 - `tags_filter` (Map of String) Include filter: when not empty, only projects whose tags match at least one of these key-value pairs are scanned. A value of `*` matches any value for that tag key.
 
 ## Import

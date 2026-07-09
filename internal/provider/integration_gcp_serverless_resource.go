@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -58,6 +60,8 @@ type GcpServerlessScanConfigurationInput struct {
 	// (Optional.) Exclude filter: projects whose tags match at least one of these
 	// key-value pairs are skipped. A value of "*" matches any value for the key.
 	ExcludedTagsFilter types.Map `tfsdk:"excluded_tags_filter"`
+	// (Optional.) How often (in hours) the deployed scanner runs a scan.
+	ScanScheduleHours types.Int32 `tfsdk:"scan_schedule_hours"`
 }
 
 // tagsFilterToKeyValueList converts a Terraform string map into the GraphQL
@@ -81,15 +85,22 @@ func tagsFilterToKeyValueList(m types.Map) *[]mondoov1.KeyValueInput {
 
 func (m integrationGcpServerlessResourceModel) GetConfigurationOptions() *mondoov1.GcpServerlessConfigurationOptionsInput {
 	opts := &mondoov1.GcpServerlessConfigurationOptionsInput{
-		Scope:         mondoov1.String(m.Scope.ValueString()),
 		HostProjectId: mondoov1.String(m.HostProjectID.ValueString()),
 		Region:        mondoov1.String(m.Region.ValueString()),
+	}
+
+	// Omitted scope means the scanner falls back to its default scope.
+	if scope := m.Scope.ValueString(); scope != "" {
+		opts.Scope = mondoov1.NewStringPtr(mondoov1.String(scope))
 	}
 
 	if m.ScanConfiguration != nil {
 		opts.ScanConfiguration = &mondoov1.GcpServerlessScanConfigurationInput{
 			TagsFilter:         tagsFilterToKeyValueList(m.ScanConfiguration.TagsFilter),
 			ExcludedTagsFilter: tagsFilterToKeyValueList(m.ScanConfiguration.ExcludedTagsFilter),
+		}
+		if !m.ScanConfiguration.ScanScheduleHours.IsNull() && !m.ScanConfiguration.ScanScheduleHours.IsUnknown() {
+			opts.ScanConfiguration.ScanScheduleHours = mondoov1.NewIntPtr(mondoov1.Int(m.ScanConfiguration.ScanScheduleHours.ValueInt32()))
 		}
 	}
 
@@ -132,8 +143,8 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 				Required:            true,
 			},
 			"scope": schema.StringAttribute{
-				MarkdownDescription: "The GCP scope to scan. Accepts either a folder ID or an organization ID.",
-				Required:            true,
+				MarkdownDescription: "The GCP scope to scan. Accepts either a folder ID or an organization ID. When omitted, the scanner falls back to its default scope.",
+				Optional:            true,
 			},
 			"host_project_id": schema.StringAttribute{
 				MarkdownDescription: "The GCP project ID where the serverless scanner is deployed.",
@@ -156,6 +167,13 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 						MarkdownDescription: "Exclude filter: projects whose tags match at least one of these key-value pairs are skipped, even if they match the include filter. A value of `*` matches any value for that tag key.",
 						Optional:            true,
 						ElementType:         types.StringType,
+					},
+					"scan_schedule_hours": schema.Int32Attribute{
+						MarkdownDescription: "How often (in hours) the deployed scanner runs a scan.",
+						Optional:            true,
+						Validators: []validator.Int32{
+							int32validator.AtLeast(1),
+						},
 					},
 				},
 			},
