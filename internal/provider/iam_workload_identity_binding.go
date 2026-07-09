@@ -161,6 +161,11 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 				Computed:            true,
 				MarkdownDescription: "The ready-to-use credential configuration (JSON) Mondoo returns for this binding.",
 				PlanModifiers: []planmodifier.String{
+					// Keeps the state value during in-place plans instead of
+					// "(known after apply)" churn. Server-side changes are not
+					// lost: Read re-populates the value from the API on every
+					// refresh, and this modifier never carries values across a
+					// replacement.
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
