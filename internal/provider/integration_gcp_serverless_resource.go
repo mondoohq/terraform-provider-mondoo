@@ -48,6 +48,9 @@ type integrationGcpServerlessResourceModel struct {
 	HostProjectID types.String `tfsdk:"host_project_id"`
 	// The GCP region where the serverless scanner is deployed.
 	Region types.String `tfsdk:"region"`
+	// (Optional.) A customer-provided service account identity to run the
+	// integration with, instead of the platform creating one.
+	SuppliedSaIdentity types.String `tfsdk:"supplied_sa_identity"`
 
 	// (Optional.)
 	ScanConfiguration *GcpServerlessScanConfigurationInput `tfsdk:"scan_configuration"`
@@ -92,6 +95,11 @@ func (m integrationGcpServerlessResourceModel) GetConfigurationOptions() *mondoo
 	// Omitted scope means the scanner falls back to its default scope.
 	if scope := m.Scope.ValueString(); scope != "" {
 		opts.Scope = mondoov1.NewStringPtr(mondoov1.String(scope))
+	}
+
+	// Omitted means the platform creates the integration's identity itself.
+	if sa := m.SuppliedSaIdentity.ValueString(); sa != "" {
+		opts.SuppliedSaIdentity = mondoov1.NewStringPtr(mondoov1.String(sa))
 	}
 
 	if m.ScanConfiguration != nil {
@@ -153,6 +161,10 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 			"region": schema.StringAttribute{
 				MarkdownDescription: "The GCP region where the serverless scanner is deployed.",
 				Required:            true,
+			},
+			"supplied_sa_identity": schema.StringAttribute{
+				MarkdownDescription: "A customer-provided service account identity to run this integration with, instead of the platform automatically creating one (bring-your-own-identity). Stored and returned verbatim.",
+				Optional:            true,
 			},
 			"scan_configuration": schema.SingleNestedAttribute{
 				MarkdownDescription: "Scan options that control what the deployed scanner scans.",

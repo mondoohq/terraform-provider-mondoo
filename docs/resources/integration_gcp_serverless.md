@@ -67,6 +67,7 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 - `scan_configuration` (Attributes) Scan options that control what the deployed scanner scans. (see [below for nested schema](#nestedatt--scan_configuration))
 - `scope` (String) The GCP scope to scan. Accepts either a folder ID or an organization ID. When omitted, the scanner falls back to its default scope.
 - `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
+- `supplied_sa_identity` (String) A customer-provided service account identity to run this integration with, instead of the platform automatically creating one (bring-your-own-identity). Stored and returned verbatim.
 
 ### Read-Only
 
