@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -57,6 +58,8 @@ type IAMWorkloadIdentityBindingResourceModel struct {
 	AllowedAudiences types.List `tfsdk:"allowed_audiences"`
 	// List of additional configurations to confirm. (Optional.)
 	Mappings types.Map `tfsdk:"mappings"`
+	// The credential configuration Mondoo returns for the binding. (Computed.)
+	ConfigJSON types.String `tfsdk:"config_json"`
 }
 
 func (r *IAMWorkloadIdentityBindingResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -154,6 +157,18 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 					mapplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"config_json": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "The ready-to-use credential configuration (JSON) Mondoo returns for this binding.",
+				PlanModifiers: []planmodifier.String{
+					// Keeps the state value during in-place plans instead of
+					// "(known after apply)" churn. Server-side changes are not
+					// lost: Read re-populates the value from the API on every
+					// refresh, and this modifier never carries values across a
+					// replacement.
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -198,6 +213,32 @@ type WIFExternalAuthConfig struct {
 	SubjectTokenType string
 	Scopes           []string
 	IssuerURI        string
+}
+
+// wifConfigJSON renders the API-returned external auth config as the JSON
+// credential configuration clients consume, with the key names Mondoo client
+// tooling (e.g. cnspec) expects in a WIF config file.
+func wifConfigJSON(c WIFExternalAuthConfig) (string, error) {
+	out := struct {
+		Type             string   `json:"type,omitempty"`
+		IssuerURI        string   `json:"issuerUri,omitempty"`
+		UniverseDomain   string   `json:"universeDomain,omitempty"`
+		Audience         string   `json:"audience,omitempty"`
+		SubjectTokenType string   `json:"subjectTokenType,omitempty"`
+		Scopes           []string `json:"scopes,omitempty"`
+	}{
+		Type:             c.Type,
+		IssuerURI:        c.IssuerURI,
+		UniverseDomain:   c.UniverseDomain,
+		Audience:         c.Audience,
+		SubjectTokenType: c.SubjectTokenType,
+		Scopes:           c.Scopes,
+	}
+	b, err := json.Marshal(out)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -299,6 +340,16 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 		data.Mappings = newMappings
 	}
 
+	configJSON, err := wifConfigJSON(createMutation.CreateIAMWorkloadIdentityBinding.Config)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Client Error",
+			fmt.Sprintf("Unable to render binding credential configuration. Got error: %s", err),
+		)
+		return
+	}
+	data.ConfigJSON = types.StringValue(configJSON)
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -327,6 +378,11 @@ func (r *IAMWorkloadIdentityBindingResource) readIAMWorkloadIdentityBinding(ctx 
 		"payload": fmt.Sprintf("%+v", q),
 	})
 
+	configJSON, err := wifConfigJSON(q.IAMWorkloadIdentityBinding.Config)
+	if err != nil {
+		return IAMWorkloadIdentityBindingResourceModel{}, err
+	}
+
 	return IAMWorkloadIdentityBindingResourceModel{
 		ScopeMRN:         types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Scope),
 		Mrn:              types.StringValue(q.IAMWorkloadIdentityBinding.Binding.Mrn),
@@ -338,6 +394,7 @@ func (r *IAMWorkloadIdentityBindingResource) readIAMWorkloadIdentityBinding(ctx 
 		Roles:            ConvertListValue(q.IAMWorkloadIdentityBinding.Binding.Roles),
 		AllowedAudiences: ConvertListValue(q.IAMWorkloadIdentityBinding.Binding.AllowedAudiences),
 		Mappings:         types.MapNull(types.StringType),
+		ConfigJSON:       types.StringValue(configJSON),
 	}, nil
 }
 

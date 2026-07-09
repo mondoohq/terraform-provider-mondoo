@@ -45,4 +45,5 @@ resource "mondoo_iam_workload_identity_binding" "example" {
 
 ### Read-Only
 
+- `config_json` (String) The ready-to-use credential configuration (JSON) Mondoo returns for this binding.
 - `mrn` (String) The Mondoo resource name (MRN) of the created binding.
