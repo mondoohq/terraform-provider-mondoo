@@ -159,7 +159,7 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 			},
 			"config_json": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The ready-to-use credential configuration (JSON) Mondoo returns for this binding. Hand it to the bound workload (e.g. base64-encoded) so it can exchange its identity token for Mondoo credentials; it carries no secret material.",
+				MarkdownDescription: "The ready-to-use credential configuration (JSON) Mondoo returns for this binding.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
