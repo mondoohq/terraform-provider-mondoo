@@ -207,8 +207,8 @@ func (r *S3BucketExportResource) Create(ctx context.Context, req resource.Create
 			Output:          outputFormat,
 			Bucket:          mondoov1.String(data.Bucket.ValueString()),
 			Region:          mondoov1.String(data.Region.ValueString()),
-			AccessKey:       mondoov1.String(data.Credentials.Key.AccessKey.ValueString()),
-			SecretAccessKey: mondoov1.String(data.Credentials.Key.SecretKey.ValueString()),
+			AccessKey:       mondoov1.NewStringPtr(mondoov1.String(data.Credentials.Key.AccessKey.ValueString())),
+			SecretAccessKey: mondoov1.NewStringPtr(mondoov1.String(data.Credentials.Key.SecretKey.ValueString())),
 		},
 	}
 
@@ -311,8 +311,8 @@ func (r *S3BucketExportResource) Update(ctx context.Context, req resource.Update
 				Output:          outputFormat,
 				Bucket:          mondoov1.String(data.Bucket.ValueString()),
 				Region:          mondoov1.String(data.Region.ValueString()),
-				AccessKey:       mondoov1.String(data.Credentials.Key.AccessKey.ValueString()),
-				SecretAccessKey: mondoov1.String(data.Credentials.Key.SecretKey.ValueString()),
+				AccessKey:       mondoov1.NewStringPtr(mondoov1.String(data.Credentials.Key.AccessKey.ValueString())),
+				SecretAccessKey: mondoov1.NewStringPtr(mondoov1.String(data.Credentials.Key.SecretKey.ValueString())),
 			},
 		})
 
