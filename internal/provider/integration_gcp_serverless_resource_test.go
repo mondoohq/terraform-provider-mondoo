@@ -21,11 +21,57 @@ func TestIntegrationGcpServerlessGetConfigurationOptions_Minimal(t *testing.T) {
 
 	opts := m.GetConfigurationOptions()
 	require.NotNil(t, opts)
-	assert.EqualValues(t, "123456789012", opts.Scope)
+	require.NotNil(t, opts.Scope)
+	assert.EqualValues(t, "123456789012", *opts.Scope)
 	assert.EqualValues(t, "my-host-project", opts.HostProjectId)
 	assert.EqualValues(t, "us-central1", opts.Region)
+	// No supplied identity => the field is omitted from the request.
+	assert.Nil(t, opts.SuppliedSaIdentity)
 	// No scan_configuration block => no scan configuration sent.
 	assert.Nil(t, opts.ScanConfiguration)
+}
+
+func TestIntegrationGcpServerlessGetConfigurationOptions_OmittedScope(t *testing.T) {
+	m := integrationGcpServerlessResourceModel{
+		HostProjectID: types.StringValue("my-host-project"),
+		Region:        types.StringValue("us-central1"),
+	}
+
+	opts := m.GetConfigurationOptions()
+	require.NotNil(t, opts)
+	// Omitted scope is not sent; the scanner falls back to its default scope.
+	assert.Nil(t, opts.Scope)
+}
+
+func TestIntegrationGcpServerlessGetConfigurationOptions_SuppliedSaIdentity(t *testing.T) {
+	m := integrationGcpServerlessResourceModel{
+		HostProjectID:      types.StringValue("my-host-project"),
+		Region:             types.StringValue("us-central1"),
+		SuppliedSaIdentity: types.StringValue("byoi-sa@my-host-project.iam.gserviceaccount.com"),
+	}
+
+	opts := m.GetConfigurationOptions()
+	require.NotNil(t, opts)
+	require.NotNil(t, opts.SuppliedSaIdentity)
+	assert.EqualValues(t, "byoi-sa@my-host-project.iam.gserviceaccount.com", *opts.SuppliedSaIdentity)
+}
+
+func TestIntegrationGcpServerlessGetConfigurationOptions_ScanScheduleHours(t *testing.T) {
+	m := integrationGcpServerlessResourceModel{
+		HostProjectID: types.StringValue("my-host-project"),
+		Region:        types.StringValue("us-central1"),
+		ScanConfiguration: &GcpServerlessScanConfigurationInput{
+			TagsFilter:         types.MapNull(types.StringType),
+			ExcludedTagsFilter: types.MapNull(types.StringType),
+			ScanScheduleHours:  types.Int32Value(12),
+		},
+	}
+
+	opts := m.GetConfigurationOptions()
+	require.NotNil(t, opts)
+	require.NotNil(t, opts.ScanConfiguration)
+	require.NotNil(t, opts.ScanConfiguration.ScanScheduleHours)
+	assert.EqualValues(t, 12, *opts.ScanConfiguration.ScanScheduleHours)
 }
 
 func TestIntegrationGcpServerlessGetConfigurationOptions_TagsFilters(t *testing.T) {
@@ -80,4 +126,6 @@ func TestIntegrationGcpServerlessGetConfigurationOptions_EmptyTagsFilterOmitted(
 	require.NotNil(t, opts.ScanConfiguration)
 	assert.Nil(t, opts.ScanConfiguration.TagsFilter)
 	assert.Nil(t, opts.ScanConfiguration.ExcludedTagsFilter)
+	// No schedule set => the field is omitted from the request.
+	assert.Nil(t, opts.ScanConfiguration.ScanScheduleHours)
 }
