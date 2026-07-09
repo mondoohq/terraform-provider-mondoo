@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
@@ -60,7 +59,7 @@ type IAMWorkloadIdentityBindingResourceModel struct {
 	// List of additional configurations to confirm. (Optional.)
 	Mappings types.Map `tfsdk:"mappings"`
 	// The credential configuration Mondoo returns for the binding. (Computed.)
-	ConfigJSON jsontypes.Normalized `tfsdk:"config_json"`
+	ConfigJSON types.String `tfsdk:"config_json"`
 }
 
 func (r *IAMWorkloadIdentityBindingResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -160,7 +159,6 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 			},
 			"config_json": schema.StringAttribute{
 				Computed:            true,
-				CustomType:          jsontypes.NormalizedType{},
 				MarkdownDescription: "The ready-to-use credential configuration (JSON) Mondoo returns for this binding.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -345,7 +343,7 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 		)
 		return
 	}
-	data.ConfigJSON = jsontypes.NewNormalizedValue(configJSON)
+	data.ConfigJSON = types.StringValue(configJSON)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -391,7 +389,7 @@ func (r *IAMWorkloadIdentityBindingResource) readIAMWorkloadIdentityBinding(ctx 
 		Roles:            ConvertListValue(q.IAMWorkloadIdentityBinding.Binding.Roles),
 		AllowedAudiences: ConvertListValue(q.IAMWorkloadIdentityBinding.Binding.AllowedAudiences),
 		Mappings:         types.MapNull(types.StringType),
-		ConfigJSON:       jsontypes.NewNormalizedValue(configJSON),
+		ConfigJSON:       types.StringValue(configJSON),
 	}, nil
 }
 
