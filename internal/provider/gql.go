@@ -910,6 +910,14 @@ type GcpConfigurationOptions struct {
 	WifSubject             string
 }
 
+type GcpServerlessConfigurationOptions struct {
+	CrossOrg          bool
+	UseWif            bool
+	ServiceAccountId  string
+	WifAuthBindingMrn string
+	WifConfig         string
+}
+
 type ShodanConfigurationOptions struct {
 	Targets []string
 }

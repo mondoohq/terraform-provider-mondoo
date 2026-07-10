@@ -29,6 +29,14 @@ variable "gcp_region" {
   default     = "us-central1"
 }
 
+# The numeric unique ID of the GCP service account the deployed scanner runs
+# as. Used as the WIF binding subject; required when use_wif is true.
+variable "gcp_service_account_id" {
+  description = "Numeric unique ID of the scanner's GCP service account."
+  type        = string
+  default     = ""
+}
+
 provider "mondoo" {
   space = "hungry-poet-123456"
 }
@@ -40,6 +48,12 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
   host_project_id = var.gcp_host_project_id
   region          = var.gcp_region
 
+  # Authenticate the deployed scanner back to the platform via GCP Workload
+  # Identity Federation. When enabled, a WIF binding is minted at create time
+  # and its config is returned as `wif_config` below.
+  use_wif            = true
+  service_account_id = var.gcp_service_account_id
+
   scan_configuration = {
     # Only scan projects tagged for production. A value of "*" matches any value.
     tags_filter = {
@@ -49,7 +63,16 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
     excluded_tags_filter = {
       "env" = "sandbox"
     }
+    # Propagate GCP project tags onto all discovered assets.
+    propagate_project_tags = true
   }
+}
+
+# The base64-encoded WIF external account configuration for the deployed
+# scanner. Pass it to the serverless stack's Terraform deployment.
+output "gcp_serverless_wif_config" {
+  description = "Base64-encoded WIF external account configuration for the deployed GCP serverless scanner."
+  value       = mondoo_integration_gcp_serverless.gcp_serverless.wif_config
 }
 ```
 
@@ -64,15 +87,20 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 
 ### Optional
 
+- `cross_org` (Boolean) Allow this integration to land scanned assets in spaces across multiple orgs. Only valid on organization-scoped integrations and only on private-instance deployments (rejected on prod and prod-eu). Requires `use_wif`. Immutable: changing it forces a new integration.
 - `scan_configuration` (Attributes) Scan options that control what the deployed scanner scans. (see [below for nested schema](#nestedatt--scan_configuration))
 - `scope` (String) The GCP scope to scan. Accepts either a folder ID or an organization ID. When omitted, the scanner falls back to its default scope.
+- `service_account_id` (String) The numeric unique ID of the GCP service account the deployed scanner runs as, used as the WIF binding subject. Required when `use_wif` is true. Immutable: changing it forces a new integration.
 - `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
 - `supplied_sa_identity` (String) A customer-provided service account identity to run this integration with, instead of the platform automatically creating one (bring-your-own-identity). Stored and returned verbatim.
+- `use_wif` (Boolean) When true, the deployed scanner authenticates back to the platform via GCP Workload Identity Federation: a WIF auth binding is minted at create time. Immutable: changing it forces a new integration.
 
 ### Read-Only
 
 - `mrn` (String) Integration identifier
 - `token` (String, Sensitive) Integration token. Pass this to the serverless scanner deployment to register it with this integration.
+- `wif_auth_binding_mrn` (String) MRN of the server-managed WIF auth binding created for this integration. Empty when `use_wif` is false.
+- `wif_config` (String) Base64-encoded WIF external account configuration for the deployed scanner. Pass it to the customer's Terraform deployment. Empty when `use_wif` is false.
 
 <a id="nestedatt--scan_configuration"></a>
 ### Nested Schema for `scan_configuration`
@@ -80,6 +108,7 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 Optional:
 
 - `excluded_tags_filter` (Map of String) Exclude filter: projects whose tags match at least one of these key-value pairs are skipped, even if they match the include filter. A value of `*` matches any value for that tag key.
+- `propagate_project_tags` (Boolean) When true, the GCP project tags are propagated to all assets discovered under the project.
 - `scan_schedule_hours` (Number) How often (in hours) the deployed scanner runs a scan. Must be between 1 and 23.
 - `tags_filter` (Map of String) Include filter: when not empty, only projects whose tags match at least one of these key-value pairs are scanned. A value of `*` matches any value for that tag key.
 
