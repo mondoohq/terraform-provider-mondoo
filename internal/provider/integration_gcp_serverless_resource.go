@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
@@ -23,8 +24,9 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource                = (*integrationGcpServerlessResource)(nil)
-	_ resource.ResourceWithImportState = (*integrationGcpServerlessResource)(nil)
+	_ resource.Resource                   = (*integrationGcpServerlessResource)(nil)
+	_ resource.ResourceWithImportState    = (*integrationGcpServerlessResource)(nil)
+	_ resource.ResourceWithValidateConfig = (*integrationGcpServerlessResource)(nil)
 )
 
 func NewIntegrationGcpServerlessResource() resource.Resource {
@@ -233,6 +235,9 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 			"wif_config": schema.StringAttribute{
 				MarkdownDescription: "Base64-encoded WIF external account configuration for the deployed scanner. Pass it to the customer's Terraform deployment. Empty when `use_wif` is false.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"scan_configuration": schema.SingleNestedAttribute{
 				MarkdownDescription: "Scan options that control what the deployed scanner scans.",
@@ -283,6 +288,42 @@ func (r *integrationGcpServerlessResource) Configure(ctx context.Context, req re
 	}
 
 	r.client = client
+}
+
+// ValidateConfig enforces the WIF / cross-org preconditions at plan time so
+// misconfigurations surface during `terraform validate` instead of failing at
+// the API on apply.
+func (r *integrationGcpServerlessResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data integrationGcpServerlessResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(validateGcpServerlessConfig(&data)...)
+}
+
+// validateGcpServerlessConfig holds the WIF / cross-org precondition checks.
+// Unknown values (references to other resources) are skipped so validation does
+// not fire before the value is resolved.
+func validateGcpServerlessConfig(data *integrationGcpServerlessResourceModel) (diagnostics diag.Diagnostics) {
+	// use_wif requires a service_account_id (the WIF binding subject).
+	if data.UseWif.ValueBool() && !data.ServiceAccountID.IsUnknown() && data.ServiceAccountID.ValueString() == "" {
+		diagnostics.AddAttributeError(
+			path.Root("service_account_id"),
+			"Missing service_account_id",
+			"service_account_id is required when use_wif is set to true.",
+		)
+	}
+
+	// cross_org mints a platform-scoped WIF binding, so it requires use_wif.
+	if data.CrossOrg.ValueBool() && !data.UseWif.IsUnknown() && !data.UseWif.ValueBool() {
+		diagnostics.AddAttributeError(
+			path.Root("use_wif"),
+			"cross_org requires use_wif",
+			"use_wif must be set to true when cross_org is enabled.",
+		)
+	}
+	return diagnostics
 }
 
 func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -356,7 +397,15 @@ func (r *integrationGcpServerlessResource) applyComputedWifFields(ctx context.Co
 		data.WifAuthBindingMrn = types.StringValue("")
 		return
 	}
+	// GcpServerlessConfigurationOptions is a value type in the union (not a
+	// pointer), so there is nothing to nil-check. If use_wif is set but the
+	// server returned an empty WIF config, surface it as a warning rather than
+	// silently masking the real value with an empty string.
 	opts := fetched.ConfigurationOptions.GcpServerlessConfigurationOptions
+	if data.UseWif.ValueBool() && opts.WifConfig == "" {
+		diags.AddWarning("Client Warning",
+			"use_wif is enabled but the server returned an empty WIF config; the deployed scanner may not be able to authenticate.")
+	}
 	data.WifConfig = types.StringValue(opts.WifConfig)
 	data.WifAuthBindingMrn = types.StringValue(opts.WifAuthBindingMrn)
 }

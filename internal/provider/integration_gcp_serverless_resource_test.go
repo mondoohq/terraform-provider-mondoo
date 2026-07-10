@@ -181,6 +181,72 @@ func TestIntegrationGcpServerlessGetConfigurationOptions_WifCrossOrgSupplied(t *
 	assert.EqualValues(t, true, *opts.ScanConfiguration.PropagateProjectTags)
 }
 
+// TestValidateGcpServerlessConfig covers the plan-time WIF / cross-org
+// precondition checks.
+func TestValidateGcpServerlessConfig(t *testing.T) {
+	cases := []struct {
+		name    string
+		model   integrationGcpServerlessResourceModel
+		wantErr bool
+	}{
+		{
+			name:  "no wif, no cross_org — valid",
+			model: integrationGcpServerlessResourceModel{HostProjectID: types.StringValue("p"), Region: types.StringValue("r")},
+		},
+		{
+			name: "use_wif with service_account_id — valid",
+			model: integrationGcpServerlessResourceModel{
+				UseWif:           types.BoolValue(true),
+				ServiceAccountID: types.StringValue("123456789012345678901"),
+			},
+		},
+		{
+			name:    "use_wif without service_account_id — error",
+			model:   integrationGcpServerlessResourceModel{UseWif: types.BoolValue(true)},
+			wantErr: true,
+		},
+		{
+			name:    "use_wif with empty service_account_id — error",
+			model:   integrationGcpServerlessResourceModel{UseWif: types.BoolValue(true), ServiceAccountID: types.StringValue("")},
+			wantErr: true,
+		},
+		{
+			name: "use_wif with unknown service_account_id — skipped (valid)",
+			model: integrationGcpServerlessResourceModel{
+				UseWif:           types.BoolValue(true),
+				ServiceAccountID: types.StringUnknown(),
+			},
+		},
+		{
+			name: "cross_org with use_wif — valid",
+			model: integrationGcpServerlessResourceModel{
+				CrossOrg:         types.BoolValue(true),
+				UseWif:           types.BoolValue(true),
+				ServiceAccountID: types.StringValue("123456789012345678901"),
+			},
+		},
+		{
+			name:    "cross_org without use_wif — error",
+			model:   integrationGcpServerlessResourceModel{CrossOrg: types.BoolValue(true), UseWif: types.BoolValue(false)},
+			wantErr: true,
+		},
+		{
+			name: "cross_org with unknown use_wif — skipped (valid)",
+			model: integrationGcpServerlessResourceModel{
+				CrossOrg: types.BoolValue(true),
+				UseWif:   types.BoolUnknown(),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			diags := validateGcpServerlessConfig(&tc.model)
+			assert.Equal(t, tc.wantErr, diags.HasError(), "diagnostics: %v", diags)
+		})
+	}
+}
+
 func TestIntegrationGcpServerlessGetConfigurationOptions_OmittedScope(t *testing.T) {
 	m := integrationGcpServerlessResourceModel{
 		HostProjectID: types.StringValue("my-host-project"),

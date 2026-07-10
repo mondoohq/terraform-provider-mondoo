@@ -71,7 +71,8 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 # The base64-encoded WIF external account configuration for the deployed
 # scanner. Pass it to the serverless stack's Terraform deployment.
 output "gcp_serverless_wif_config" {
-  value = mondoo_integration_gcp_serverless.gcp_serverless.wif_config
+  description = "Base64-encoded WIF external account configuration for the deployed GCP serverless scanner."
+  value       = mondoo_integration_gcp_serverless.gcp_serverless.wif_config
 }
 ```
 
