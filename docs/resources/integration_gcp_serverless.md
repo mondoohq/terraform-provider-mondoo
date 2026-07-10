@@ -81,8 +81,8 @@ variable "mondoo_organization_mrn" {
   default     = ""
 }
 
-# Cross-org integration: created at the Mondoo *organization* scope (via
-# scope_mrn, not space_id) so its assets can land in spaces across every org.
+# Cross-org integration: created at the Mondoo *organization* scope (via an
+# organization scope_mrn) so its assets can land in spaces across every org.
 # cross_org requires use_wif and an organization-scoped scope_mrn.
 resource "mondoo_integration_gcp_serverless" "gcp_serverless_crossorg" {
   name      = "GCP Serverless Cross-Org Integration"
@@ -111,9 +111,8 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless_crossorg" {
 - `cross_org` (Boolean) Allow this integration to land scanned assets in spaces across multiple orgs. Only valid on organization-scoped integrations and only on private-instance deployments (rejected on prod and prod-eu). Requires `use_wif`. Immutable: changing it forces a new integration.
 - `scan_configuration` (Attributes) Scan options that control what the deployed scanner scans. (see [below for nested schema](#nestedatt--scan_configuration))
 - `scope` (String) The GCP scope to scan. Accepts either a folder ID or an organization ID. When omitted, the scanner falls back to its default scope.
-- `scope_mrn` (String) The MRN of the scope (space, organization, or platform) the integration is created under. Preferred over `space_id`, and required for organization-scoped / cross-org integrations (e.g. `//captain.api.mondoo.app/organizations/<org-id>`). Mutually exclusive with `space_id`. Immutable: changing it forces a new integration.
+- `scope_mrn` (String) The MRN of the scope (space, organization, or platform) the integration is created under (e.g. `//captain.api.mondoo.app/organizations/<org-id>`). When omitted, the provider's configured space is used. Required for organization-scoped / cross-org integrations. Immutable: changing it forces a new integration.
 - `service_account_id` (String) The numeric unique ID of the GCP service account the deployed scanner runs as, used as the WIF binding subject. Required when `use_wif` is true. Immutable: changing it forces a new integration.
-- `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used. Mutually exclusive with `scope_mrn`.
 - `supplied_sa_identity` (String) A customer-provided service account identity to run this integration with, instead of the platform automatically creating one (bring-your-own-identity). Stored and returned verbatim.
 - `use_wif` (Boolean) When true, the deployed scanner authenticates back to the platform via GCP Workload Identity Federation: a WIF auth binding is minted at create time. Immutable: changing it forces a new integration.
 

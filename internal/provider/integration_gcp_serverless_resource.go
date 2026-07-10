@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -39,11 +38,9 @@ type integrationGcpServerlessResource struct {
 }
 
 type integrationGcpServerlessResourceModel struct {
-	// scope
-	SpaceID types.String `tfsdk:"space_id"`
 	// ScopeMrn is the MRN of the scope (space, organization, or platform) the
-	// integration is created under. Preferred over space_id and required for
-	// org-scoped / cross-org integrations. Mutually exclusive with space_id.
+	// integration is created under. When omitted, the provider's configured
+	// space is used. Required for org-scoped / cross-org integrations.
 	ScopeMrn types.String `tfsdk:"scope_mrn"`
 
 	// integration details
@@ -166,27 +163,13 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Continuously scan GCP organizations and folders for misconfigurations and vulnerabilities using a serverless scanner deployed into your own host project.`,
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used. Mutually exclusive with `scope_mrn`.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(path.MatchRoot("scope_mrn")),
-				},
-			},
 			"scope_mrn": schema.StringAttribute{
-				MarkdownDescription: "The MRN of the scope (space, organization, or platform) the integration is created under. Preferred over `space_id`, and required for organization-scoped / cross-org integrations (e.g. `//captain.api.mondoo.app/organizations/<org-id>`). Mutually exclusive with `space_id`. Immutable: changing it forces a new integration.",
+				MarkdownDescription: "The MRN of the scope (space, organization, or platform) the integration is created under (e.g. `//captain.api.mondoo.app/organizations/<org-id>`). When omitted, the provider's configured space is used. Required for organization-scoped / cross-org integrations. Immutable: changing it forces a new integration.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(path.MatchRoot("space_id")),
 				},
 			},
 			"mrn": schema.StringAttribute{
@@ -345,8 +328,8 @@ func validateGcpServerlessConfig(data *integrationGcpServerlessResourceModel) (d
 	}
 
 	// cross_org is only valid on an organization-scoped integration, so
-	// scope_mrn must be set to an organization MRN (space_id / a space scope_mrn
-	// are rejected by the server).
+	// scope_mrn must be set to an organization MRN (a space scope, or omitting
+	// scope_mrn to use the provider space, is rejected by the server).
 	if data.CrossOrg.ValueBool() && !data.ScopeMrn.IsUnknown() && !strings.HasPrefix(data.ScopeMrn.ValueString(), orgPrefix) {
 		diagnostics.AddAttributeError(
 			path.Root("scope_mrn"),
@@ -372,9 +355,9 @@ func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resou
 		GcpServerlessConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
-	// Resolve the scope. scope_mrn (space, organization, or platform) takes
-	// precedence; otherwise fall back to the space_id / provider-space path.
-	// Org scope is what enables cross_org integrations.
+	// Resolve the scope. An explicit scope_mrn (space, organization, or
+	// platform) is used directly — org scope is what enables cross_org
+	// integrations. When omitted, fall back to the provider's configured space.
 	var integration *CreateClientIntegrationPayload
 	var err error
 	if scopeMrn := data.ScopeMrn.ValueString(); scopeMrn != "" {
@@ -390,10 +373,9 @@ func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resou
 				fmt.Sprintf("Unable to create GCP serverless integration. Got error: %s", err))
 			return
 		}
-		data.SpaceID = types.StringNull()
 		data.ScopeMrn = types.StringValue(scopeMrn)
 	} else {
-		space, spaceErr := r.client.ComputeSpace(data.SpaceID)
+		space, spaceErr := r.client.ComputeSpace(types.StringNull())
 		if spaceErr != nil {
 			resp.Diagnostics.AddError("Invalid Configuration", spaceErr.Error())
 			return
@@ -410,7 +392,6 @@ func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resou
 				fmt.Sprintf("Unable to create GCP serverless integration. Got error: %s", err))
 			return
 		}
-		data.SpaceID = types.StringValue(space.ID())
 		data.ScopeMrn = types.StringValue(space.MRN())
 	}
 
@@ -548,11 +529,6 @@ func (r *integrationGcpServerlessResource) ImportState(ctx context.Context, req 
 		Mrn:      types.StringValue(integration.Mrn),
 		Name:     types.StringValue(integration.Name),
 		ScopeMrn: types.StringValue(integration.ScopeMRN()),
-	}
-	// space_id and scope_mrn are mutually exclusive; only set space_id for a
-	// space-scoped integration so the two don't conflict in state.
-	if integration.IsSpaceScoped() {
-		model.SpaceID = types.StringValue(integration.SpaceID())
 	}
 
 	resp.State.Set(ctx, &model)

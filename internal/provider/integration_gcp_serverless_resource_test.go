@@ -242,12 +242,11 @@ func TestValidateGcpServerlessConfig(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "cross_org with no scope_mrn (space_id path) — error",
+			name: "cross_org with no scope_mrn (provider-space path) — error",
 			model: integrationGcpServerlessResourceModel{
 				CrossOrg:         types.BoolValue(true),
 				UseWif:           types.BoolValue(true),
 				ServiceAccountID: types.StringValue("123456789012345678901"),
-				SpaceID:          types.StringValue("dazzling-space-123456"),
 			},
 			wantErr: true,
 		},

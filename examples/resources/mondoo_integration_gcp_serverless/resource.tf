@@ -66,8 +66,8 @@ variable "mondoo_organization_mrn" {
   default     = ""
 }
 
-# Cross-org integration: created at the Mondoo *organization* scope (via
-# scope_mrn, not space_id) so its assets can land in spaces across every org.
+# Cross-org integration: created at the Mondoo *organization* scope (via an
+# organization scope_mrn) so its assets can land in spaces across every org.
 # cross_org requires use_wif and an organization-scoped scope_mrn.
 resource "mondoo_integration_gcp_serverless" "gcp_serverless_crossorg" {
   name      = "GCP Serverless Cross-Org Integration"
