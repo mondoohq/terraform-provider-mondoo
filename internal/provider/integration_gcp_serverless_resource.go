@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -52,6 +54,24 @@ type integrationGcpServerlessResourceModel struct {
 	// integration with, instead of the platform creating one.
 	SuppliedSaIdentity types.String `tfsdk:"supplied_sa_identity"`
 
+	// Allow this integration to land scanned assets in spaces across multiple
+	// orgs. Immutable after creation.
+	CrossOrg types.Bool `tfsdk:"cross_org"`
+	// When true, the deployed scanner authenticates back to the platform via GCP
+	// Workload Identity Federation. Immutable after creation.
+	UseWif types.Bool `tfsdk:"use_wif"`
+	// The numeric unique ID of the GCP service account the deployed scanner runs
+	// as, used as the WIF binding subject. Immutable after creation.
+	ServiceAccountID types.String `tfsdk:"service_account_id"`
+
+	// (Computed.) MRN of the server-managed WIF auth binding created for this
+	// integration. Empty when use_wif is false.
+	WifAuthBindingMrn types.String `tfsdk:"wif_auth_binding_mrn"`
+	// (Computed.) Base64-encoded WIF external account configuration for the
+	// deployed scanner. Pass it to the customer's Terraform deployment. Empty
+	// when use_wif is false.
+	WifConfig types.String `tfsdk:"wif_config"`
+
 	// (Optional.)
 	ScanConfiguration *GcpServerlessScanConfigurationInput `tfsdk:"scan_configuration"`
 }
@@ -65,6 +85,9 @@ type GcpServerlessScanConfigurationInput struct {
 	ExcludedTagsFilter types.Map `tfsdk:"excluded_tags_filter"`
 	// (Optional.) How often (in hours) the deployed scanner runs a scan.
 	ScanScheduleHours types.Int32 `tfsdk:"scan_schedule_hours"`
+	// (Optional.) When true, the GCP project tags are propagated to all assets
+	// discovered under the project.
+	PropagateProjectTags types.Bool `tfsdk:"propagate_project_tags"`
 }
 
 // tagsFilterToKeyValueList converts a Terraform string map into the GraphQL
@@ -102,6 +125,16 @@ func (m integrationGcpServerlessResourceModel) GetConfigurationOptions() *mondoo
 		opts.SuppliedSaIdentity = mondoov1.NewStringPtr(mondoov1.String(sa))
 	}
 
+	if !m.CrossOrg.IsNull() && !m.CrossOrg.IsUnknown() {
+		opts.CrossOrg = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.CrossOrg.ValueBool()))
+	}
+	if !m.UseWif.IsNull() && !m.UseWif.IsUnknown() {
+		opts.UseWif = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.UseWif.ValueBool()))
+	}
+	if !m.ServiceAccountID.IsNull() && !m.ServiceAccountID.IsUnknown() {
+		opts.ServiceAccountId = mondoov1.NewStringPtr(mondoov1.String(m.ServiceAccountID.ValueString()))
+	}
+
 	if m.ScanConfiguration != nil {
 		opts.ScanConfiguration = &mondoov1.GcpServerlessScanConfigurationInput{
 			TagsFilter:         tagsFilterToKeyValueList(m.ScanConfiguration.TagsFilter),
@@ -109,6 +142,9 @@ func (m integrationGcpServerlessResourceModel) GetConfigurationOptions() *mondoo
 		}
 		if !m.ScanConfiguration.ScanScheduleHours.IsNull() && !m.ScanConfiguration.ScanScheduleHours.IsUnknown() {
 			opts.ScanConfiguration.ScanScheduleHours = mondoov1.NewIntPtr(mondoov1.Int(m.ScanConfiguration.ScanScheduleHours.ValueInt32()))
+		}
+		if !m.ScanConfiguration.PropagateProjectTags.IsNull() && !m.ScanConfiguration.PropagateProjectTags.IsUnknown() {
+			opts.ScanConfiguration.PropagateProjectTags = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.PropagateProjectTags.ValueBool()))
 		}
 	}
 
@@ -166,6 +202,38 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 				MarkdownDescription: "A customer-provided service account identity to run this integration with, instead of the platform automatically creating one (bring-your-own-identity). Stored and returned verbatim.",
 				Optional:            true,
 			},
+			"cross_org": schema.BoolAttribute{
+				MarkdownDescription: "Allow this integration to land scanned assets in spaces across multiple orgs. Only valid on organization-scoped integrations and only on private-instance deployments (rejected on prod and prod-eu). Requires `use_wif`. Immutable: changing it forces a new integration.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
+			"use_wif": schema.BoolAttribute{
+				MarkdownDescription: "When true, the deployed scanner authenticates back to the platform via GCP Workload Identity Federation: a WIF auth binding is minted at create time. Immutable: changing it forces a new integration.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
+			"service_account_id": schema.StringAttribute{
+				MarkdownDescription: "The numeric unique ID of the GCP service account the deployed scanner runs as, used as the WIF binding subject. Required when `use_wif` is true. Immutable: changing it forces a new integration.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"wif_auth_binding_mrn": schema.StringAttribute{
+				MarkdownDescription: "MRN of the server-managed WIF auth binding created for this integration. Empty when `use_wif` is false.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"wif_config": schema.StringAttribute{
+				MarkdownDescription: "Base64-encoded WIF external account configuration for the deployed scanner. Pass it to the customer's Terraform deployment. Empty when `use_wif` is false.",
+				Computed:            true,
+			},
 			"scan_configuration": schema.SingleNestedAttribute{
 				MarkdownDescription: "Scan options that control what the deployed scanner scans.",
 				Optional:            true,
@@ -186,6 +254,10 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 						Validators: []validator.Int32{
 							int32validator.Between(1, 23),
 						},
+					},
+					"propagate_project_tags": schema.BoolAttribute{
+						MarkdownDescription: "When true, the GCP project tags are propagated to all assets discovered under the project.",
+						Optional:            true,
 					},
 				},
 			},
@@ -264,8 +336,29 @@ func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resou
 	data.Token = types.StringValue(string(integration.Token))
 	data.SpaceID = types.StringValue(space.ID())
 
+	// Fetch the full integration to populate the server-computed WIF fields
+	// (wif_config / wif_auth_binding_mrn), which are minted at create time.
+	r.applyComputedWifFields(ctx, string(integration.Mrn), &data, &resp.Diagnostics)
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// applyComputedWifFields fetches the integration and copies the server-managed
+// WIF outputs onto the model. Computed attributes must be set to known values,
+// so on error it falls back to empty strings.
+func (r *integrationGcpServerlessResource) applyComputedWifFields(ctx context.Context, mrn string, data *integrationGcpServerlessResourceModel, diags *diag.Diagnostics) {
+	fetched, err := r.client.GetClientIntegration(ctx, mrn)
+	if err != nil {
+		diags.AddWarning("Client Warning",
+			fmt.Sprintf("Unable to fetch integration to populate computed WIF fields. Got error: %s", err))
+		data.WifConfig = types.StringValue("")
+		data.WifAuthBindingMrn = types.StringValue("")
+		return
+	}
+	opts := fetched.ConfigurationOptions.GcpServerlessConfigurationOptions
+	data.WifConfig = types.StringValue(opts.WifConfig)
+	data.WifAuthBindingMrn = types.StringValue(opts.WifAuthBindingMrn)
 }
 
 func (r *integrationGcpServerlessResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -278,7 +371,8 @@ func (r *integrationGcpServerlessResource) Read(ctx context.Context, req resourc
 		return
 	}
 
-	// Read API call logic
+	// Refresh the server-computed WIF fields.
+	r.applyComputedWifFields(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -312,6 +406,9 @@ func (r *integrationGcpServerlessResource) Update(ctx context.Context, req resou
 			)
 		return
 	}
+
+	// Refresh the server-computed WIF fields.
+	r.applyComputedWifFields(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
