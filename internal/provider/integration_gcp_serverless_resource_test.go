@@ -218,17 +218,47 @@ func TestValidateGcpServerlessConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "cross_org with use_wif — valid",
+			name: "cross_org with use_wif and org scope_mrn — valid",
 			model: integrationGcpServerlessResourceModel{
 				CrossOrg:         types.BoolValue(true),
 				UseWif:           types.BoolValue(true),
 				ServiceAccountID: types.StringValue("123456789012345678901"),
+				ScopeMrn:         types.StringValue("//captain.api.mondoo.app/organizations/dazzling-org-123456"),
 			},
 		},
 		{
 			name:    "cross_org without use_wif — error",
 			model:   integrationGcpServerlessResourceModel{CrossOrg: types.BoolValue(true), UseWif: types.BoolValue(false)},
 			wantErr: true,
+		},
+		{
+			name: "cross_org with space scope_mrn — error",
+			model: integrationGcpServerlessResourceModel{
+				CrossOrg:         types.BoolValue(true),
+				UseWif:           types.BoolValue(true),
+				ServiceAccountID: types.StringValue("123456789012345678901"),
+				ScopeMrn:         types.StringValue("//captain.api.mondoo.app/spaces/dazzling-space-123456"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "cross_org with no scope_mrn (space_id path) — error",
+			model: integrationGcpServerlessResourceModel{
+				CrossOrg:         types.BoolValue(true),
+				UseWif:           types.BoolValue(true),
+				ServiceAccountID: types.StringValue("123456789012345678901"),
+				SpaceID:          types.StringValue("dazzling-space-123456"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "cross_org with unknown scope_mrn — skipped (valid)",
+			model: integrationGcpServerlessResourceModel{
+				CrossOrg:         types.BoolValue(true),
+				UseWif:           types.BoolValue(true),
+				ServiceAccountID: types.StringValue("123456789012345678901"),
+				ScopeMrn:         types.StringUnknown(),
+			},
 		},
 		{
 			name: "cross_org with unknown use_wif — skipped (valid)",
