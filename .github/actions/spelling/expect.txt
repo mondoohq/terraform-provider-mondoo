@@ -8,10 +8,10 @@ CIDs
 codegen
 concat
 connectionstrings
+crossorg
 crowdstrike
 Cwj
 DXhjr
-Dynatrace
 FIGc
 Gci
 gcs
@@ -31,7 +31,6 @@ NATGW
 NCIs
 NHar
 ocid
-OCSF
 Ooe
 Plutx
 QFKc
