@@ -264,6 +264,7 @@ func TestValidateGcpServerlessConfig(t *testing.T) {
 			model: integrationGcpServerlessResourceModel{
 				CrossOrg: types.BoolValue(true),
 				UseWif:   types.BoolUnknown(),
+				ScopeMrn: types.StringValue("//captain.api.mondoo.app/organizations/dazzling-org-123456"),
 			},
 		},
 	}
