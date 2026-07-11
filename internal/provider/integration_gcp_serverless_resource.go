@@ -328,15 +328,27 @@ func validateGcpServerlessConfig(data *integrationGcpServerlessResourceModel) (d
 	}
 
 	// cross_org is only valid on an organization-scoped integration, so
-	// scope_mrn must be set to an organization MRN (a space scope, or omitting
-	// scope_mrn to use the provider space, is rejected by the server).
-	if data.CrossOrg.ValueBool() && !data.ScopeMrn.IsUnknown() && !strings.HasPrefix(data.ScopeMrn.ValueString(), orgPrefix) {
-		diagnostics.AddAttributeError(
-			path.Root("scope_mrn"),
-			"cross_org requires an organization scope",
-			"cross_org can only be set on an organization-scoped integration; set scope_mrn to an organization MRN "+
-				"(e.g. //captain.api.mondoo.app/organizations/<org-id>).",
-		)
+	// scope_mrn must be set to an organization MRN. A null/empty scope_mrn
+	// (which would fall back to the provider space) and a space-scoped MRN are
+	// both rejected, with distinct messages.
+	if data.CrossOrg.ValueBool() && !data.ScopeMrn.IsUnknown() {
+		switch scope := data.ScopeMrn.ValueString(); {
+		case scope == "":
+			diagnostics.AddAttributeError(
+				path.Root("scope_mrn"),
+				"cross_org requires an explicit scope_mrn",
+				"scope_mrn is required when cross_org is enabled; set it to an organization MRN "+
+					"(e.g. //captain.api.mondoo.app/organizations/<org-id>). Omitting it uses the provider "+
+					"space, which is not organization-scoped.",
+			)
+		case !strings.HasPrefix(scope, orgPrefix):
+			diagnostics.AddAttributeError(
+				path.Root("scope_mrn"),
+				"cross_org requires an organization scope",
+				"cross_org can only be set on an organization-scoped integration; set scope_mrn to an organization MRN "+
+					"(e.g. //captain.api.mondoo.app/organizations/<org-id>).",
+			)
+		}
 	}
 	return diagnostics
 }
@@ -412,24 +424,32 @@ func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resou
 
 	// Fetch the full integration to populate the server-computed WIF fields
 	// (wif_config / wif_auth_binding_mrn), which are minted at create time.
-	r.applyComputedWifFields(ctx, string(integration.Mrn), &data, &resp.Diagnostics)
+	r.refreshServerState(ctx, string(integration.Mrn), &data, &resp.Diagnostics)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-// applyComputedWifFields fetches the integration and copies the server-managed
-// WIF outputs onto the model. Computed attributes must be set to known values,
-// so on error it falls back to empty strings.
-func (r *integrationGcpServerlessResource) applyComputedWifFields(ctx context.Context, mrn string, data *integrationGcpServerlessResourceModel, diags *diag.Diagnostics) {
+// refreshServerState fetches the integration and reconciles the
+// server-authoritative fields onto the model: name, the resolved scope, and
+// the server-managed WIF outputs. Computed attributes must be set to known
+// values, so on error the WIF outputs fall back to empty strings.
+func (r *integrationGcpServerlessResource) refreshServerState(ctx context.Context, mrn string, data *integrationGcpServerlessResourceModel, diags *diag.Diagnostics) {
 	fetched, err := r.client.GetClientIntegration(ctx, mrn)
 	if err != nil {
 		diags.AddWarning("Client Warning",
-			fmt.Sprintf("Unable to fetch integration to populate computed WIF fields. Got error: %s", err))
+			fmt.Sprintf("Unable to fetch integration to populate computed fields. Got error: %s", err))
 		data.WifConfig = types.StringValue("")
 		data.WifAuthBindingMrn = types.StringValue("")
 		return
 	}
+	// Refresh the server-authoritative fields (name and the resolved scope) so
+	// they reconcile after import and out-of-band changes.
+	data.Name = types.StringValue(fetched.Name)
+	if scope := fetched.ScopeMRN(); scope != "" {
+		data.ScopeMrn = types.StringValue(scope)
+	}
+
 	// GcpServerlessConfigurationOptions is a value type in the union (not a
 	// pointer), so there is nothing to nil-check. If use_wif is set but the
 	// server returned an empty WIF config, surface it as a warning rather than
@@ -454,7 +474,7 @@ func (r *integrationGcpServerlessResource) Read(ctx context.Context, req resourc
 	}
 
 	// Refresh the server-computed WIF fields.
-	r.applyComputedWifFields(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
+	r.refreshServerState(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -490,7 +510,7 @@ func (r *integrationGcpServerlessResource) Update(ctx context.Context, req resou
 	}
 
 	// Refresh the server-computed WIF fields.
-	r.applyComputedWifFields(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
+	r.refreshServerState(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
