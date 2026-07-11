@@ -59,3 +59,24 @@ output "gcp_serverless_wif_config" {
   description = "Base64-encoded WIF external account configuration for the deployed GCP serverless scanner."
   value       = mondoo_integration_gcp_serverless.gcp_serverless.wif_config
 }
+
+variable "mondoo_organization_mrn" {
+  description = "The Mondoo organization MRN to create the cross-org integration under."
+  type        = string
+  default     = ""
+}
+
+# Cross-org integration: created at the Mondoo *organization* scope (via an
+# organization scope_mrn) so its assets can land in spaces across every org.
+# cross_org requires use_wif and an organization-scoped scope_mrn.
+resource "mondoo_integration_gcp_serverless" "gcp_serverless_crossorg" {
+  name      = "GCP Serverless Cross-Org Integration"
+  scope_mrn = var.mondoo_organization_mrn
+
+  host_project_id = var.gcp_host_project_id
+  region          = var.gcp_region
+
+  cross_org          = true
+  use_wif            = true
+  service_account_id = var.gcp_service_account_id
+}

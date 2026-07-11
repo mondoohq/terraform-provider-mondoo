@@ -38,8 +38,10 @@ type integrationGcpServerlessResource struct {
 }
 
 type integrationGcpServerlessResourceModel struct {
-	// scope
-	SpaceID types.String `tfsdk:"space_id"`
+	// ScopeMrn is the MRN of the scope (space, organization, or platform) the
+	// integration is created under. When omitted, the provider's configured
+	// space is used. Required for org-scoped / cross-org integrations.
+	ScopeMrn types.String `tfsdk:"scope_mrn"`
 
 	// integration details
 	Mrn   types.String `tfsdk:"mrn"`
@@ -161,12 +163,13 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Continuously scan GCP organizations and folders for misconfigurations and vulnerabilities using a serverless scanner deployed into your own host project.`,
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used.",
+			"scope_mrn": schema.StringAttribute{
+				MarkdownDescription: "The MRN of the scope (space, organization, or platform) the integration is created under (e.g. `//captain.api.mondoo.app/organizations/<org-id>`). When omitted, the provider's configured space is used. Required for organization-scoped / cross-org integrations. Immutable: changing it forces a new integration.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"mrn": schema.StringAttribute{
@@ -323,6 +326,30 @@ func validateGcpServerlessConfig(data *integrationGcpServerlessResourceModel) (d
 			"use_wif must be set to true when cross_org is enabled.",
 		)
 	}
+
+	// cross_org is only valid on an organization-scoped integration, so
+	// scope_mrn must be set to an organization MRN. A null/empty scope_mrn
+	// (which would fall back to the provider space) and a space-scoped MRN are
+	// both rejected, with distinct messages.
+	if data.CrossOrg.ValueBool() && !data.ScopeMrn.IsUnknown() {
+		switch scope := data.ScopeMrn.ValueString(); {
+		case scope == "":
+			diagnostics.AddAttributeError(
+				path.Root("scope_mrn"),
+				"cross_org requires an explicit scope_mrn",
+				"scope_mrn is required when cross_org is enabled; set it to an organization MRN "+
+					"(e.g. //captain.api.mondoo.app/organizations/<org-id>). Omitting it uses the provider "+
+					"space, which is not organization-scoped.",
+			)
+		case !strings.HasPrefix(scope, orgPrefix):
+			diagnostics.AddAttributeError(
+				path.Root("scope_mrn"),
+				"cross_org requires an organization scope",
+				"cross_org can only be set on an organization-scoped integration; set scope_mrn to an organization MRN "+
+					"(e.g. //captain.api.mondoo.app/organizations/<org-id>).",
+			)
+		}
+	}
 	return diagnostics
 }
 
@@ -336,29 +363,48 @@ func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
+	configInput := mondoov1.ClientIntegrationConfigurationInput{
+		GcpServerlessConfigurationOptions: data.GetConfigurationOptions(),
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
-	// Do GraphQL request to API to create the resource.
-	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
-		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeGcpServerless,
-		mondoov1.ClientIntegrationConfigurationInput{
-			GcpServerlessConfigurationOptions: data.GetConfigurationOptions(),
-		})
-	if err != nil {
-		resp.Diagnostics.
-			AddError("Client Error",
-				fmt.Sprintf("Unable to create GCP serverless integration. Got error: %s", err),
-			)
-		return
+	// Resolve the scope. An explicit scope_mrn (space, organization, or
+	// platform) is used directly — org scope is what enables cross_org
+	// integrations. When omitted, fall back to the provider's configured space.
+	var integration *CreateClientIntegrationPayload
+	var err error
+	if scopeMrn := data.ScopeMrn.ValueString(); scopeMrn != "" {
+		ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
+		tflog.Debug(ctx, "Creating integration")
+		integration, err = r.client.CreateScopedIntegration(ctx,
+			scopeMrn,
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeGcpServerless,
+			configInput)
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error",
+				fmt.Sprintf("Unable to create GCP serverless integration. Got error: %s", err))
+			return
+		}
+		data.ScopeMrn = types.StringValue(scopeMrn)
+	} else {
+		space, spaceErr := r.client.ComputeSpace(types.StringNull())
+		if spaceErr != nil {
+			resp.Diagnostics.AddError("Invalid Configuration", spaceErr.Error())
+			return
+		}
+		ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+		tflog.Debug(ctx, "Creating integration")
+		integration, err = r.client.CreateIntegration(ctx,
+			space.MRN(),
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeGcpServerless,
+			configInput)
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error",
+				fmt.Sprintf("Unable to create GCP serverless integration. Got error: %s", err))
+			return
+		}
+		data.ScopeMrn = types.StringValue(space.MRN())
 	}
 
 	// trigger integration to gather results quickly after the first setup
@@ -371,32 +417,41 @@ func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resou
 			)
 	}
 
-	// Save space mrn into the Terraform state.
+	// Save into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
 	data.Token = types.StringValue(string(integration.Token))
-	data.SpaceID = types.StringValue(space.ID())
 
 	// Fetch the full integration to populate the server-computed WIF fields
 	// (wif_config / wif_auth_binding_mrn), which are minted at create time.
-	r.applyComputedWifFields(ctx, string(integration.Mrn), &data, &resp.Diagnostics)
+	r.refreshServerState(ctx, string(integration.Mrn), &data, &resp.Diagnostics)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-// applyComputedWifFields fetches the integration and copies the server-managed
-// WIF outputs onto the model. Computed attributes must be set to known values,
-// so on error it falls back to empty strings.
-func (r *integrationGcpServerlessResource) applyComputedWifFields(ctx context.Context, mrn string, data *integrationGcpServerlessResourceModel, diags *diag.Diagnostics) {
+// refreshServerState fetches the integration and reconciles the
+// server-computed fields onto the model: the resolved scope and the
+// server-managed WIF outputs. User-authoritative fields (e.g. name) are left
+// as-is. Computed attributes must be set to known values, so on error the WIF
+// outputs fall back to empty strings.
+func (r *integrationGcpServerlessResource) refreshServerState(ctx context.Context, mrn string, data *integrationGcpServerlessResourceModel, diags *diag.Diagnostics) {
 	fetched, err := r.client.GetClientIntegration(ctx, mrn)
 	if err != nil {
 		diags.AddWarning("Client Warning",
-			fmt.Sprintf("Unable to fetch integration to populate computed WIF fields. Got error: %s", err))
+			fmt.Sprintf("Unable to fetch integration to populate computed fields. Got error: %s", err))
 		data.WifConfig = types.StringValue("")
 		data.WifAuthBindingMrn = types.StringValue("")
 		return
 	}
+	// Reconcile the resolved scope so it is populated after import. scope_mrn is
+	// immutable (RequiresReplace), so refreshing it here can't clobber a pending
+	// change. name is intentionally NOT refreshed: it is user-authoritative and
+	// mutable, so overwriting it would suppress a rename diff.
+	if scope := fetched.ScopeMRN(); scope != "" {
+		data.ScopeMrn = types.StringValue(scope)
+	}
+
 	// GcpServerlessConfigurationOptions is a value type in the union (not a
 	// pointer), so there is nothing to nil-check. If use_wif is set but the
 	// server returned an empty WIF config, surface it as a warning rather than
@@ -421,7 +476,7 @@ func (r *integrationGcpServerlessResource) Read(ctx context.Context, req resourc
 	}
 
 	// Refresh the server-computed WIF fields.
-	r.applyComputedWifFields(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
+	r.refreshServerState(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -457,7 +512,7 @@ func (r *integrationGcpServerlessResource) Update(ctx context.Context, req resou
 	}
 
 	// Refresh the server-computed WIF fields.
-	r.applyComputedWifFields(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
+	r.refreshServerState(ctx, data.Mrn.ValueString(), &data, &resp.Diagnostics)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -493,9 +548,9 @@ func (r *integrationGcpServerlessResource) ImportState(ctx context.Context, req 
 	}
 
 	model := integrationGcpServerlessResourceModel{
-		Mrn:     types.StringValue(integration.Mrn),
-		Name:    types.StringValue(integration.Name),
-		SpaceID: types.StringValue(integration.SpaceID()),
+		Mrn:      types.StringValue(integration.Mrn),
+		Name:     types.StringValue(integration.Name),
+		ScopeMrn: types.StringValue(integration.ScopeMRN()),
 	}
 
 	resp.State.Set(ctx, &model)
