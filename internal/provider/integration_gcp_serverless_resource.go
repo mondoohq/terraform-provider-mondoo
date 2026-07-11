@@ -431,9 +431,10 @@ func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resou
 }
 
 // refreshServerState fetches the integration and reconciles the
-// server-authoritative fields onto the model: name, the resolved scope, and
-// the server-managed WIF outputs. Computed attributes must be set to known
-// values, so on error the WIF outputs fall back to empty strings.
+// server-computed fields onto the model: the resolved scope and the
+// server-managed WIF outputs. User-authoritative fields (e.g. name) are left
+// as-is. Computed attributes must be set to known values, so on error the WIF
+// outputs fall back to empty strings.
 func (r *integrationGcpServerlessResource) refreshServerState(ctx context.Context, mrn string, data *integrationGcpServerlessResourceModel, diags *diag.Diagnostics) {
 	fetched, err := r.client.GetClientIntegration(ctx, mrn)
 	if err != nil {
@@ -443,9 +444,10 @@ func (r *integrationGcpServerlessResource) refreshServerState(ctx context.Contex
 		data.WifAuthBindingMrn = types.StringValue("")
 		return
 	}
-	// Refresh the server-authoritative fields (name and the resolved scope) so
-	// they reconcile after import and out-of-band changes.
-	data.Name = types.StringValue(fetched.Name)
+	// Reconcile the resolved scope so it is populated after import. scope_mrn is
+	// immutable (RequiresReplace), so refreshing it here can't clobber a pending
+	// change. name is intentionally NOT refreshed: it is user-authoritative and
+	// mutable, so overwriting it would suppress a rename diff.
 	if scope := fetched.ScopeMRN(); scope != "" {
 		data.ScopeMrn = types.StringValue(scope)
 	}
