@@ -211,6 +211,12 @@ resource "azurerm_role_definition" "mondoo_security_role" {
       "Microsoft.KeyVault/locations/*/read",
       "Microsoft.KeyVault/vaults/*/read",
       "Microsoft.KeyVault/operations/read",
+      # scan_vms drives Mondoo's extended scanner, which calls the *legacy* Run
+      # Command endpoint (POST .../virtualMachines/{vm}/runCommand). That is a
+      # different resource type from the managed runCommands/* API below, with
+      # its own action — without it, VM scans fail with AuthorizationFailed on
+      # 'Microsoft.Compute/virtualMachines/runCommand/action'.
+      "Microsoft.Compute/virtualMachines/runCommand/action",
       "Microsoft.Compute/virtualMachines/runCommands/read",
       "Microsoft.Compute/virtualMachines/runCommands/write",
       "Microsoft.Compute/virtualMachines/runCommands/delete"
@@ -450,6 +456,12 @@ resource "azurerm_role_definition" "mondoo_security_role" {
       "Microsoft.KeyVault/locations/*/read",
       "Microsoft.KeyVault/vaults/*/read",
       "Microsoft.KeyVault/operations/read",
+      # scan_vms drives Mondoo's extended scanner, which calls the *legacy* Run
+      # Command endpoint (POST .../virtualMachines/{vm}/runCommand). That is a
+      # different resource type from the managed runCommands/* API below, with
+      # its own action — without it, VM scans fail with AuthorizationFailed on
+      # 'Microsoft.Compute/virtualMachines/runCommand/action'.
+      "Microsoft.Compute/virtualMachines/runCommand/action",
       "Microsoft.Compute/virtualMachines/runCommands/read",
       "Microsoft.Compute/virtualMachines/runCommands/write",
       "Microsoft.Compute/virtualMachines/runCommands/delete"
