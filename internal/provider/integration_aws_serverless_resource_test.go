@@ -12,16 +12,20 @@ import (
 )
 
 func TestIntegrationAwsServerlessResourceGetConfigurationOptions_AccountScan(t *testing.T) {
-	// account_scan carries a schema default of true, so the plan always resolves
-	// it to a known value before GetConfigurationOptions runs. Both settings must
-	// reach the API unchanged.
+	// An explicit setting reaches the API unchanged. An unset attribute must be
+	// omitted from the request entirely so the API applies its own default of
+	// true — sending false there would disable account scanning for every
+	// configuration written before this attribute existed.
 	for _, tc := range []struct {
 		name        string
 		accountScan types.Bool
+		expectSent  bool
 		expected    bool
 	}{
-		{name: "enabled", accountScan: types.BoolValue(true), expected: true},
-		{name: "disabled", accountScan: types.BoolValue(false), expected: false},
+		{name: "enabled", accountScan: types.BoolValue(true), expectSent: true, expected: true},
+		{name: "disabled", accountScan: types.BoolValue(false), expectSent: true, expected: false},
+		{name: "unset", accountScan: types.BoolNull(), expectSent: false},
+		{name: "unknown", accountScan: types.BoolUnknown(), expectSent: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Every list and map must be an explicitly typed null, the way
@@ -45,6 +49,10 @@ func TestIntegrationAwsServerlessResourceGetConfigurationOptions_AccountScan(t *
 			}
 
 			opts := m.GetConfigurationOptions()
+			if !tc.expectSent {
+				assert.Nil(t, opts.ScanConfiguration.AccountScan)
+				return
+			}
 			if assert.NotNil(t, opts.ScanConfiguration.AccountScan) {
 				assert.Equal(t, mondoov1.Boolean(tc.expected), *opts.ScanConfiguration.AccountScan)
 			}

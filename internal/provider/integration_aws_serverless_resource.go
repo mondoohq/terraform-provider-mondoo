@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -199,7 +198,6 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 		IsOrganization: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.IsOrganization.ValueBool())),
 		AccountIDs:     &accountIDs,
 		ScanConfiguration: mondoov1.ScanConfigurationInput{
-			AccountScan:       mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.AccountScan.ValueBool())),
 			Ec2Scan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2Scan.ValueBool())),
 			EcrScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcrScan.ValueBool())),
 			EcsScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcsScan.ValueBool())),
@@ -217,6 +215,14 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 				InstanceConnect:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2ScanOptions.InstanceConnect.ValueBool())),
 			},
 		},
+	}
+
+	// account_scan is only sent when the practitioner set it. Leaving it off the
+	// request lets the API apply its own default of true; sending false for an
+	// unset attribute would silently disable account scanning for every
+	// configuration that predates this attribute.
+	if accountScan := m.ScanConfiguration.AccountScan; !accountScan.IsNull() && !accountScan.IsUnknown() {
+		opts.ScanConfiguration.AccountScan = mondoov1.NewBooleanPtr(mondoov1.Boolean(accountScan.ValueBool()))
 	}
 
 	if m.ScanConfiguration.VpcConfiguration != nil {
@@ -299,10 +305,8 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 				Required: true,
 				Attributes: map[string]schema.Attribute{
 					"account_scan": schema.BoolAttribute{
-						MarkdownDescription: "Enable AWS account scan.",
+						MarkdownDescription: "Enable AWS account scan. Defaults to true when not set.",
 						Optional:            true,
-						Computed:            true,
-						Default:             booldefault.StaticBool(true),
 					},
 					"ec2_scan": schema.BoolAttribute{
 						MarkdownDescription: "Enable EC2 scan.",
