@@ -8,7 +8,37 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
+	mondoov1 "go.mondoo.com/mondoo-go"
 )
+
+func TestIntegrationAwsServerlessResourceGetConfigurationOptions_AccountScan(t *testing.T) {
+	// account_scan carries a schema default of true, so the plan always resolves
+	// it to a known value before GetConfigurationOptions runs. Both settings must
+	// reach the API unchanged.
+	for _, tc := range []struct {
+		name        string
+		accountScan types.Bool
+		expected    bool
+	}{
+		{name: "enabled", accountScan: types.BoolValue(true), expected: true},
+		{name: "disabled", accountScan: types.BoolValue(false), expected: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := integrationAwsServerlessResourceModel{
+				Region: types.StringValue("us-east-1"),
+				ScanConfiguration: ScanConfigurationInput{
+					AccountScan:    tc.accountScan,
+					Ec2ScanOptions: &Ec2ScanOptionsInput{},
+				},
+			}
+
+			opts := m.GetConfigurationOptions()
+			if assert.NotNil(t, opts.ScanConfiguration.AccountScan) {
+				assert.Equal(t, mondoov1.Boolean(tc.expected), *opts.ScanConfiguration.AccountScan)
+			}
+		})
+	}
+}
 
 func TestIntegrationAwsServerlessResourceValidateConfig_Empty(t *testing.T) {
 	d := &integrationAwsServerlessResourceModel{}

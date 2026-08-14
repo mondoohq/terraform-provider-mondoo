@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -60,6 +61,8 @@ type integrationAwsServerlessResourceModel struct {
 }
 
 type ScanConfigurationInput struct {
+	// (Optional.)
+	AccountScan types.Bool `tfsdk:"account_scan"`
 	// (Optional.)
 	Ec2Scan types.Bool `tfsdk:"ec2_scan"`
 	// (Optional.)
@@ -196,6 +199,7 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 		IsOrganization: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.IsOrganization.ValueBool())),
 		AccountIDs:     &accountIDs,
 		ScanConfiguration: mondoov1.ScanConfigurationInput{
+			AccountScan:       mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.AccountScan.ValueBool())),
 			Ec2Scan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.Ec2Scan.ValueBool())),
 			EcrScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcrScan.ValueBool())),
 			EcsScan:           mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.EcsScan.ValueBool())),
@@ -294,6 +298,12 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			"scan_configuration": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
+					"account_scan": schema.BoolAttribute{
+						MarkdownDescription: "Enable AWS account scan.",
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(true),
+					},
 					"ec2_scan": schema.BoolAttribute{
 						MarkdownDescription: "Enable EC2 scan.",
 						Optional:            true,

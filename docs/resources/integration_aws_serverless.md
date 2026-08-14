@@ -120,6 +120,7 @@ Required:
 
 Optional:
 
+- `account_scan` (Boolean) Enable AWS account scan.
 - `cron_scan_in_hours` (Number) Cron scan in hours.
 - `ec2_scan` (Boolean) Enable EC2 scan.
 - `ecr_scan` (Boolean) Enable ECR scan.
