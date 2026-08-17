@@ -61,6 +61,8 @@ type integrationAwsServerlessResourceModel struct {
 
 type ScanConfigurationInput struct {
 	// (Optional.)
+	AccountScan types.Bool `tfsdk:"account_scan"`
+	// (Optional.)
 	Ec2Scan types.Bool `tfsdk:"ec2_scan"`
 	// (Optional.)
 	EcrScan types.Bool `tfsdk:"ecr_scan"`
@@ -215,6 +217,14 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 		},
 	}
 
+	// account_scan is only sent when the practitioner set it. Leaving it off the
+	// request lets the API apply its own default of true; sending false for an
+	// unset attribute would silently disable account scanning for every
+	// configuration that predates this attribute.
+	if accountScan := m.ScanConfiguration.AccountScan; !accountScan.IsNull() && !accountScan.IsUnknown() {
+		opts.ScanConfiguration.AccountScan = mondoov1.NewBooleanPtr(mondoov1.Boolean(accountScan.ValueBool()))
+	}
+
 	if m.ScanConfiguration.VpcConfiguration != nil {
 		useMondooVPC := m.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool()
 
@@ -294,6 +304,10 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			"scan_configuration": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
+					"account_scan": schema.BoolAttribute{
+						MarkdownDescription: "Enable AWS account scan. Defaults to true when not set.",
+						Optional:            true,
+					},
 					"ec2_scan": schema.BoolAttribute{
 						MarkdownDescription: "Enable EC2 scan.",
 						Optional:            true,
