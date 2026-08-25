@@ -788,7 +788,23 @@ per kind. Every field is Sensitive without exception."
 
 The SDK ships input types and enums only; every response struct in this repo is hand-declared. This task adds them and the five client methods.
 
-**⚠ One shape cannot be verified offline.** The SDK generator introspects a live API and caches no schema, so `CredentialV2.fieldValues` and the `usages` union are the only things in this plan not confirmed against a real type. Step 1 resolves that before any code is written.
+**✅ Shapes verified against the live schema (2026-08-25).** Introspection using the local agent service account confirmed every signature the spec asserted, with one correction: `CredentialV2FieldValue` keys on `name`, not `key`, and `credentialV2(mrn:)` is **nullable** — a deleted credential comes back as null, not an error.
+
+```
+Query.credentialV2(mrn: ID!): CredentialV2          # nullable
+Mutation.createCredentialV2(input: CreateCredentialV2Input!): CreateCredentialV2Payload!  { credential: CredentialV2! }
+Mutation.rotateCredentialV2(input: RotateCredentialV2Input!): RotateCredentialV2Payload!  { credential: CredentialV2! }
+Mutation.renameCredentialV2(input: RenameCredentialV2Input!): RenameCredentialV2Payload!  { credential: CredentialV2! }
+Mutation.deleteCredentialV2(input: DeleteCredentialV2Input!): DeleteCredentialV2Payload!  { deletedMrn: ID! }
+
+CredentialV2.fieldValues: [CredentialV2FieldValue!]!   CredentialV2FieldValue { name: String!, value: String! }
+CredentialV2.usages:      [CredentialV2Usage!]!        union, one member: CredentialV2IntegrationUsage
+CredentialV2IntegrationUsage { mrn: ID!, name: String!, purpose: String!, type: ClientIntegrationType! }
+
+nullable: healthCheckedAt, healthError, expiresAt, createdBy
+```
+
+Because the read is nullable, `GetCredentialV2` returns `(*CredentialV2, error)` rather than the `(CredentialV2, error)` this plan first specified: a nil credential with a nil error means "gone", which `Read` turns into `RemoveResource` instead of an error.
 
 **Files:**
 - Create: `internal/provider/credential_gql.go`
