@@ -5,6 +5,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -75,6 +76,13 @@ func TestAccCredentialResourceKindChangeRefused(t *testing.T) {
 // An organization-owned credential, addressed by scope_mrn rather than
 // space_id. Acceptance tests already require an organization service account.
 func TestAccCredentialResourceOrgScope(t *testing.T) {
+	// getOrgId() reads acceptance-test credentials, and it runs before
+	// resource.Test() gets its chance to skip on TF_ACC — so guard it here or
+	// this test fails rather than skips during an ordinary `go test ./...`.
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
+
 	orgID, err := getOrgId()
 	if err != nil {
 		t.Fatal(err)
