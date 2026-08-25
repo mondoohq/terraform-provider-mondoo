@@ -2,19 +2,23 @@
 
 Date: 2026-08-25
 Status: approved, not yet implemented
+Revised: 2026-08-25 — unconditional sensitivity (visible list dropped); inline
+secrets deprecated
 Branch: `feat/adr-075-typed-credentials`
 
 ## Summary
 
-Two additions, both backward compatible:
+Three changes, all backward compatible:
 
 1. `mondoo_credential`, a resource over the credentialsV2 GraphQL API.
 2. An optional `credential_mrn` attribute on `mondoo_integration_slack`,
    `mondoo_integration_github` and `mondoo_integration_aws`, mutually exclusive
    with each resource's inline secret.
+3. Deprecation of the inline secret each of those credential arms replaces.
 
-No existing provider version breaks. The one schema change to existing
-resources is a relaxation, described under "Backward compatibility".
+No existing provider version breaks. The only schema change to existing
+resources is a relaxation, described under "Backward compatibility"; deprecation
+adds a warning and removes nothing.
 
 The GraphQL shapes in this document were read from the server implementation at
 `go.mondoo.com/server/nexus/` rather than assumed, and the reflection strategy
@@ -50,20 +54,23 @@ current pin, 258 at the target.
 and the field that is set determines the kind. Three shapes were compared.
 
 **Rejected: a shared `kind` plus a `secret` map.** Simplest to build, and the
-only shape supporting `for_each` across mixed kinds. Rejected on two counts.
-A key typo lands at apply rather than at `terraform validate`, so CI cannot
-catch it. More importantly the whole map is one `Sensitive` attribute, so a plan
-renders `~ secret = (sensitive value)` and the trap-2 failure below becomes
-invisible at exactly the moment it needs to be visible.
+only shape supporting `for_each` across mixed kinds. Rejected because the map is
+opaque to Terraform core: a misspelled key, a missing required field and a field
+belonging to another kind are all indistinguishable from a legitimate entry, so
+every one of them lands at apply rather than at `terraform validate` and CI
+cannot catch any of them. The schema also documents nothing — a user reading
+`docs/resources/credential.md` learns that `secret` is a `map(string)` and
+nothing about which keys any kind accepts.
 
 **Rejected: one resource per kind.** 44 resource types for one concept, roughly
 11,000 generated lines, 44 registry entries. It is also the only shape that
 cannot be reached incrementally from either other shape.
 
 **Chosen: one resource with 44 optional `SingleNestedAttribute`s**, one per arm
-of `CredentialV2SecretInput`, under an `ExactlyOneOf`. Per-field sensitivity
-means a plan shows `region` and `base_url` changing in the clear while the token
-stays redacted. A typo is caught by Terraform core at validate time.
+of `CredentialV2SecretInput`, under an `ExactlyOneOf`. Every field name, its
+optionality and its description come from the SDK, so Terraform core rejects a
+typo, a missing required field or a foreign field at validate time, and the
+generated docs list each kind's fields.
 
 The 44 attributes are **generated**, not hand-written — see below — so the
 exhaustive-map objection from the original request does not apply: nothing about
@@ -87,7 +94,7 @@ Shared with the existing generator: `structToMap`, `toSnakeCase`,
 (`gen/templates/credential_resource.go.tmpl`), one `generateCredentialResource()`
 entry point, and a sensitivity rule of its own — see below.
 
-### Sensitivity is an allowlist, not a heuristic
+### Every field of every kind attribute is Sensitive
 
 `isSensitiveField` is **not** reused. Run across all 44 arms it under-marks two
 genuine secrets:
@@ -100,28 +107,33 @@ genuine secrets:
 Neither contains any of the heuristic's substrings. Reusing it verbatim would
 render two live secrets in plan output.
 
-The polarity is therefore inverted: **every field is `Sensitive` unless its name
-is on an explicit visible list.** Under-marking a secret is a security bug;
-over-marking costs only plan legibility, so the failure mode has to point the
-safe way. A new kind's new field defaults to redacted, and fields are opted into
-visibility deliberately.
+The rule is therefore unconditional: **every field of every kind attribute is
+`Sensitive`.** No allowlist, no heuristic, no per-field knowledge anywhere in
+the generator. Under-marking a secret is a security bug and over-marking costs
+only plan legibility, so the only rule that cannot rot is the one with no
+exceptions — the same character as the `ExactlyOneOf`, which is total by
+construction for the same reason.
 
-The visible list, every entry an identifier, endpoint or region — none a secret:
+An earlier revision of this design carved out a hand-maintained visible list of
+identifier, endpoint and region field names. It was dropped, because it was
+already incomplete at 44 arms and structurally could not be completed:
+`snowflake_keypair.account` and `snowflake_password.account` are non-secret
+Snowflake account identifiers that were missing from it, and the regression
+guard proposed alongside it — the list may contain no name `isSensitiveField`
+would flag — forbids adding them, since `account` is one of that heuristic's
+patterns. A rule whose safety test contradicts its own contents is not a rule.
 
-```
-api_url, app_id, base_url, client_id, cloud_id, domain, email, endpoint,
-fingerprint, host, org, region, server_url, subdomain, tenancy_ocid,
-tenant_id, user, user_ocid, username
-```
+Sensitivity here governs rendering, not reads. No API response carries a secret;
+the secret arrives from configuration and flows into plan output and state, so
+without `Sensitive` a `terraform plan` prints it in a CI log.
 
-It is derived from the current 44 arms and covers every non-secret field they
-have. `base_url` and `region` are on it deliberately: they are the two fields
-trap 2 needs visible in a plan.
-
-A field missing from the list is redacted, not leaked — so forgetting to extend
-it when a kind is added degrades legibility rather than safety. A generator test
-asserts the list contains no field the old heuristic considered sensitive, which
-catches an accidental addition of a secret name.
+**What this costs.** A plan that changes a non-secret field renders
+`~ base_url = (sensitive value)` rather than the old and new URLs. Non-secret
+values remain inspectable after apply through `field_values`, the server's own
+redacted copy of the row — non-sensitive, server-authoritative and needing no
+list. That is post-apply visibility, not plan-time, and the difference is the
+accepted cost. Per-field visibility can be reintroduced later, as an additive
+change, if a real need appears; nothing in this design forecloses it.
 
 Not reused: the integration resource template, which is welded to
 `CreateIntegration`/`UpdateIntegration`/`TriggerAction` and emits one resource
@@ -172,7 +184,7 @@ resource "mondoo_credential" "scanner" {
 | `space_id` | Optional, Computed, RequiresReplace | conflicts with `scope_mrn`; falls back to provider `space` |
 | `scope_mrn` | Optional, Computed, RequiresReplace | conflicts with `space_id`; for organization-owned credentials |
 | `name` | Required | **no** RequiresReplace — renames in place |
-| *44 kind attributes* | Optional, `ExactlyOneOf` | generated; secret fields `Sensitive` |
+| *44 kind attributes* | Optional, `ExactlyOneOf` | generated; every field `Sensitive` |
 | `mrn` | Computed | |
 | `owner_mrn` | Computed | |
 | `kind` | Computed | derived from which attribute is set; never an input |
@@ -265,9 +277,11 @@ every time, with no per-field diffing. The unit of change is the attribute, not
 the field. The generator emits every field of every arm, so no field can be
 omitted by oversight.
 
-Per-field sensitivity makes the failure visible before it happens — a plan
-renders `~ region = "eu-central-1" -> "us-east-1"` in the clear while the secret
-stays redacted. This was the deciding argument for this shape over a secret map.
+The guarantee is structural rather than visual: the generator emits every field
+of every arm from the SDK type, so no field can be dropped by oversight, and a
+field the user omits from the configuration is a field Terraform shows as
+changing. The resulting stored values are readable after apply through
+`field_values`.
 
 ### Trap 3 — derivedFields must not be sent back
 
@@ -362,6 +376,46 @@ On AWS, `credentialMrn` is a fourth authentication mode. It substitutes for
 external ID rather than an AWS key, and `wifCredential` holds no server-side
 secret — but it is mutually exclusive with all three.
 
+Making `credentials` Optional turns its model field into a pointer on AWS,
+`Credential integrationAwsCredentialModel` to `*integrationAwsCredentialModel`,
+since it can now be null. GitHub's is already a pointer. Every read of
+`data.Credential` on AWS needs a nil guard as a result.
+
+### Deprecating the inline secrets
+
+The inline secret each credential arm replaces is marked deprecated in the same
+change. The attributes keep working — deprecation is a warning, not a removal —
+but a plan against an inline-secret configuration now says what to use instead.
+
+| Resource | Deprecated | Not deprecated |
+| --- | --- | --- |
+| `mondoo_integration_slack` | `slack_token` | — |
+| `mondoo_integration_github` | `credentials` (the block; it exists only to carry `token`) | — |
+| `mondoo_integration_aws` | `credentials.key` | `credentials` itself, `credentials.role`, `credentials.wif` |
+
+AWS is the one that is not a whole-block deprecation. `credential_mrn`
+substitutes for `key` alone: `role` carries an AssumeRole external ID and `wif`
+carries no server-side secret, so neither has a credential equivalent and
+telling those users to migrate would be wrong. The block stays undeprecated
+because two of its three arms are the current recommendation.
+
+The message, following the phrasing already used at `export_s3_bucket.go:88`:
+
+> Use `credential_mrn` with a `mondoo_credential` resource instead. This
+> attribute will be removed in a future version. Note that switching an existing
+> integration to `credential_mrn` replaces the integration.
+
+The third sentence is load-bearing. Because of `requiresReplaceOnTransition`
+below, adding `credential_mrn` to a live integration is a destroy-and-create,
+not an edit; a deprecation notice that omits this walks people into a surprise
+replacement. `DeprecationMessage` on a nested attribute is already used in this
+repo at `integration_aws_serverless_resource.go:410`, so the AWS case needs no
+new mechanism.
+
+The cost, stated plainly: every existing user of these three resources sees a
+warning on every `plan` and `apply` until they migrate. That is the intended
+effect.
+
 GitHub's `credentialMrn` is also documented as conflicting with
 `authMethod = APP`. The provider does not expose `auth_method`, so no validator
 is needed; if `auth_method` is added later, that conflict must be added with it.
@@ -415,6 +469,11 @@ these attributes and is unaffected; the `ExactlyOneOf` validators mean a config
 setting neither is rejected at plan time with a clear message rather than
 silently accepted. No state migration.
 
+Deprecation does not break anything either: the framework raises a warning
+diagnostic when a deprecated attribute is non-null in configuration, and a
+warning does not fail a plan or an apply. The behaviour of the deprecated
+attributes is unchanged.
+
 ## Testing
 
 Acceptance tests follow the existing `testAcc*` convention: `resource.Test` with
@@ -436,14 +495,21 @@ by `fmt.Sprintf` helpers against `accSpace.ID()`, as in
 - `github_pat` and `aws` build the expected GraphQL input
 - rotation sends every field of the attribute (trap 2)
 - no attribute exists for a derived field name (trap 3)
-- every field not on the visible list is marked `Sensitive`, and the visible
-  list contains no field name the old `isSensitiveField` heuristic would have
-  flagged — the regression guard for `macaroon` and `sas_url`
+- every field of all 44 arms is marked `Sensitive`, with no exceptions — the
+  regression guard for `macaroon` and `sas_url`
 - `requiresReplaceOnTransition` fires on null-to-known and known-to-null, and
   not on known-to-known, create or destroy
 
 Integration binding tests extend the three existing test files with a
 `credential_mrn` case referencing `mondoo_credential.test.mrn`.
+
+A unit test asserts the deprecation surface directly against each resource's
+`Schema`, with no network: `slack_token` and GitHub's `credentials` carry a
+`DeprecationMessage`, AWS's `credentials.key` carries one, and AWS's
+`credentials`, `credentials.role` and `credentials.wif` do not. That last
+assertion is the one that matters — it is what stops a later edit from
+telling role and WIF users to migrate to a credential that cannot hold their
+authentication mode.
 
 **These tests cannot be run in this environment.** `TestMain` requires a live
 organization service account and gates the whole package, so even the unit tests
@@ -461,7 +527,9 @@ available here. This limitation is pre-existing.
 - The `create_before_destroy` note appears on the scope attributes, the one
   place a replacing edit remains.
 - `docs/resources/credential.md` and the three updated integration pages via
-  `make generate`.
+  `make generate`. `tfplugindocs` renders `DeprecationMessage` as a
+  **Deprecated** marker on each affected attribute, so the three integration
+  pages carry the migration note without hand-editing.
 
 ## Out of scope
 
@@ -484,12 +552,11 @@ available here. This limitation is pre-existing.
 large generated file. It is generated and gofmt'd, so this is a review-diff
 concern rather than a maintenance one, but the first PR will be big.
 
-**The visible-field list is hand-maintained.** Small, and it fails safe — a
-field left off is redacted rather than exposed — but it does need extending when
-a kind adds a non-secret field, or that field's diff shows as
-`(sensitive value)`. This is the one piece of per-kind knowledge that does not
-come from the SDK, and it is deliberately the piece whose failure mode is
-cosmetic.
+**Opaque plan diffs on kind attributes.** Every field is redacted, so a plan
+that changes only a `base_url` or a `region` shows `(sensitive value)` on both
+sides. Accepted deliberately in exchange for a sensitivity rule with no
+per-kind knowledge in it; `field_values` carries the same information after
+apply.
 
 **Terraform-native ergonomics.** This shape cannot `for_each` across mixed kinds
 the way a secret map could; a config managing many credentials of different
