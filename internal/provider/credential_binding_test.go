@@ -124,3 +124,35 @@ func TestGithubInlineSecretIsDeprecated(t *testing.T) {
 		t.Error("credential_mrn is missing")
 	}
 }
+
+// AWS deprecates credentials.key only. role and wif have no credential
+// equivalent, so neither they nor the block itself may carry a deprecation —
+// that would tell those users to migrate to something that cannot hold their
+// authentication mode.
+func TestAwsDeprecatesOnlyTheKeyArm(t *testing.T) {
+	attrs := schemaAttributes(t, NewIntegrationAwsResource())
+
+	creds, ok := attrs["credentials"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("credentials is %T, want schema.SingleNestedAttribute", attrs["credentials"])
+	}
+	if creds.GetDeprecationMessage() != "" {
+		t.Error("the credentials block must NOT be deprecated: role and wif remain the recommendation")
+	}
+	if creds.IsRequired() {
+		t.Error("credentials must be Optional so ExactlyOneOf can reference credential_mrn")
+	}
+
+	if msg := creds.Attributes["key"].GetDeprecationMessage(); msg == "" {
+		t.Error("credentials.key must be deprecated in favour of credential_mrn")
+	}
+	for _, arm := range []string{"role", "wif"} {
+		if msg := creds.Attributes[arm].GetDeprecationMessage(); msg != "" {
+			t.Errorf("credentials.%s must NOT be deprecated; credential_mrn cannot express it (got %q)", arm, msg)
+		}
+	}
+
+	if _, ok := attrs["credential_mrn"]; !ok {
+		t.Error("credential_mrn is missing")
+	}
+}

@@ -44,7 +44,8 @@ type integrationAwsResourceModel struct {
 	WifSubject types.String `tfsdk:"wif_subject"`
 
 	// AWS credentials
-	Credential integrationAwsCredentialModel `tfsdk:"credentials"`
+	Credential    *integrationAwsCredentialModel `tfsdk:"credentials"`
+	CredentialMrn types.String                   `tfsdk:"credential_mrn"`
 }
 
 type integrationAwsCredentialModel struct {
@@ -69,7 +70,15 @@ type awsWifCredentialModel struct {
 }
 
 func (m integrationAwsResourceModel) GetConfigurationOptions() *mondoov1.HostedAwsConfigurationOptionsInput {
-	opts := &mondoov1.HostedAwsConfigurationOptionsInput{}
+	opts := &mondoov1.HostedAwsConfigurationOptionsInput{
+		CredentialMrn: credentialOptionalString(m.CredentialMrn),
+	}
+
+	// credentials is Optional now that credential_mrn is a fourth
+	// authentication mode, so it can be null.
+	if m.Credential == nil {
+		return opts
+	}
 
 	if m.Credential.Key != nil {
 		opts.KeyCredential = &mondoov1.AWSSecretKeyCredential{
@@ -139,11 +148,12 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"credentials": schema.SingleNestedAttribute{
-				MarkdownDescription: "Credentials for the AWS integration. Exactly one of `role`, `key`, or `wif` must be configured.",
-				Required:            true,
+				MarkdownDescription: "Credentials for the AWS integration. Exactly one of `role`, `key`, `wif` or the " +
+					"top-level `credential_mrn` must be configured.",
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"role": schema.SingleNestedAttribute{
-						MarkdownDescription: "IAM role credentials. Mutually exclusive with `key` and `wif`.",
+						MarkdownDescription: "IAM role credentials. Mutually exclusive with `key`, `wif` and `credential_mrn`.",
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"role_arn": schema.StringAttribute{
@@ -157,8 +167,9 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 						},
 					},
 					"key": schema.SingleNestedAttribute{
-						MarkdownDescription: "Static IAM access key credentials. Mutually exclusive with `role` and `wif`.",
+						MarkdownDescription: "Static IAM access key credentials. Mutually exclusive with `role`, `wif` and `credential_mrn`.",
 						Optional:            true,
+						DeprecationMessage:  credentialMrnDeprecationMessage,
 						Attributes: map[string]schema.Attribute{
 							"access_key": schema.StringAttribute{
 								Required:  true,
@@ -183,7 +194,7 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 						},
 					},
 					"wif": schema.SingleNestedAttribute{
-						MarkdownDescription: "Workload identity federation credentials. Uses Mondoo as an OIDC identity provider to assume an IAM role via web identity. Mutually exclusive with `role` and `key`.",
+						MarkdownDescription: "Workload identity federation credentials. Uses Mondoo as an OIDC identity provider to assume an IAM role via web identity. Mutually exclusive with `role`, `key` and `credential_mrn`.",
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"audience": schema.StringAttribute{
@@ -198,6 +209,12 @@ func (r *integrationAwsResource) Schema(ctx context.Context, req resource.Schema
 					},
 				},
 			},
+			"credential_mrn": credentialMrnAttribute(
+				"AWS",
+				path.MatchRoot("credentials").AtName("role"),
+				path.MatchRoot("credentials").AtName("key"),
+				path.MatchRoot("credentials").AtName("wif"),
+			),
 		},
 	}
 }
@@ -208,6 +225,7 @@ func (r *integrationAwsResource) ConfigValidators(ctx context.Context) []resourc
 			path.MatchRoot("credentials").AtName("role"),
 			path.MatchRoot("credentials").AtName("key"),
 			path.MatchRoot("credentials").AtName("wif"),
+			path.MatchRoot("credential_mrn"),
 		),
 	}
 }
@@ -304,7 +322,7 @@ func (r *integrationAwsResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 	opts := integration.ConfigurationOptions.HostedAwsConfigurationOptions
 	data.WifSubject = types.StringValue(opts.WifSubject)
-	if data.Credential.Wif != nil {
+	if data.Credential != nil && data.Credential.Wif != nil {
 		data.Credential.Wif.Audience = types.StringValue(opts.WifAudience)
 		data.Credential.Wif.RoleArn = types.StringValue(opts.WifRoleArn)
 	}
@@ -381,23 +399,29 @@ func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.I
 		WifSubject: types.StringValue(opts.WifSubject),
 	}
 
+	credential := &integrationAwsCredentialModel{}
 	switch {
 	case opts.WifAudience != "" && opts.WifRoleArn != "":
-		model.Credential.Wif = &awsWifCredentialModel{
+		credential.Wif = &awsWifCredentialModel{
 			Audience: types.StringValue(opts.WifAudience),
 			RoleArn:  types.StringValue(opts.WifRoleArn),
 		}
 	case opts.AccessKeyId != "":
-		model.Credential.Key = &accessKeyCredentialModel{
+		credential.Key = &accessKeyCredentialModel{
 			AccessKey: types.StringValue(opts.AccessKeyId),
 			SecretKey: types.StringPointerValue(nil), // cannot be imported
 		}
 	case opts.Role != "":
-		model.Credential.Role = &roleCredentialModel{
+		credential.Role = &roleCredentialModel{
 			RoleArn:    types.StringValue(opts.Role),
 			ExternalId: types.StringPointerValue(nil), // cannot be imported
 		}
+	default:
+		// A credential-backed integration holds no inline secret.
+		credential = nil
 	}
+	model.Credential = credential
+	model.CredentialMrn = types.StringPointerValue(nil)
 
 	resp.State.Set(ctx, &model)
 }
