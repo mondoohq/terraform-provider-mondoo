@@ -844,14 +844,14 @@ type GithubConfigurationOptions struct {
 }
 
 type AuditLogExportConfigurationOptions struct {
-	DestinationType    string
-	Bucket             string
-	Format             string
-	IntervalMinutes    int
-	IncludeHistorical  bool
-	WifAudience        *string
+	DestinationType        string
+	Bucket                 string
+	Format                 string
+	IntervalMinutes        int
+	IncludeHistorical      bool
+	WifAudience            *string
 	WifServiceAccountEmail *string
-	WifSubject         *string
+	WifSubject             *string
 }
 
 type GcsBucketConfigurationOptions struct {
@@ -1554,18 +1554,18 @@ func (c *ExtendedGqlClient) RemoveTeamMember(ctx context.Context, input RemoveTe
 	return c.Mutate(ctx, &mutation, input, nil)
 }
 
-type RoleInput struct {
-	Mrn mondoov1.String `json:"mrn"`
-}
-
-type SetRoleInput struct {
-	EntityMrn mondoov1.String `json:"entityMrn"`
-	Roles     []RoleInput     `json:"roles"`
-}
-
+// SetRolesInput binds one identity to one scope.
+//
+// It deliberately uses `identity` + `roles` rather than the deprecated
+// `updates` list ("Use identity and scope. This API will set roles on a single
+// identity"). Beyond following the schema, the two spellings reach different
+// server code: `updates` falls into a legacy path that reads every role binding
+// on the scope to answer a question about one identity, which fails outright on
+// a scope holding more identities than a single database statement can bind.
 type SetRolesInput struct {
-	ScopeMrn mondoov1.String `json:"scopeMrn"`
-	Updates  []SetRoleInput  `json:"updates"`
+	ScopeMrn mondoov1.String   `json:"scopeMrn"`
+	Identity mondoov1.String   `json:"identity"`
+	Roles    []mondoov1.String `json:"roles"`
 }
 
 type SetRolesPayload struct {
