@@ -55,12 +55,13 @@ resource "mondoo_integration_github" "gh_integration" {
 
 ### Required
 
-- `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
 - `owner` (String) GitHub owner.
 
 ### Optional
 
+- `credential_mrn` (String) MRN of an existing `mondoo_credential` to authenticate with, instead of supplying a secret inline. Must be a `GITHUB_PAT` credential owned by this integration's own scope — ownership is matched exactly, so a space-level integration cannot use a credential owned by its organization, or the reverse. An integration cannot be moved between the inline-secret and credential-backed models after creation, so setting or removing this attribute replaces the integration; re-pointing it at a different credential happens in place.
+- `credentials` (Attributes, Deprecated) Inline GitHub token. Mutually exclusive with `credential_mrn`. (see [below for nested schema](#nestedatt--credentials))
 - `discovery` (Attributes) (see [below for nested schema](#nestedatt--discovery))
 - `force_replace` (Boolean) Set to true to force replacement on next apply, useful to refresh credentials when the current value cannot be read.
 - `repository` (String) GitHub repository.

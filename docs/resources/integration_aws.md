@@ -47,11 +47,12 @@ resource "mondoo_integration_aws" "name" {
 
 ### Required
 
-- `credentials` (Attributes) Credentials for the AWS integration. Exactly one of `role`, `key`, or `wif` must be configured. (see [below for nested schema](#nestedatt--credentials))
 - `name` (String) Name of the integration.
 
 ### Optional
 
+- `credential_mrn` (String) MRN of an existing `mondoo_credential` to authenticate with, instead of supplying a secret inline. Must be a `AWS` credential owned by this integration's own scope — ownership is matched exactly, so a space-level integration cannot use a credential owned by its organization, or the reverse. An integration cannot be moved between the inline-secret and credential-backed models after creation, so setting or removing this attribute replaces the integration; re-pointing it at a different credential happens in place.
+- `credentials` (Attributes) Credentials for the AWS integration. Exactly one of `role`, `key`, `wif` or the top-level `credential_mrn` must be configured. (see [below for nested schema](#nestedatt--credentials))
 - `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
 
 ### Read-Only
@@ -64,9 +65,9 @@ resource "mondoo_integration_aws" "name" {
 
 Optional:
 
-- `key` (Attributes) Static IAM access key credentials. Mutually exclusive with `role` and `wif`. (see [below for nested schema](#nestedatt--credentials--key))
-- `role` (Attributes) IAM role credentials. Mutually exclusive with `key` and `wif`. (see [below for nested schema](#nestedatt--credentials--role))
-- `wif` (Attributes) Workload identity federation credentials. Uses Mondoo as an OIDC identity provider to assume an IAM role via web identity. Mutually exclusive with `role` and `key`. (see [below for nested schema](#nestedatt--credentials--wif))
+- `key` (Attributes, Deprecated) Static IAM access key credentials. Mutually exclusive with `role`, `wif` and `credential_mrn`. (see [below for nested schema](#nestedatt--credentials--key))
+- `role` (Attributes) IAM role credentials. Mutually exclusive with `key`, `wif` and `credential_mrn`. (see [below for nested schema](#nestedatt--credentials--role))
+- `wif` (Attributes) Workload identity federation credentials. Uses Mondoo as an OIDC identity provider to assume an IAM role via web identity. Mutually exclusive with `role`, `key` and `credential_mrn`. (see [below for nested schema](#nestedatt--credentials--wif))
 
 <a id="nestedatt--credentials--key"></a>
 ### Nested Schema for `credentials.key`
