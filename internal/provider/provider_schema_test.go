@@ -5,12 +5,10 @@ package provider
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
 // The whole provider schema must validate the way it does at server start.
@@ -37,9 +35,11 @@ func TestProviderSchemaValidates(t *testing.T) {
 		t.Fatal("mondoo_credential is not registered in provider.go")
 	}
 
-	// 15 hand-written attributes plus one per arm of CredentialV2SecretInput.
+	// 15 hand-written attributes plus one per generated kind. Asserting the sum
+	// catches a generated kind whose name collides with a hand-written
+	// attribute, which the schema's map merge would otherwise swallow.
 	const fixedAttributes = 15
-	want := fixedAttributes + reflect.TypeOf(mondoov1.CredentialV2SecretInput{}).NumField()
+	want := fixedAttributes + len(credentialSecretAttributes())
 	if got := len(cred.Block.Attributes); got != want {
 		t.Errorf("mondoo_credential has %d attributes, want %d", got, want)
 	}

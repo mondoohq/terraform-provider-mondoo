@@ -240,7 +240,7 @@ git commit -m "chore: bump mondoo-go to 20260822000727 for credentialsV2"
 
 ---
 
-### Task 3: Generate the 44 credential kind attributes
+### Task 3: Generate the credential kind attributes
 
 The heart of the feature. `gen/gen.go` gets a second emitter that reflects over the *type* `CredentialV2SecretInput` — not a value, because all 44 arms are nil pointers and `structToMap` would see only nils.
 
@@ -2834,6 +2834,16 @@ git commit -m "docs: add mondoo_credential examples and regenerate docs"
 ---
 
 ## Notes for the executor
+
+**Scope narrowed during execution (2026-08-25).** The generator ships three
+kinds — `aws`, `slack`, `github_pat` — selected by `credentialArms` in
+`gen/gen.go`, not all 44. All 44 arms generate correctly; three keeps the first
+PR reviewable, and they are exactly the kinds with an integration binding.
+Widening is one line per kind plus `make generate`. Task 3's tests were adjusted
+accordingly: coverage is asserted as "every attribute is a real arm" plus "the
+bound kinds are present", and trap 3 is asserted structurally over whichever
+kinds ship rather than by spot-checking the GCP arm.
+
 
 **What cannot be verified in this environment.** Acceptance tests need `TF_ACC=1` and an organization service account; they are delivered written and compiling, and are expected to be run in CI. Task 4 Step 1 needs live API access or the server source to confirm the `CredentialV2` response shape — that is the one place where guessing would produce code that compiles and fails at runtime. Do not skip it.
 

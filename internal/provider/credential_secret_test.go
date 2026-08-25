@@ -14,20 +14,37 @@ import (
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
-// Every arm of CredentialV2SecretInput must have an attribute. Derived from the
-// SDK type rather than a hand-written list, so a new kind fails this test until
-// the generator is re-run.
-func TestCredentialSecretAttributesCoverEveryArm(t *testing.T) {
-	attrs := credentialSecretAttributes()
+// The schema is a subset of the SDK's kinds — gen/gen.go's credentialArms
+// selects which ship — but it must never invent one. Every generated attribute
+// has to correspond to a real arm of CredentialV2SecretInput.
+func TestCredentialSecretAttributesAreRealArms(t *testing.T) {
 	armType := reflect.TypeOf(mondoov1.CredentialV2SecretInput{})
 
-	if len(attrs) != armType.NumField() {
-		t.Fatalf("got %d attributes, want %d arms", len(attrs), armType.NumField())
-	}
+	known := make(map[string]bool, armType.NumField())
 	for i := 0; i < armType.NumField(); i++ {
-		name := toSnakeCaseForTest(armType.Field(i).Name)
-		if _, ok := attrs[name]; !ok {
-			t.Errorf("no attribute for arm %q (%s)", name, armType.Field(i).Name)
+		known[toSnakeCaseForTest(armType.Field(i).Name)] = true
+	}
+
+	for name := range credentialSecretAttributes() {
+		if !known[name] {
+			t.Errorf("attribute %q is not an arm of mondoov1.CredentialV2SecretInput", name)
+		}
+	}
+}
+
+// The kinds that have an integration binding must be among those shipped,
+// otherwise credential_mrn on that integration refers to a credential the
+// provider cannot create. Widening credentialArms beyond these is deliberate.
+func TestCredentialSecretCoversTheBoundKinds(t *testing.T) {
+	attrs := credentialSecretAttributes()
+
+	for integration, kind := range map[string]string{
+		"mondoo_integration_aws":    "aws",
+		"mondoo_integration_slack":  "slack",
+		"mondoo_integration_github": "github_pat",
+	} {
+		if _, ok := attrs[kind]; !ok {
+			t.Errorf("%s binds to a %q credential, but that kind is not generated", integration, kind)
 		}
 	}
 }
@@ -165,17 +182,45 @@ func TestSecretKind(t *testing.T) {
 	}
 }
 
-// Trap 3: derivedFields must have no attribute to be written through. The
-// server parses project_id and client_email out of a GCP key and rejects them
-// as input; the generator emits input arms only, so they cannot appear.
-func TestNoAttributeForDerivedFields(t *testing.T) {
-	gcp, ok := credentialSecretAttributes()["gcp_service_account"].(schema.SingleNestedAttribute)
-	if !ok {
-		t.Fatal("gcp_service_account is not a SingleNestedAttribute")
-	}
-	for _, derived := range []string{"project_id", "client_email"} {
-		if _, exists := gcp.Attributes[derived]; exists {
-			t.Errorf("gcp_service_account has an attribute for derived field %q", derived)
+// Trap 3: fields the server derives from a secret — a GCP key's project_id and
+// client_email, say — appear in fieldValues but are rejected as input, and must
+// have no attribute to be written through.
+//
+// The guarantee is structural rather than a spot check: every attribute of
+// every arm has to be a field of that arm's *input* type, which is where the
+// generator reads them from. A derived name has no input field, so it can never
+// acquire an attribute — for the kinds shipping today and for any kind added
+// later.
+func TestEveryAttributeIsAnInputField(t *testing.T) {
+	attrs := credentialSecretAttributes()
+	secretType := reflect.TypeOf(mondoov1.CredentialV2SecretInput{})
+
+	for i := 0; i < secretType.NumField(); i++ {
+		f := secretType.Field(i)
+
+		attr, ok := attrs[toSnakeCaseForTest(f.Name)]
+		if !ok {
+			continue // not among the kinds this build ships
+		}
+		nested, ok := attr.(schema.SingleNestedAttribute)
+		if !ok {
+			t.Fatalf("arm %q is %T, want schema.SingleNestedAttribute", f.Name, attr)
+		}
+
+		armType := f.Type
+		if armType.Kind() == reflect.Pointer {
+			armType = armType.Elem()
+		}
+		inputFields := make(map[string]bool, armType.NumField())
+		for j := 0; j < armType.NumField(); j++ {
+			inputFields[toSnakeCaseForTest(armType.Field(j).Name)] = true
+		}
+
+		for fieldName := range nested.Attributes {
+			if !inputFields[fieldName] {
+				t.Errorf("%s.%s is not a field of %s; only input fields may be written through",
+					toSnakeCaseForTest(f.Name), fieldName, armType.Name())
+			}
 		}
 	}
 }

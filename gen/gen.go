@@ -538,19 +538,44 @@ type CredentialField struct {
 	Ptr      bool
 }
 
+// credentialArms is the set of credential kinds the provider exposes, named by
+// their field in mondoov1.CredentialV2SecretInput.
+//
+// Nothing in the generator is per-kind — it can emit all 44 arms — but the
+// first release ships only the three that have an integration binding, to keep
+// the change reviewable. Widening it is one line here plus `make generate`;
+// the schema, the ExactlyOneOf set and the docs all follow.
+//
+// The list cannot drift from the SDK: a name that is not a field of
+// CredentialV2SecretInput fails generation rather than being skipped.
+var credentialArms = []string{
+	"Aws",
+	"GithubPat",
+	"Slack",
+}
+
 // generateCredentialResource emits the generated half of the mondoo_credential
 // resource by reflecting over the *type* of CredentialV2SecretInput. It cannot
-// use structToMap the way generateIntegrationResources does: all 44 arms are
-// nil pointers on a zero value, so there are no values to switch on.
+// use structToMap the way generateIntegrationResources does: every arm is a
+// nil pointer on a zero value, so there are no values to switch on.
 func generateCredentialResource() error {
+	enabled := make(map[string]bool, len(credentialArms))
+	for _, name := range credentialArms {
+		enabled[name] = true
+	}
+
 	var (
 		stringType = reflect.TypeOf(mondoov1.String(""))
 		secretType = reflect.TypeOf(mondoov1.CredentialV2SecretInput{})
-		arms       = make([]CredentialArm, 0, secretType.NumField())
+		arms       = make([]CredentialArm, 0, len(credentialArms))
 	)
 
 	for i := 0; i < secretType.NumField(); i++ {
 		f := secretType.Field(i)
+		if !enabled[f.Name] {
+			continue
+		}
+		delete(enabled, f.Name)
 
 		armType := f.Type
 		if armType.Kind() == reflect.Pointer {
@@ -595,7 +620,14 @@ func generateCredentialResource() error {
 		arms = append(arms, arm)
 	}
 
-	fmt.Printf(">>> ⭐ Generating code for %d credential kinds (resource mondoo_credential)\n", len(arms))
+	// Anything still in the map was named in credentialArms but is not a field
+	// of CredentialV2SecretInput — a typo, or a kind the SDK dropped.
+	for name := range enabled {
+		return fmt.Errorf("credentialArms names %q, which is not a field of mondoov1.CredentialV2SecretInput", name)
+	}
+
+	fmt.Printf(">>> ⭐ Generating code for %d of %d credential kinds (resource mondoo_credential)\n",
+		len(arms), secretType.NumField())
 
 	return renderTemplate(
 		filepath.Join("internal", "provider", "credential_secret_generated.go"),
