@@ -106,3 +106,21 @@ func TestSlackInlineSecretIsDeprecated(t *testing.T) {
 		t.Error("credential_mrn is missing")
 	}
 }
+
+func TestGithubInlineSecretIsDeprecated(t *testing.T) {
+	attrs := schemaAttributes(t, NewIntegrationGithubResource())
+
+	creds, ok := attrs["credentials"]
+	if !ok {
+		t.Fatal("credentials is missing")
+	}
+	if creds.GetDeprecationMessage() == "" {
+		t.Error("credentials must be deprecated in favour of credential_mrn")
+	}
+	if creds.IsRequired() {
+		t.Error("credentials must be Optional so ExactlyOneOf can reference it")
+	}
+	if _, ok := attrs["credential_mrn"]; !ok {
+		t.Error("credential_mrn is missing")
+	}
+}
