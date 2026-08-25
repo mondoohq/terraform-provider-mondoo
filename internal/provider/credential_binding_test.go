@@ -88,3 +88,21 @@ func TestRequiresReplaceOnTransitionSkipsDestroy(t *testing.T) {
 		t.Error("destroy must not be treated as a transition")
 	}
 }
+
+func TestSlackInlineSecretIsDeprecated(t *testing.T) {
+	attrs := schemaAttributes(t, NewIntegrationSlackResource())
+
+	token, ok := attrs["slack_token"]
+	if !ok {
+		t.Fatal("slack_token is missing")
+	}
+	if token.GetDeprecationMessage() == "" {
+		t.Error("slack_token must be deprecated in favour of credential_mrn")
+	}
+	if token.IsRequired() {
+		t.Error("slack_token must be Optional so ExactlyOneOf can reference it")
+	}
+	if _, ok := attrs["credential_mrn"]; !ok {
+		t.Error("credential_mrn is missing")
+	}
+}
