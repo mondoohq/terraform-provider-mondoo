@@ -22,15 +22,26 @@ import (
 var accSpace Space
 
 func TestMain(m *testing.M) {
-	if err := createSpace(); err != nil {
-		panic(err)
+	// Acceptance tests need a real space. Unit tests must not. resource.Test()
+	// already skips every acceptance test unless TF_ACC is set, so gate the
+	// space on the same variable — otherwise `go test ./...` cannot run a
+	// single unit test without an organization service account.
+	acc := os.Getenv("TF_ACC") != ""
+
+	if acc {
+		if err := createSpace(); err != nil {
+			panic(err)
+		}
 	}
 
 	code := m.Run()
 
-	if err := deleteSpace(); err != nil {
-		panic(err)
+	if acc {
+		if err := deleteSpace(); err != nil {
+			panic(err)
+		}
 	}
+
 	os.Exit(code)
 }
 
