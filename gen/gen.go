@@ -26,6 +26,11 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// Generate the typed-credential kind attributes
+	if err := generateCredentialResource(); err != nil {
+		log.Fatalln(err)
+	}
 }
 
 type IntegrationResource struct {
@@ -240,6 +245,8 @@ var templates = map[string]*template.Template{
 		ParseFiles(filepath.Join("gen", "templates", "resource.tf.tmpl"))),
 	"gql_generated.go": template.Must(template.New("gql_generated.go.tmpl").Funcs(funcMap).
 		ParseFiles(filepath.Join("gen", "templates", "gql_generated.go.tmpl"))),
+	"credential_secret.go": template.Must(template.New("credential_secret.go.tmpl").Funcs(funcMap).
+		ParseFiles(filepath.Join("gen", "templates", "credential_secret.go.tmpl"))),
 	"provider_generated.go": template.Must(template.New("").Funcs(funcMap).
 		Parse(`// Copyright (c) Mondoo, Inc.
 // SPDX-License-Identifier: BUSL-1.1
@@ -511,4 +518,88 @@ func structToMap(input any) (map[string]any, []string, error) {
 	sort.Strings(keys)
 
 	return output, keys, err
+}
+
+// CredentialArm is one arm of mondoov1.CredentialV2SecretInput: one credential
+// kind, and the flat set of string fields it collects.
+type CredentialArm struct {
+	GoName   string // "GithubPat" — also names the mondoov1.CredentialV2Kind constant
+	AttrName string // "github_pat"
+	Fields   []CredentialField
+}
+
+// CredentialField is one field of one arm. Every field of every arm is a
+// mondoov1.String or *mondoov1.String; anything else is a generator error
+// rather than a silent omission.
+type CredentialField struct {
+	GoName   string // "BaseUrl"
+	AttrName string // "base_url"
+	Required bool
+	Ptr      bool
+}
+
+// generateCredentialResource emits the generated half of the mondoo_credential
+// resource by reflecting over the *type* of CredentialV2SecretInput. It cannot
+// use structToMap the way generateIntegrationResources does: all 44 arms are
+// nil pointers on a zero value, so there are no values to switch on.
+func generateCredentialResource() error {
+	var (
+		stringType = reflect.TypeOf(mondoov1.String(""))
+		secretType = reflect.TypeOf(mondoov1.CredentialV2SecretInput{})
+		arms       = make([]CredentialArm, 0, secretType.NumField())
+	)
+
+	for i := 0; i < secretType.NumField(); i++ {
+		f := secretType.Field(i)
+
+		armType := f.Type
+		if armType.Kind() == reflect.Pointer {
+			armType = armType.Elem()
+		}
+		if armType.Kind() != reflect.Struct {
+			return fmt.Errorf("credential arm %s is %s, want a struct", f.Name, armType.Kind())
+		}
+
+		arm := CredentialArm{
+			GoName:   f.Name,
+			AttrName: toSnakeCase(f.Name),
+			Fields:   make([]CredentialField, 0, armType.NumField()),
+		}
+
+		for j := 0; j < armType.NumField(); j++ {
+			ff := armType.Field(j)
+
+			fieldType, ptr := ff.Type, false
+			if fieldType.Kind() == reflect.Pointer {
+				fieldType, ptr = fieldType.Elem(), true
+			}
+			if fieldType != stringType {
+				return fmt.Errorf(
+					"credential arm %s field %s is %s; the credential template only handles String and *String",
+					f.Name, ff.Name, ff.Type,
+				)
+			}
+
+			arm.Fields = append(arm.Fields, CredentialField{
+				GoName:   ff.Name,
+				AttrName: toSnakeCase(ff.Name),
+				Required: parseTFGenTag(ff.Tag.Get("tfgen")).Required,
+				Ptr:      ptr,
+			})
+		}
+
+		if len(arm.Fields) == 0 {
+			return fmt.Errorf("credential arm %s has no fields", f.Name)
+		}
+
+		arms = append(arms, arm)
+	}
+
+	fmt.Printf(">>> ⭐ Generating code for %d credential kinds (resource mondoo_credential)\n", len(arms))
+
+	return renderTemplate(
+		filepath.Join("internal", "provider", "credential_secret_generated.go"),
+		templates["credential_secret.go"],
+		arms,
+	)
 }
