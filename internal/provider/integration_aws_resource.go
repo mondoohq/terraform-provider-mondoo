@@ -399,29 +399,36 @@ func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.I
 		WifSubject: types.StringValue(opts.WifSubject),
 	}
 
-	credential := &integrationAwsCredentialModel{}
-	switch {
-	case opts.WifAudience != "" && opts.WifRoleArn != "":
-		credential.Wif = &awsWifCredentialModel{
-			Audience: types.StringValue(opts.WifAudience),
-			RoleArn:  types.StringValue(opts.WifRoleArn),
+	model.CredentialMrn = integration.TypedCredentialMrn(defaultCredentialPurpose)
+
+	// Which authentication model this integration uses is decided by the
+	// credentials list, not by the options below: a credential-backed
+	// integration reports an empty accessKeyId exactly as an unrecognised one
+	// does, and only the latter should fall through to a nil credentials block.
+	if model.CredentialMrn.IsNull() {
+		credential := &integrationAwsCredentialModel{}
+		switch {
+		case opts.WifAudience != "" && opts.WifRoleArn != "":
+			credential.Wif = &awsWifCredentialModel{
+				Audience: types.StringValue(opts.WifAudience),
+				RoleArn:  types.StringValue(opts.WifRoleArn),
+			}
+		case opts.AccessKeyId != "":
+			credential.Key = &accessKeyCredentialModel{
+				AccessKey: types.StringValue(opts.AccessKeyId),
+				SecretKey: types.StringPointerValue(nil), // cannot be imported
+			}
+		case opts.Role != "":
+			credential.Role = &roleCredentialModel{
+				RoleArn:    types.StringValue(opts.Role),
+				ExternalId: types.StringPointerValue(nil), // cannot be imported
+			}
+		default:
+			// No inline secret the provider recognises.
+			credential = nil
 		}
-	case opts.AccessKeyId != "":
-		credential.Key = &accessKeyCredentialModel{
-			AccessKey: types.StringValue(opts.AccessKeyId),
-			SecretKey: types.StringPointerValue(nil), // cannot be imported
-		}
-	case opts.Role != "":
-		credential.Role = &roleCredentialModel{
-			RoleArn:    types.StringValue(opts.Role),
-			ExternalId: types.StringPointerValue(nil), // cannot be imported
-		}
-	default:
-		// A credential-backed integration holds no inline secret.
-		credential = nil
+		model.Credential = credential
 	}
-	model.Credential = credential
-	model.CredentialMrn = types.StringPointerValue(nil)
 
 	resp.State.Set(ctx, &model)
 }

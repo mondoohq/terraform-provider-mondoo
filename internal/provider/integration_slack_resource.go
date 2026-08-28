@@ -265,8 +265,8 @@ func (r *integrationSlackResource) ImportState(ctx context.Context, req resource
 		Mrn:           types.StringValue(integration.Mrn),
 		Name:          types.StringValue(integration.Name),
 		SpaceID:       types.StringValue(integration.SpaceID()),
-		SlackToken:    types.StringPointerValue(nil),
-		CredentialMrn: types.StringPointerValue(nil),
+		SlackToken:    types.StringPointerValue(nil), // cannot be imported
+		CredentialMrn: integration.TypedCredentialMrn(defaultCredentialPurpose),
 	}
 
 	resp.State.Set(ctx, &model)

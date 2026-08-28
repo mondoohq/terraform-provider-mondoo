@@ -395,10 +395,16 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 			Terraform:    types.BoolValue(integration.ConfigurationOptions.GithubConfigurationOptions.DiscoverTerraform),
 			K8sManifests: types.BoolValue(integration.ConfigurationOptions.GithubConfigurationOptions.DiscoverK8sManifests),
 		},
-		Credential: &integrationGithubCredentialModel{
+		CredentialMrn: integration.TypedCredentialMrn(defaultCredentialPurpose),
+	}
+
+	// A credential-backed integration holds no inline secret, so leaving the
+	// credentials block populated would both contradict credential_mrn's
+	// ConflictsWith and show a phantom diff on the next plan.
+	if model.CredentialMrn.IsNull() {
+		model.Credential = &integrationGithubCredentialModel{
 			Token: types.StringPointerValue(nil), // cannot be imported
-		},
-		CredentialMrn: types.StringPointerValue(nil),
+		}
 	}
 
 	if model.Owner.ValueString() == "" {
