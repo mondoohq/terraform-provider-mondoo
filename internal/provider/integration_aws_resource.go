@@ -24,6 +24,7 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationAwsResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationAwsResource)(nil)
+var _ resource.ResourceWithModifyPlan = (*integrationAwsResource)(nil)
 var _ resource.ResourceWithConfigValidators = (*integrationAwsResource)(nil)
 
 func NewIntegrationAwsResource() resource.Resource {
@@ -431,4 +432,14 @@ func (r *integrationAwsResource) ImportState(ctx context.Context, req resource.I
 	}
 
 	resp.State.Set(ctx, &model)
+}
+
+// ModifyPlan decides whether adopting a typed credential replaces this
+// integration. See planCredentialBindingReplacement — only an integration that
+// still stores its secret inline is replaced.
+func (r *integrationAwsResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if r.client == nil {
+		return
+	}
+	planCredentialBindingReplacement(ctx, r.client, req, resp)
 }

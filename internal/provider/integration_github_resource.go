@@ -27,6 +27,7 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationGithubResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationGithubResource)(nil)
+var _ resource.ResourceWithModifyPlan = (*integrationGithubResource)(nil)
 var _ resource.ResourceWithConfigValidators = (*integrationGithubResource)(nil)
 
 func NewIntegrationGithubResource() resource.Resource {
@@ -412,4 +413,14 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 	}
 
 	resp.State.Set(ctx, &model)
+}
+
+// ModifyPlan decides whether adopting a typed credential replaces this
+// integration. See planCredentialBindingReplacement — only an integration that
+// still stores its secret inline is replaced.
+func (r *integrationGithubResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if r.client == nil {
+		return
+	}
+	planCredentialBindingReplacement(ctx, r.client, req, resp)
 }

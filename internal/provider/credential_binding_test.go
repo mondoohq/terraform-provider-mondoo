@@ -9,10 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // schemaAttributes fetches a resource's top-level attributes for assertions.
@@ -27,65 +24,120 @@ func schemaAttributes(t *testing.T, r resource.Resource) map[string]schema.Attri
 	return resp.Schema.Attributes
 }
 
-// nonNullRaw is any non-null object value; the modifier only tests IsNull() on
-// the raw state and plan to detect create and destroy.
-func nonNullRaw() tftypes.Value {
-	objType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"credential_mrn": tftypes.String}}
-	return tftypes.NewValue(objType, map[string]tftypes.Value{
-		"credential_mrn": tftypes.NewValue(tftypes.String, "placeholder"),
-	})
-}
+// The server refuses exactly one move — adding a reference to an integration
+// that still stores its secret inline. These pin the classification that
+// decides whether the API is even consulted; only credentialBindingAdded can
+// lead to a replacement.
+func TestClassifyCredentialBinding(t *testing.T) {
+	mrnA := types.StringValue("//credential/1")
+	mrnB := types.StringValue("//credential/2")
 
-// runTransitionModifier drives the modifier and reports whether it asked for a
-// replacement.
-func runTransitionModifier(t *testing.T, rawState, rawPlan tftypes.Value, stateValue, planValue types.String) bool {
-	t.Helper()
-
-	req := planmodifier.StringRequest{
-		State:      tfsdk.State{Raw: rawState},
-		Plan:       tfsdk.Plan{Raw: rawPlan},
-		StateValue: stateValue,
-		PlanValue:  planValue,
+	tests := []struct {
+		name      string
+		state     types.String
+		plan      types.String
+		expected  credentialBindingChange
+		reasoning string
+	}{
+		{
+			name: "adding a reference", state: types.StringNull(), plan: mrnA,
+			expected:  credentialBindingAdded,
+			reasoning: "the only change the server can refuse, and only when the integration is still inline",
+		},
+		{
+			name: "dropping a reference", state: mrnA, plan: types.StringNull(),
+			expected:  credentialBindingDropped,
+			reasoning: "the integration stays credential-backed and the inline secret rotates the credential behind it",
+		},
+		{
+			name: "swapping one credential for another", state: mrnA, plan: mrnB,
+			expected:  credentialBindingUnchanged,
+			reasoning: "a re-point, which the server takes in place",
+		},
+		{
+			name: "no reference either side", state: types.StringNull(), plan: types.StringNull(),
+			expected:  credentialBindingUnchanged,
+			reasoning: "an inline integration staying inline",
+		},
+		{
+			name: "same reference either side", state: mrnA, plan: mrnA,
+			expected:  credentialBindingUnchanged,
+			reasoning: "no change at all",
+		},
+		{
+			name: "unknown until apply", state: types.StringNull(), plan: types.StringUnknown(),
+			expected:  credentialBindingUnchanged,
+			reasoning: "a credential created in the same run, on an integration created alongside it",
+		},
 	}
-	resp := &planmodifier.StringResponse{PlanValue: planValue}
 
-	requiresReplaceOnTransition().PlanModifyString(context.Background(), req, resp)
-
-	return resp.RequiresReplace
-}
-
-func TestRequiresReplaceOnTransitionNullToKnown(t *testing.T) {
-	got := runTransitionModifier(t, nonNullRaw(), nonNullRaw(), types.StringNull(), types.StringValue("//credential/1"))
-	if !got {
-		t.Error("null -> known must require replacement: an integration cannot move to the credential model in place")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := classifyCredentialBinding(tt.state, tt.plan); got != tt.expected {
+				t.Errorf("got %v, want %v — %s", got, tt.expected, tt.reasoning)
+			}
+		})
 	}
 }
 
-func TestRequiresReplaceOnTransitionKnownToNull(t *testing.T) {
-	got := runTransitionModifier(t, nonNullRaw(), nonNullRaw(), types.StringValue("//credential/1"), types.StringNull())
-	if !got {
-		t.Error("known -> null must require replacement: omitting credentialMrn keeps the current credential server-side")
+// A migrated or auto-minted integration reports the credential governing it, so
+// adopting credential_mrn re-points it rather than destroying it. An integration
+// still holding its secret inline reports none.
+func TestTypedCredentialMrnDecidesReplacement(t *testing.T) {
+	backed := Integration{Credentials: []IntegrationCredential{
+		{Purpose: defaultCredentialPurpose, Mrn: "//credential/1"},
+	}}
+	if backed.TypedCredentialMrn(defaultCredentialPurpose).IsNull() {
+		t.Error("a credential-backed integration must not be replaced to adopt credential_mrn")
+	}
+
+	inline := Integration{}
+	if !inline.TypedCredentialMrn(defaultCredentialPurpose).IsNull() {
+		t.Error("an inline integration must be replaced: the server refuses the move in place")
 	}
 }
 
-func TestRequiresReplaceOnTransitionKnownToKnown(t *testing.T) {
-	got := runTransitionModifier(t, nonNullRaw(), nonNullRaw(), types.StringValue("//credential/1"), types.StringValue("//credential/2"))
-	if got {
-		t.Error("swapping one credential MRN for another is supported in place and must not replace")
+// credential_mrn must carry no RequiresReplace plan modifier: the decision needs
+// the API, so it lives in ModifyPlan. A modifier here would replace integrations
+// the server would have re-pointed in place.
+func TestCredentialMrnHasNoStaticReplaceModifier(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		r    resource.Resource
+	}{
+		{"slack", NewIntegrationSlackResource()},
+		{"github", NewIntegrationGithubResource()},
+		{"aws", NewIntegrationAwsResource()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			attr, ok := schemaAttributes(t, tc.r)["credential_mrn"].(schema.StringAttribute)
+			if !ok {
+				t.Fatal("credential_mrn is missing or not a StringAttribute")
+			}
+			if len(attr.PlanModifiers) != 0 {
+				t.Errorf("credential_mrn has %d plan modifiers; the replacement decision belongs in ModifyPlan, "+
+					"which can tell a migrated integration from an inline one", len(attr.PlanModifiers))
+			}
+		})
 	}
 }
 
-func TestRequiresReplaceOnTransitionSkipsCreate(t *testing.T) {
-	got := runTransitionModifier(t, tftypes.Value{}, nonNullRaw(), types.StringNull(), types.StringValue("//credential/1"))
-	if got {
-		t.Error("create must not be treated as a transition")
-	}
-}
-
-func TestRequiresReplaceOnTransitionSkipsDestroy(t *testing.T) {
-	got := runTransitionModifier(t, nonNullRaw(), tftypes.Value{}, types.StringValue("//credential/1"), types.StringNull())
-	if got {
-		t.Error("destroy must not be treated as a transition")
+// Every integration that can bind a credential must implement ModifyPlan, or it
+// silently loses the replacement decision entirely.
+func TestCredentialBoundResourcesImplementModifyPlan(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		r    resource.Resource
+	}{
+		{"slack", NewIntegrationSlackResource()},
+		{"github", NewIntegrationGithubResource()},
+		{"aws", NewIntegrationAwsResource()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, ok := tc.r.(resource.ResourceWithModifyPlan); !ok {
+				t.Error("does not implement ResourceWithModifyPlan")
+			}
+		})
 	}
 }
 

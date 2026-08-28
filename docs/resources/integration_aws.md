@@ -51,7 +51,7 @@ resource "mondoo_integration_aws" "name" {
 
 ### Optional
 
-- `credential_mrn` (String) MRN of an existing `mondoo_credential` to authenticate with, instead of supplying a secret inline. Must be a `AWS` credential owned by this integration's own scope — ownership is matched exactly, so a space-level integration cannot use a credential owned by its organization, or the reverse. An integration cannot be moved between the inline-secret and credential-backed models after creation, so setting or removing this attribute replaces the integration; re-pointing it at a different credential happens in place.
+- `credential_mrn` (String) MRN of an existing `mondoo_credential` to authenticate with, instead of supplying a secret inline. Must be a `AWS` credential owned by this integration's own scope — ownership is matched exactly, so a space-level integration cannot use a credential owned by its organization, or the reverse. Setting this on an integration that still stores its secret inline replaces the integration, because moving it onto typed credentials is a separate migration; on one the platform has already moved onto a credential it re-points in place, as does swapping it for another.
 - `credentials` (Attributes) Credentials for the AWS integration. Exactly one of `role`, `key`, `wif` or the top-level `credential_mrn` must be configured. (see [below for nested schema](#nestedatt--credentials))
 - `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
 
