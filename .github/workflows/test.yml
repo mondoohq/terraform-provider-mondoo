@@ -82,6 +82,16 @@ jobs:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
       - run: go mod download
+      # TEMPORARY (remove after reading one run): the acceptance tests create a
+      # space in whichever org the service account belongs to, but nothing ever
+      # prints which org that is. Decode the non-secret fields of the credential
+      # to find out. private_key is deliberately not printed.
+      - name: 'DEBUG: which org do the acceptance tests use'
+        if: matrix.terraform == '1.13.*'
+        env:
+          MONDOO_CONFIG_BASE64: ${{ secrets.MONDOO_CONFIG_BASE64 }}
+        run: |
+          echo "$MONDOO_CONFIG_BASE64" | base64 -d | jq '{mrn, parent_mrn, api_endpoint}'
       - env:
           TF_ACC: "1"
           MONDOO_CONFIG_BASE64: ${{ secrets.MONDOO_CONFIG_BASE64 }}
