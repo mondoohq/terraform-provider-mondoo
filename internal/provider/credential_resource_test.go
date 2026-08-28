@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccCredentialResource(t *testing.T) {
@@ -44,11 +45,20 @@ func TestAccCredentialResource(t *testing.T) {
 			},
 			// Import by MRN. The secret cannot be imported — no read returns it
 			// — and import records scope_mrn where the config used space_id.
+			//
+			// The MRN has to be supplied explicitly: this provider's resources
+			// carry no `id` attribute, so the default import ID would be the
+			// framework's "id-attribute-not-set" sentinel, which the API then
+			// reads as a credential *name* and rejects for want of a scope.
 			{
-				ResourceName:            "mondoo_credential.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"github_pat", "space_id", "scope_mrn"},
+				ResourceName: "mondoo_credential.test",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_credential.test"].Primary.Attributes["mrn"], nil
+				},
+				ImportStateVerifyIdentifierAttribute: "mrn",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIgnore:              []string{"github_pat", "space_id", "scope_mrn"},
 			},
 			// Delete happens automatically at the end of the case
 		},
@@ -115,7 +125,19 @@ func TestAccCredentialResourceUsagesWhileInUse(t *testing.T) {
 				Config: testAccCredentialWithSlackIntegrationConfig(accSpace.ID()),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("mondoo_integration_slack.test", "credential_mrn"),
+				),
+			},
+			// usages cannot be asserted in the step that creates the pair. It
+			// describes what references the credential, so it is a property of
+			// the *other* resource: Terraform reads it when the credential is
+			// created, which is necessarily before the integration that
+			// references it exists, and does not re-read it afterwards. A
+			// refresh is what makes the binding visible in state.
+			{
+				RefreshState: true,
+				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_credential.test", "usages.#", "1"),
+					resource.TestCheckResourceAttr("mondoo_credential.test", "usages.0.purpose", "default"),
 					resource.TestCheckResourceAttrPair(
 						"mondoo_credential.test", "usages.0.mrn",
 						"mondoo_integration_slack.test", "mrn",
