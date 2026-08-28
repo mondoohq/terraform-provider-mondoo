@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -26,6 +27,8 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationGithubResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationGithubResource)(nil)
+var _ resource.ResourceWithModifyPlan = (*integrationGithubResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationGithubResource)(nil)
 
 func NewIntegrationGithubResource() resource.Resource {
 	return &integrationGithubResource{}
@@ -55,7 +58,8 @@ type integrationGithubResourceModel struct {
 	Discovery *integrationGithubDiscoveryModel `tfsdk:"discovery"`
 
 	// credentials
-	Credential *integrationGithubCredentialModel `tfsdk:"credentials"`
+	Credential    *integrationGithubCredentialModel `tfsdk:"credentials"`
+	CredentialMrn types.String                      `tfsdk:"credential_mrn"`
 }
 
 type integrationGithubDiscoveryModel struct {
@@ -83,10 +87,14 @@ func (m integrationGithubResourceModel) GetConfigurationOptions() *mondoov1.Gith
 		opts.Type = mondoov1.GithubIntegrationTypeOrg
 	}
 
-	token := m.Credential.Token.ValueString()
-	if token != "" {
-		opts.Token = mondoov1.NewStringPtr(mondoov1.String(token))
+	// credentials is Optional now that credential_mrn is an alternative, so it
+	// can be null.
+	if m.Credential != nil {
+		if token := m.Credential.Token.ValueString(); token != "" {
+			opts.Token = mondoov1.NewStringPtr(mondoov1.String(token))
+		}
 	}
+	opts.CredentialMrn = credentialOptionalString(m.CredentialMrn)
 
 	if m.Discovery != nil {
 		opts.DiscoverTerraform = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.Discovery.Terraform.ValueBool()))
@@ -191,7 +199,9 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 				},
 			},
 			"credentials": schema.SingleNestedAttribute{
-				Required: true,
+				MarkdownDescription: "Inline GitHub token. Mutually exclusive with `credential_mrn`.",
+				Optional:            true,
+				DeprecationMessage:  credentialMrnDeprecationMessage,
 				Attributes: map[string]schema.Attribute{
 					"token": schema.StringAttribute{
 						MarkdownDescription: "Token for GitHub integration.",
@@ -206,7 +216,17 @@ func (r *integrationGithubResource) Schema(ctx context.Context, req resource.Sch
 					},
 				},
 			},
+			"credential_mrn": credentialMrnAttribute("GITHUB_PAT", path.MatchRoot("credentials")),
 		},
+	}
+}
+
+func (r *integrationGithubResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("credentials"),
+			path.MatchRoot("credential_mrn"),
+		),
 	}
 }
 
@@ -376,9 +396,16 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 			Terraform:    types.BoolValue(integration.ConfigurationOptions.GithubConfigurationOptions.DiscoverTerraform),
 			K8sManifests: types.BoolValue(integration.ConfigurationOptions.GithubConfigurationOptions.DiscoverK8sManifests),
 		},
-		Credential: &integrationGithubCredentialModel{
-			Token: types.StringPointerValue(nil),
-		},
+		CredentialMrn: integration.TypedCredentialMrn(defaultCredentialPurpose),
+	}
+
+	// A credential-backed integration holds no inline secret, so leaving the
+	// credentials block populated would both contradict credential_mrn's
+	// ConflictsWith and show a phantom diff on the next plan.
+	if model.CredentialMrn.IsNull() {
+		model.Credential = &integrationGithubCredentialModel{
+			Token: types.StringPointerValue(nil), // cannot be imported
+		}
 	}
 
 	if model.Owner.ValueString() == "" {
@@ -386,4 +413,14 @@ func (r *integrationGithubResource) ImportState(ctx context.Context, req resourc
 	}
 
 	resp.State.Set(ctx, &model)
+}
+
+// ModifyPlan decides whether adopting a typed credential replaces this
+// integration. See planCredentialBindingReplacement — only an integration that
+// still stores its secret inline is replaced.
+func (r *integrationGithubResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if r.client == nil {
+		return
+	}
+	planCredentialBindingReplacement(ctx, r.client, req, resp)
 }

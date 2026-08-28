@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -22,6 +24,8 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationSlackResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationSlackResource)(nil)
+var _ resource.ResourceWithModifyPlan = (*integrationSlackResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationSlackResource)(nil)
 
 func NewIntegrationSlackResource() resource.Resource {
 	return &integrationSlackResource{}
@@ -40,7 +44,8 @@ type integrationSlackResourceModel struct {
 	Name types.String `tfsdk:"name"`
 
 	// credentials
-	SlackToken types.String `tfsdk:"slack_token"`
+	SlackToken    types.String `tfsdk:"slack_token"`
+	CredentialMrn types.String `tfsdk:"credential_mrn"`
 }
 
 func (r *integrationSlackResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -74,9 +79,10 @@ func (r *integrationSlackResource) Schema(ctx context.Context, req resource.Sche
 				},
 			},
 			"slack_token": schema.StringAttribute{
-				Required:    true,
-				Sensitive:   true,
-				Description: "The Slack token to authenticate with the Slack API.",
+				Optional:           true,
+				Sensitive:          true,
+				Description:        "The Slack token to authenticate with the Slack API.",
+				DeprecationMessage: credentialMrnDeprecationMessage,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
 						regexp.MustCompile(`^xox[baprs](-[0-9a-zA-Z]{10,48})+$`),
@@ -84,7 +90,17 @@ func (r *integrationSlackResource) Schema(ctx context.Context, req resource.Sche
 					),
 				},
 			},
+			"credential_mrn": credentialMrnAttribute("SLACK", path.MatchRoot("slack_token")),
 		},
+	}
+}
+
+func (r *integrationSlackResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("slack_token"),
+			path.MatchRoot("credential_mrn"),
+		),
 	}
 }
 
@@ -134,7 +150,8 @@ func (r *integrationSlackResource) Create(ctx context.Context, req resource.Crea
 		mondoov1.ClientIntegrationTypeHostedSlack,
 		mondoov1.ClientIntegrationConfigurationInput{
 			SlackConfigurationOptions: &mondoov1.SlackConfigurationOptionsInput{
-				SlackToken: mondoov1.NewStringPtr(mondoov1.String(data.SlackToken.ValueString())),
+				SlackToken:    credentialOptionalString(data.SlackToken),
+				CredentialMrn: credentialOptionalString(data.CredentialMrn),
 			},
 		})
 	if err != nil {
@@ -194,7 +211,8 @@ func (r *integrationSlackResource) Update(ctx context.Context, req resource.Upda
 	// Do GraphQL request to API to update the resource.
 	opts := mondoov1.ClientIntegrationConfigurationInput{
 		SlackConfigurationOptions: &mondoov1.SlackConfigurationOptionsInput{
-			SlackToken: mondoov1.NewStringPtr(mondoov1.String(data.SlackToken.ValueString())),
+			SlackToken:    credentialOptionalString(data.SlackToken),
+			CredentialMrn: credentialOptionalString(data.CredentialMrn),
 		},
 	}
 
@@ -245,11 +263,22 @@ func (r *integrationSlackResource) ImportState(ctx context.Context, req resource
 	}
 
 	model := integrationSlackResourceModel{
-		Mrn:        types.StringValue(integration.Mrn),
-		Name:       types.StringValue(integration.Name),
-		SpaceID:    types.StringValue(integration.SpaceID()),
-		SlackToken: types.StringPointerValue(nil),
+		Mrn:           types.StringValue(integration.Mrn),
+		Name:          types.StringValue(integration.Name),
+		SpaceID:       types.StringValue(integration.SpaceID()),
+		SlackToken:    types.StringPointerValue(nil), // cannot be imported
+		CredentialMrn: integration.TypedCredentialMrn(defaultCredentialPurpose),
 	}
 
 	resp.State.Set(ctx, &model)
+}
+
+// ModifyPlan decides whether adopting a typed credential replaces this
+// integration. See planCredentialBindingReplacement — only an integration that
+// still stores its secret inline is replaced.
+func (r *integrationSlackResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if r.client == nil {
+		return
+	}
+	planCredentialBindingReplacement(ctx, r.client, req, resp)
 }

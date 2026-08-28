@@ -23,6 +23,7 @@ website/node_modules
 *~
 .*.swp
 .claude/
+docs/superpowers/
 .idea
 *.iml
 *.test

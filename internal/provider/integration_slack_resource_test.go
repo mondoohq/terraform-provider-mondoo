@@ -79,3 +79,41 @@ resource "mondoo_integration_slack" "test" {
 }
 `, spaceID, intName)
 }
+
+func TestAccSlackResourceWithCredential(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSlackResourceCredentialConfig(accSpace.ID(), "slack-via-credential"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_integration_slack.test", "name", "slack-via-credential"),
+					resource.TestCheckResourceAttrPair(
+						"mondoo_integration_slack.test", "credential_mrn",
+						"mondoo_credential.test", "mrn",
+					),
+				),
+			},
+		},
+	})
+}
+
+func testAccSlackResourceCredentialConfig(spaceID, intName string) string {
+	return fmt.Sprintf(`
+resource "mondoo_credential" "test" {
+  space_id = %[1]q
+  name     = "slack-bot-token"
+
+  slack = {
+    bot_token = "xoxb-1234567890abc"
+  }
+}
+
+resource "mondoo_integration_slack" "test" {
+  space_id       = %[1]q
+  name           = %[2]q
+  credential_mrn = mondoo_credential.test.mrn
+}
+`, spaceID, intName)
+}

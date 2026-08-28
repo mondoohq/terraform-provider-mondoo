@@ -105,3 +105,41 @@ resource "mondoo_integration_github" "test" {
 }
 `, spaceID, intName, owner, token)
 }
+
+func TestAccGithubResourceWithCredential(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubResourceCredentialConfig(accSpace.ID(), "github-via-credential"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair(
+						"mondoo_integration_github.test", "credential_mrn",
+						"mondoo_credential.test", "mrn",
+					),
+				),
+			},
+		},
+	})
+}
+
+func testAccGithubResourceCredentialConfig(spaceID, intName string) string {
+	return fmt.Sprintf(`
+resource "mondoo_credential" "test" {
+  space_id = %[1]q
+  name     = "github-scanner"
+
+  github_pat = {
+    token = "ghp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}
+
+resource "mondoo_integration_github" "test" {
+  space_id       = %[1]q
+  name           = %[2]q
+  owner          = "mondoohq"
+  credential_mrn = mondoo_credential.test.mrn
+}
+`, spaceID, intName)
+}

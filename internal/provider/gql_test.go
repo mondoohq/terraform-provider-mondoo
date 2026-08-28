@@ -6,6 +6,7 @@ package provider
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -172,6 +173,60 @@ func TestIntegration_IsSpaceScoped(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			integration := Integration{Mrn: tt.mrn}
 			assert.Equal(t, tt.expected, integration.IsSpaceScoped())
+		})
+	}
+}
+
+func TestIntegration_TypedCredentialMrn(t *testing.T) {
+	tests := []struct {
+		name        string
+		credentials []IntegrationCredential
+		purpose     string
+		expected    types.String
+	}{
+		{
+			name:        "no credentials means the secret is inline",
+			credentials: nil,
+			purpose:     defaultCredentialPurpose,
+			expected:    types.StringNull(),
+		},
+		{
+			name:        "empty list means the secret is inline",
+			credentials: []IntegrationCredential{},
+			purpose:     defaultCredentialPurpose,
+			expected:    types.StringNull(),
+		},
+		{
+			name: "default slot returns its MRN",
+			credentials: []IntegrationCredential{
+				{Purpose: defaultCredentialPurpose, Mrn: "//captain.api.mondoo.app/spaces/s1/credentials/c1"},
+			},
+			purpose:  defaultCredentialPurpose,
+			expected: types.StringValue("//captain.api.mondoo.app/spaces/s1/credentials/c1"),
+		},
+		{
+			name: "the requested slot is picked out of several",
+			credentials: []IntegrationCredential{
+				{Purpose: "signing", Mrn: "//captain.api.mondoo.app/spaces/s1/credentials/c2"},
+				{Purpose: defaultCredentialPurpose, Mrn: "//captain.api.mondoo.app/spaces/s1/credentials/c1"},
+			},
+			purpose:  defaultCredentialPurpose,
+			expected: types.StringValue("//captain.api.mondoo.app/spaces/s1/credentials/c1"),
+		},
+		{
+			name: "a slot the resource does not fill returns null",
+			credentials: []IntegrationCredential{
+				{Purpose: "signing", Mrn: "//captain.api.mondoo.app/spaces/s1/credentials/c2"},
+			},
+			purpose:  defaultCredentialPurpose,
+			expected: types.StringNull(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			integration := Integration{Credentials: tt.credentials}
+			assert.Equal(t, tt.expected, integration.TypedCredentialMrn(tt.purpose))
 		})
 	}
 }

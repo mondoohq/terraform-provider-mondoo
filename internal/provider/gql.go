@@ -844,14 +844,14 @@ type GithubConfigurationOptions struct {
 }
 
 type AuditLogExportConfigurationOptions struct {
-	DestinationType    string
-	Bucket             string
-	Format             string
-	IntervalMinutes    int
-	IncludeHistorical  bool
-	WifAudience        *string
+	DestinationType        string
+	Bucket                 string
+	Format                 string
+	IntervalMinutes        int
+	IncludeHistorical      bool
+	WifAudience            *string
 	WifServiceAccountEmail *string
-	WifSubject         *string
+	WifSubject             *string
 }
 
 type GcsBucketConfigurationOptions struct {
@@ -973,10 +973,46 @@ type SentinelOneConfigurationOptions struct {
 	Account string
 }
 
+// IntegrationCredential is one typed credential an integration authenticates
+// with. Only purpose and mrn are selected: they are all an import needs, and
+// the remaining fields (kind, health, expiry) are enums and timestamps this
+// package would otherwise have to decode for no reader.
+type IntegrationCredential struct {
+	Purpose string
+	Mrn     string
+}
+
+// defaultCredentialPurpose is the slot a single-secret integration fills.
+// Integration types holding more than one secret name each slot instead.
+const defaultCredentialPurpose = "default"
+
 type Integration struct {
 	Mrn                  string
 	Name                 string
 	ConfigurationOptions ClientIntegrationConfigurationOptions `graphql:"configurationOptions"`
+
+	// Credentials lists the typed credentials actually governing this
+	// integration's scans. Empty means it holds its own secret inline, which is
+	// what makes it the discriminator ImportState needs: the configuration
+	// options expose no read-side credentialMrn, and for Slack and GitHub they
+	// expose no readable secret either, so nothing else distinguishes the two
+	// authentication models.
+	Credentials []IntegrationCredential `graphql:"credentials"`
+}
+
+// TypedCredentialMrn returns the MRN of the typed credential filling the named
+// slot, or a null string when the integration holds its own secret inline.
+//
+// A null result is what tells ImportState to keep the inline-secret block; a
+// known one tells it to null that block and record the binding, so a plan after
+// import reports no changes instead of proposing a replacement.
+func (i Integration) TypedCredentialMrn(purpose string) types.String {
+	for _, c := range i.Credentials {
+		if c.Purpose == purpose {
+			return types.StringValue(c.Mrn)
+		}
+	}
+	return types.StringNull()
 }
 
 // SpaceID returns the space where the integration is configured (using the integration MRN).
