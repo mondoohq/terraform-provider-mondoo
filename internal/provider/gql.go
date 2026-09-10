@@ -844,14 +844,14 @@ type GithubConfigurationOptions struct {
 }
 
 type AuditLogExportConfigurationOptions struct {
-	DestinationType    string
-	Bucket             string
-	Format             string
-	IntervalMinutes    int
-	IncludeHistorical  bool
-	WifAudience        *string
+	DestinationType        string
+	Bucket                 string
+	Format                 string
+	IntervalMinutes        int
+	IncludeHistorical      bool
+	WifAudience            *string
 	WifServiceAccountEmail *string
-	WifSubject         *string
+	WifSubject             *string
 }
 
 type GcsBucketConfigurationOptions struct {
@@ -892,6 +892,19 @@ type Ms365ConfigurationOptions struct {
 type MsIntuneConfigurationOptions struct {
 	TenantId string
 	ClientId string
+}
+
+// AWSConfigurationOptions is the read-back shape of the AWS serverless
+// integration. The SDK generates inputs only, so the computed fields the server
+// derives from its own configuration are declared here.
+type AWSConfigurationOptions struct {
+	// The S3 bucket the Lambda code is published to, e.g. "mondoo.us-east-1".
+	// Region-specific: a Lambda must load its code from a bucket in its own
+	// region. The CloudFormation stack takes it as the MondooSourceBucket
+	// parameter.
+	SourceBucket string `graphql:"sourceBucket"`
+	// The CloudFormation template URL, served out of the same bucket.
+	CloudFormationTemplateUrl string `graphql:"cloudFormationTemplateUrl"`
 }
 
 type HostedAwsConfigurationOptions struct {

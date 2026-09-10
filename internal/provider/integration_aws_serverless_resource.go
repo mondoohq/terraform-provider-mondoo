@@ -45,6 +45,12 @@ type integrationAwsServerlessResourceModel struct {
 	Name  types.String `tfsdk:"name"`
 	Token types.String `tfsdk:"token"`
 
+	// Computed by the server from its own configuration. Feed them into the
+	// aws_cloudformation_stack resource: the template URL, and the
+	// MondooSourceBucket parameter the template requires.
+	SourceBucket              types.String `tfsdk:"source_bucket"`
+	CloudFormationTemplateUrl types.String `tfsdk:"cloud_formation_template_url"`
+
 	Region            types.String           `tfsdk:"region"`
 	ScanConfiguration ScanConfigurationInput `tfsdk:"scan_configuration"`
 
@@ -281,6 +287,20 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			"token": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Integration token",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"source_bucket": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "The S3 bucket the Lambda code is published to for the integration's region (populated by Mondoo after creation). Pass it as the `MondooSourceBucket` parameter of the `aws_cloudformation_stack` resource.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"cloud_formation_template_url": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "The CloudFormation template URL for the integration's region (populated by Mondoo after creation). Use it as the `template_url` of the `aws_cloudformation_stack` resource.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -589,8 +609,36 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 	data.Token = types.StringValue(string(integration.Token))
 	data.SpaceID = types.StringValue(space.ID())
 
+	// The create payload carries no configuration options, so read the
+	// integration back for the server-computed CloudFormation inputs.
+	r.refreshComputed(ctx, &data, "created", &resp.Diagnostics)
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// refreshComputed reads the integration back and copies the server-computed
+// CloudFormation inputs into the model. The mutation has already succeeded by
+// the time this runs, so a failed read-back is a warning rather than an error:
+// the next refresh picks the values up.
+func (r *integrationAwsServerlessResource) refreshComputed(ctx context.Context, data *integrationAwsServerlessResourceModel, verb string, diags *diag.Diagnostics) {
+	fetched, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+	if err != nil {
+		diags.AddWarning(
+			"Unable to read CloudFormation fields",
+			fmt.Sprintf("The integration was %s, but source_bucket and cloud_formation_template_url "+
+				"could not be read back: %s. Re-run 'terraform apply' to refresh them.", verb, err),
+		)
+		return
+	}
+	data.setComputedFrom(fetched)
+}
+
+// setComputedFrom copies the server-computed CloudFormation inputs into the model.
+func (m *integrationAwsServerlessResourceModel) setComputedFrom(integration Integration) {
+	opts := integration.ConfigurationOptions.AWSConfigurationOptions
+	m.SourceBucket = types.StringValue(opts.SourceBucket)
+	m.CloudFormationTemplateUrl = types.StringValue(opts.CloudFormationTemplateUrl)
 }
 
 func (r *integrationAwsServerlessResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -603,7 +651,23 @@ func (r *integrationAwsServerlessResource) Read(ctx context.Context, req resourc
 		return
 	}
 
-	// Read API call logic
+	// Refresh the server-computed CloudFormation inputs.
+	if data.Mrn.ValueString() != "" {
+		integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+		if err != nil {
+			// Only drop the resource from state when it genuinely no longer
+			// exists; a transient error must not make Terraform forget it.
+			if isNotFoundError(err) {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+			resp.Diagnostics.AddError("Client Error",
+				fmt.Sprintf("Unable to read AWS serverless integration: %s", err),
+			)
+			return
+		}
+		data.setComputedFrom(integration)
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -650,6 +714,10 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 			)
 		return
 	}
+
+	// The server recomputes the CloudFormation inputs from the region, so a
+	// region change would otherwise leave stale values in state.
+	r.refreshComputed(ctx, &data, "updated", &resp.Diagnostics)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

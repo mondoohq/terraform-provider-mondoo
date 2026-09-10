@@ -13,18 +13,6 @@ Continuously scan AWS organization and accounts for misconfigurations and vulner
 ## Example Usage
 
 ```terraform
-variable "origin_aws_account" {
-  description = "Origin AWS Account"
-  type        = string
-  default     = "123456789"
-}
-
-variable "mondoo_sns_handler" {
-  description = "Mondoo SNS Handler"
-  type        = string
-  default     = "https://api.mondoo.com/AWS/SNSEventHandler"
-}
-
 variable "aws_region" {
   description = "AWS Region"
   type        = string
@@ -74,13 +62,12 @@ resource "mondoo_integration_aws_serverless" "aws_serverless" {
 # for single account deploys
 resource "aws_cloudformation_stack" "mondoo_stack" {
   name         = "mondoo-stack"
-  template_url = "https://s3.amazonaws.com/mondoo.${data.aws_region.current.name}/mondoo-root-cf.json"
+  template_url = mondoo_integration_aws_serverless.aws_serverless.cloud_formation_template_url
   capabilities = ["CAPABILITY_NAMED_IAM"]
   parameters = {
     MondooIntegrationMrn = mondoo_integration_aws_serverless.aws_serverless.mrn
     MondooToken          = mondoo_integration_aws_serverless.aws_serverless.token
-    OriginAwsAccount     = var.origin_aws_account
-    MondooSnsHandler     = var.mondoo_sns_handler
+    MondooSourceBucket   = mondoo_integration_aws_serverless.aws_serverless.source_bucket
   }
 }
 
@@ -108,7 +95,9 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 
 ### Read-Only
 
+- `cloud_formation_template_url` (String) The CloudFormation template URL for the integration's region (populated by Mondoo after creation). Use it as the `template_url` of the `aws_cloudformation_stack` resource.
 - `mrn` (String) Integration identifier
+- `source_bucket` (String) The S3 bucket the Lambda code is published to for the integration's region (populated by Mondoo after creation). Pass it as the `MondooSourceBucket` parameter of the `aws_cloudformation_stack` resource.
 - `token` (String) Integration token
 
 <a id="nestedatt--scan_configuration"></a>
