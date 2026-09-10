@@ -597,19 +597,27 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 
 	// The create payload carries no configuration options, so read the
 	// integration back for the server-computed CloudFormation inputs.
-	fetched, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddWarning(
-			"Unable to read CloudFormation fields",
-			fmt.Sprintf("The integration was created, but source_bucket and cloud_formation_template_url "+
-				"could not be read back: %s. Re-run 'terraform apply' to refresh them.", err),
-		)
-	} else {
-		data.setComputedFrom(fetched)
-	}
+	r.refreshComputed(ctx, &data, "created", &resp.Diagnostics)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// refreshComputed reads the integration back and copies the server-computed
+// CloudFormation inputs into the model. The mutation has already succeeded by
+// the time this runs, so a failed read-back is a warning rather than an error:
+// the next refresh picks the values up.
+func (r *integrationAwsServerlessResource) refreshComputed(ctx context.Context, data *integrationAwsServerlessResourceModel, verb string, diags *diag.Diagnostics) {
+	fetched, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+	if err != nil {
+		diags.AddWarning(
+			"Unable to read CloudFormation fields",
+			fmt.Sprintf("The integration was %s, but source_bucket and cloud_formation_template_url "+
+				"could not be read back: %s. Re-run 'terraform apply' to refresh them.", verb, err),
+		)
+		return
+	}
+	data.setComputedFrom(fetched)
 }
 
 // setComputedFrom copies the server-computed CloudFormation inputs into the model.
@@ -692,6 +700,10 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 			)
 		return
 	}
+
+	// The server recomputes the CloudFormation inputs from the region, so a
+	// region change would otherwise leave stale values in state.
+	r.refreshComputed(ctx, &data, "updated", &resp.Diagnostics)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
