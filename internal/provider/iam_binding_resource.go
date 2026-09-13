@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -109,6 +110,27 @@ func (r *IAMBindingResource) Configure(ctx context.Context, req resource.Configu
 	r.client = client
 }
 
+// normalizedRoleMRNs turns the configured role list into the full role MRNs the
+// API expects, accepting either short names ("editor") or full MRNs.
+//
+// The diagnostics have to be returned rather than dropped: on a null, unknown,
+// or wrongly-typed list, ElementsAs leaves the slice empty, and an empty role
+// list is not a no-op here -- it is how a binding is deleted. Silently sending
+// one would revoke the roles it was asked to set.
+func normalizedRoleMRNs(ctx context.Context, roles types.List) ([]mondoov1.String, diag.Diagnostics) {
+	var roleStrings []string
+	diags := roles.ElementsAs(ctx, &roleStrings, false)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	mrns := make([]mondoov1.String, 0, len(roleStrings))
+	for _, role := range roleStrings {
+		mrns = append(mrns, mondoov1.String(customtypes.NormalizeRoleMRN(role)))
+	}
+	return mrns, diags
+}
+
 func (r *IAMBindingResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data IAMBindingResourceModel
 
@@ -119,27 +141,17 @@ func (r *IAMBindingResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	// Convert roles to the format expected by the API
-	var roleInputs []RoleInput
-	var roleStrings []string
-	data.Roles.ElementsAs(ctx, &roleStrings, false)
-	for _, role := range roleStrings {
-		// Normalize role names to full MRNs
-		normalizedRole := customtypes.NormalizeRoleMRN(role)
-		roleInputs = append(roleInputs, RoleInput{
-			Mrn: mondoov1.String(normalizedRole),
-		})
+	roles, diags := normalizedRoleMRNs(ctx, data.Roles)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Set roles using the setRoles mutation
 	input := SetRolesInput{
 		ScopeMrn: mondoov1.String(data.ResourceMrn.ValueString()),
-		Updates: []SetRoleInput{
-			{
-				EntityMrn: mondoov1.String(data.IdentityMrn.ValueString()),
-				Roles:     roleInputs,
-			},
-		},
+		Identity: mondoov1.String(data.IdentityMrn.ValueString()),
+		Roles:    roles,
 	}
 
 	_, err := r.client.SetRoles(ctx, input)
@@ -202,27 +214,17 @@ func (r *IAMBindingResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	// Convert roles to the format expected by the API
-	var roleInputs []RoleInput
-	var roleStrings []string
-	data.Roles.ElementsAs(ctx, &roleStrings, false)
-	for _, role := range roleStrings {
-		// Normalize role names to full MRNs
-		normalizedRole := customtypes.NormalizeRoleMRN(role)
-		roleInputs = append(roleInputs, RoleInput{
-			Mrn: mondoov1.String(normalizedRole),
-		})
+	roles, diags := normalizedRoleMRNs(ctx, data.Roles)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Update roles using the setRoles mutation
 	input := SetRolesInput{
 		ScopeMrn: mondoov1.String(data.ResourceMrn.ValueString()),
-		Updates: []SetRoleInput{
-			{
-				EntityMrn: mondoov1.String(data.IdentityMrn.ValueString()),
-				Roles:     roleInputs,
-			},
-		},
+		Identity: mondoov1.String(data.IdentityMrn.ValueString()),
+		Roles:    roles,
 	}
 
 	_, err := r.client.SetRoles(ctx, input)
@@ -248,12 +250,8 @@ func (r *IAMBindingResource) Delete(ctx context.Context, req resource.DeleteRequ
 	// Remove roles by setting an empty role list
 	input := SetRolesInput{
 		ScopeMrn: mondoov1.String(data.ResourceMrn.ValueString()),
-		Updates: []SetRoleInput{
-			{
-				EntityMrn: mondoov1.String(data.IdentityMrn.ValueString()),
-				Roles:     []RoleInput{}, // Empty list removes all roles
-			},
-		},
+		Identity: mondoov1.String(data.IdentityMrn.ValueString()),
+		Roles:    []mondoov1.String{}, // Empty list removes all roles
 	}
 
 	_, err := r.client.SetRoles(ctx, input)
