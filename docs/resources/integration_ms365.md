@@ -132,6 +132,76 @@ resource "azuread_application" "mondoo_security" {
       id   = "498476ce-e0fe-48b0-b801-37ba7e2685c6" # Organization.Read.All
       type = "Role"
     }
+
+    resource_access {
+      id   = "7a6ee1e7-141e-4cec-ae74-d9db155731ff" # DeviceManagementApps.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "2f51be20-0bb4-4fed-bf7b-db946066c75e" # DeviceManagementManagedDevices.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "58ca0d9a-1575-47e1-a3cb-007ef2e4583b" # DeviceManagementRBAC.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "6e472fd1-ad78-48da-a0f0-97ab2c6b769e" # IdentityRiskEvent.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "dc5007c0-2d7d-4c42-879c-2dab87571379" # IdentityRiskyUser.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "19da66cb-0fb0-4390-b071-ebc76a349482" # InformationProtectionPolicy.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "c7fbd983-d9aa-4fa7-84b8-17382c103bc4" # RoleManagement.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "472e4a4d-bb4a-4026-98d1-0b0d74cb74a5" # SecurityAlert.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "45cc0394-e837-488b-a098-1918f48d186c" # SecurityIncident.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "c74fd47d-ed3c-45c3-9a9e-b8676de685d2" # EntitlementManagement.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "bdba4817-6ba1-4a7c-8a01-be9bc7c242dd" # Policy.Read.DeviceConfiguration
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "c0e5a7b0-e8b7-40a7-b8e0-8249e6ea81d5" # Domain-InternalFederation.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "242607bd-1d2c-432c-82eb-bdb27baa23ab" # TeamSettings.Read.All
+      type = "Role"
+    }
+
+    resource_access {
+      id   = "c97b873f-f59f-49aa-8a0e-52b32d762124" # ChannelSettings.Read.All
+      type = "Role"
+    }
   }
 
   required_resource_access {
