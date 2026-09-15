@@ -49,16 +49,6 @@ resource "azuread_application" "mondoo_security" {
     }
 
     resource_access {
-      id   = "e321f0bb-e7f7-481e-bb28-e3b0b32d4bd0" # IdentityProvider.Read.All
-      type = "Role"
-    }
-
-    resource_access {
-      id   = "5e0edab9-c148-49d0-b423-ac253e121825" # SecurityActions.Read.All
-      type = "Role"
-    }
-
-    resource_access {
       id   = "bf394140-e372-4bf9-a898-299cfc7564e5" # SecurityEvents.Read.All
       type = "Role"
     }
@@ -74,11 +64,6 @@ resource "azuread_application" "mondoo_security" {
     }
 
     resource_access {
-      id   = "37730810-e9ba-4e46-b07e-8ca78d182097" # Policy.Read.ConditionalAccess
-      type = "Role"
-    }
-
-    resource_access {
       id   = "7ab1d382-f21e-4acd-a863-ba3e13f7da61" # Directory.Read.All
       type = "Role"
     }
@@ -90,16 +75,6 @@ resource "azuread_application" "mondoo_security" {
 
     resource_access {
       id   = "38d9df27-64da-44fd-b7c5-a6fbac20248f" # UserAuthenticationMethod.Read.All
-      type = "Role"
-    }
-
-    resource_access {
-      id   = "fdc4c997-9942-4479-bfcb-75a36d1138df" # RoleManagementPolicy.Read.Directory
-      type = "Role"
-    }
-
-    resource_access {
-      id   = "ff278e11-4a33-4d0c-83d2-d01dc58929a5" # RoleEligibilitySchedule.Read.Directory
       type = "Role"
     }
 
