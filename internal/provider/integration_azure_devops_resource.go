@@ -105,6 +105,7 @@ func (r *integrationAzureDevopsResource) Schema(_ context.Context, _ resource.Sc
 			"client_secret": schema.StringAttribute{
 				MarkdownDescription: "The AzureDevops ClientSecret",
 				Required:            true,
+				Sensitive:           true,
 			},
 			"default_project_name": schema.StringAttribute{
 				MarkdownDescription: "The AzureDevops DefaultProjectName",

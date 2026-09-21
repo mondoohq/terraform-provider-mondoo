@@ -97,6 +97,7 @@ func (r *integrationGoogleWorkspaceResource) Schema(_ context.Context, _ resourc
 			"service_account": schema.StringAttribute{
 				MarkdownDescription: "The GoogleWorkspace ServiceAccount",
 				Optional:            true,
+				Sensitive:           true,
 			},
 		},
 	}

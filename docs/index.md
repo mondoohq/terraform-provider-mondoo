@@ -163,7 +163,7 @@ provider "mondoo" {
 
 ### Optional
 
-- `credentials` (String) The contents of a service account key file in JSON format.
+- `credentials` (String, Sensitive) The contents of a service account key file in JSON format.
 - `endpoint` (String) The endpoint url of the server to manage resources.
 - `region` (String) The default region to manage resources in. Valid regions are `us` or `eu`.
 - `space` (String) The default space to manage resources in.

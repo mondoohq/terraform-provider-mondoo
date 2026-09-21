@@ -45,7 +45,7 @@ resource "mondoo_integration_okta" "example" {
 ### Optional
 
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
-- `token` (String) The Okta Token
+- `token` (String, Sensitive) The Okta Token
 
 ### Read-Only
 

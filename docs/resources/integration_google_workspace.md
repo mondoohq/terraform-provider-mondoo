@@ -50,7 +50,7 @@ resource "mondoo_integration_google_workspace" "example" {
 
 ### Optional
 
-- `service_account` (String) The GoogleWorkspace ServiceAccount
+- `service_account` (String, Sensitive) The GoogleWorkspace ServiceAccount
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
