@@ -51,10 +51,10 @@ resource "mondoo_integration_okta" "example" {
 
 ### Optional
 
-- `credential_mrn` (String) The Okta CredentialMrn
+- `credential_mrn` (String, Sensitive) The Okta CredentialMrn
 - `organization` (String) The Okta Organization
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
-- `token` (String) The Okta Token
+- `token` (String, Sensitive) The Okta Token
 
 ### Read-Only
 

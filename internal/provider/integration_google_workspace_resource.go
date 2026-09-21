@@ -105,6 +105,7 @@ func (r *integrationGoogleWorkspaceResource) Schema(_ context.Context, _ resourc
 			"credential_mrn": schema.StringAttribute{
 				MarkdownDescription: "The GoogleWorkspace CredentialMrn",
 				Optional:            true,
+				Sensitive:           true,
 			},
 			"customer_id": schema.StringAttribute{
 				MarkdownDescription: "The GoogleWorkspace CustomerId",
@@ -117,6 +118,7 @@ func (r *integrationGoogleWorkspaceResource) Schema(_ context.Context, _ resourc
 			"service_account": schema.StringAttribute{
 				MarkdownDescription: "The GoogleWorkspace ServiceAccount",
 				Optional:            true,
+				Sensitive:           true,
 			},
 		},
 	}
