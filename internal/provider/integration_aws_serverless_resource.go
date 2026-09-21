@@ -286,6 +286,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			},
 			"token": schema.StringAttribute{
 				Computed:            true,
+				Sensitive:           true,
 				MarkdownDescription: "Integration token",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),

@@ -66,7 +66,7 @@ resource "mondoo_integration_azure_devops" "example" {
 
 - `auto_close_tickets` (Boolean) The AzureDevops AutoCloseTickets
 - `auto_create_tickets` (Boolean) The AzureDevops AutoCreateTickets
-- `client_secret` (String) The AzureDevops ClientSecret
+- `client_secret` (String, Sensitive) The AzureDevops ClientSecret
 - `name` (String) Name of the integration.
 - `organization_url` (String) The AzureDevops OrganizationUrl
 - `service_principal_id` (String) The AzureDevops ServicePrincipalId

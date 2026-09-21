@@ -55,6 +55,7 @@ func (p *MondooProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 			"credentials": schema.StringAttribute{
 				MarkdownDescription: "The contents of a service account key file in JSON format.",
 				Optional:            true,
+				Sensitive:           true,
 			},
 			"space": schema.StringAttribute{
 				MarkdownDescription: "The default space to manage resources in.",

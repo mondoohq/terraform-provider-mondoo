@@ -98,7 +98,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 - `cloud_formation_template_url` (String) The CloudFormation template URL for the integration's region (populated by Mondoo after creation). Use it as the `template_url` of the `aws_cloudformation_stack` resource.
 - `mrn` (String) Integration identifier
 - `source_bucket` (String) The S3 bucket the Lambda code is published to for the integration's region (populated by Mondoo after creation). Pass it as the `MondooSourceBucket` parameter of the `aws_cloudformation_stack` resource.
-- `token` (String) Integration token
+- `token` (String, Sensitive) Integration token
 
 <a id="nestedatt--scan_configuration"></a>
 ### Nested Schema for `scan_configuration`
