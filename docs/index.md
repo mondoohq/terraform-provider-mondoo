@@ -94,10 +94,10 @@ resource "mondoo_exception" "windows_defender_exception" {
 
 To execute the terraform configuration:
 
-1. Set the `MONDOO_CONFIG_BASE64` environment variable with the Mondoo API token:
+1. Set the `MONDOO_CONFIG_BASE64` environment variable to your service account's JSON credentials, base64 encoded:
 
    ```bash
-   export MONDOO_CONFIG_BASE64="token here"
+   export MONDOO_CONFIG_BASE64=$(base64 < service-account.json)
    ```
 
 2. Initialize a working directory containing Terraform configuration files:
