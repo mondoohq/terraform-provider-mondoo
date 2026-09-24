@@ -154,7 +154,7 @@ func (r *ServiceAccountResource) Configure(ctx context.Context, req resource.Con
 func (r *ServiceAccountResource) getScope(ctx context.Context, data ServiceAccountResourceModel) string {
 	// default to platform level
 	scopeMrn := "//platform.api.mondoo.app"
-	// Give presedence to the org id
+	// Give precedence to the org id
 	if data.OrgID.ValueString() != "" {
 		scopeMrn = orgPrefix + data.OrgID.ValueString()
 		ctx = tflog.SetField(ctx, "org_mrn", scopeMrn)
