@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is ignored by git.
+
+org_id = "your-org-id"
+
+# region = "eu"
+
+# Must be a date in the future.
+exception_valid_until = "2027-06-30"
