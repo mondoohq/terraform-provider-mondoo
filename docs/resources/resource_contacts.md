@@ -25,6 +25,12 @@ description: |-
       mondoo_team.ops.mrn,
       "security@example.com",
     ]
+    links = [
+      {
+        name = "Production runbook"
+        url  = "https://wiki.example.com/runbooks/production"
+      },
+    ]
   }
 ---
 
@@ -54,6 +60,12 @@ resource "mondoo_resource_contacts" "example" {
   contacts     = [
     mondoo_team.ops.mrn,
     "security@example.com",
+  ]
+  links = [
+    {
+      name = "Production runbook"
+      url  = "https://wiki.example.com/runbooks/production"
+    },
   ]
 }
 ```
@@ -86,6 +98,12 @@ resource "mondoo_resource_contacts" "example" {
     mondoo_team.ops.mrn,
     "security@example.com",
   ]
+  links = [
+    {
+      name = "Production runbook"
+      url  = "https://wiki.example.com/runbooks/production"
+    },
+  ]
 }
 ```
 
@@ -96,3 +114,15 @@ resource "mondoo_resource_contacts" "example" {
 
 - `contacts` (List of String) List of contacts. Each entry is an identity: user MRN, team MRN, or email address.
 - `resource_mrn` (String) MRN of the resource (organization, space, or workspace) to manage contacts for.
+
+### Optional
+
+- `links` (Attributes List) List of links, such as runbooks or dashboards, each with a display name. (see [below for nested schema](#nestedatt--links))
+
+<a id="nestedatt--links"></a>
+### Nested Schema for `links`
+
+Required:
+
+- `name` (String) Display name of the link.
+- `url` (String) URL of the link. Must start with `https://`.
