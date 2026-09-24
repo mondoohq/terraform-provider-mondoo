@@ -1,0 +1,34 @@
+# A custom policy is a YAML file of checks written in MQL, the Mondoo Query
+# Language. Each check is a query that must return true for the asset to pass.
+# Try a query against your own machine before adding it here:
+#
+#   cnspec shell local
+#   > sshd.config.params["PermitRootLogin"]
+#
+# Changing this file and running terraform apply uploads the new version.
+policies:
+  - uid: acme-ssh-hardening
+    name: ACME SSH hardening
+    version: "1.0.0"
+    authors:
+      - name: ACME Security
+        email: security@example.com
+    groups:
+      - title: SSH server configuration
+        # Only evaluate these checks on Unix-like systems.
+        filters: asset.family.contains("unix")
+        checks:
+          - uid: acme-ssh-no-root-login
+            title: Don't allow root to log in over SSH
+            query: sshd.config.params["PermitRootLogin"] == "no"
+            severity: 80
+
+          - uid: acme-ssh-no-password-auth
+            title: Require key-based authentication for SSH
+            query: sshd.config.params["PasswordAuthentication"] == "no"
+            severity: 70
+
+          - uid: acme-ssh-no-x11-forwarding
+            title: Turn off X11 forwarding for SSH
+            query: sshd.config.params["X11Forwarding"] == "no"
+            severity: 40

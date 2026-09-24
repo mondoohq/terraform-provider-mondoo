@@ -1,0 +1,3 @@
+# Variable files often hold organization IDs and secrets. Commit the
+# terraform.tfvars.example files instead.
+**/terraform.tfvars
