@@ -83,7 +83,7 @@ func (r *RegistrationTokenResource) Schema(ctx context.Context, req resource.Sch
 				Optional:            true,
 			},
 			"expires_in": schema.StringAttribute{
-				MarkdownDescription: "The duration after which the token will expire. Format: 1h, 1d, 1w, 1m, 1y",
+				MarkdownDescription: "The duration after which the token will expire, such as `30m`, `24h`, or `720h` (30 days). Valid units are `s`, `m` (minutes), and `h`. Days, weeks, and years aren't supported, so use hours instead.",
 				Optional:            true,
 			},
 			"revoked": schema.BoolAttribute{
