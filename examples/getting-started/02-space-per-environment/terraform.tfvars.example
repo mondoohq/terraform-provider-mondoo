@@ -1,0 +1,20 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is ignored by git.
+
+org_id = "your-org-id"
+
+# region = "eu"
+
+# Uncomment to replace the default environments. Every field except
+# description is optional.
+# environments = {
+#   production = {
+#     description                = "Production workloads."
+#     remove_stale_assets_after  = 90
+#     require_exception_approval = true
+#   }
+#   qa = {
+#     description    = "Quality assurance."
+#     extra_policies = ["//policy.api.mondoo.app/policies/mondoo-edr-policy"]
+#   }
+# }
