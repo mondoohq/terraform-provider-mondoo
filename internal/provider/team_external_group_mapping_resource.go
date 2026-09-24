@@ -43,7 +43,7 @@ func (r *TeamExternalGroupMappingResource) Metadata(ctx context.Context, req res
 
 func (r *TeamExternalGroupMappingResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `This resource manages external group mappings for Mondoo Teams. External group mappings link OIDC group claims to teams, enabling automatic team membership based on identity provider group membership.`,
+		MarkdownDescription: `This resource manages external group mappings for Mondoo teams. External group mappings link OIDC group claims to teams, enabling automatic team membership based on identity provider group membership.`,
 
 		Attributes: map[string]schema.Attribute{
 			"mrn": schema.StringAttribute{

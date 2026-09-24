@@ -73,7 +73,7 @@ func (r *integration{{.ResourceClassName}}Resource) Schema(_ context.Context, _ 
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration identifier",
+				MarkdownDescription: "Integration identifier.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -110,7 +110,7 @@ func (r *integration{{.ResourceClassName}}Resource) Configure(_ context.Context,
 			Diagnostics.
 			AddError("Unexpected Resource Configure Type",
 				fmt.Sprintf(
-					"Expected *http.Client. Got: %T. Please report this issue to the provider developers.",
+					"Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.",
 					req.ProviderData,
 				),
 			)
@@ -249,7 +249,7 @@ func (r *integration{{.ResourceClassName}}Resource) Delete(ctx context.Context, 
 		return
 	}
 
-	// Do GraphQL request to API to update the resource.
+	// Do GraphQL request to API to delete the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.

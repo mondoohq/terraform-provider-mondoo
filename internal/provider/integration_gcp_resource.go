@@ -102,7 +102,7 @@ func (r *integrationGcpResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration identifier",
+				MarkdownDescription: "Integration identifier.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -115,7 +115,7 @@ func (r *integrationGcpResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"project_id": schema.StringAttribute{
-				MarkdownDescription: "GCP project ID",
+				MarkdownDescription: "GCP project ID.",
 				Optional:            true,
 			},
 			"wif_subject": schema.StringAttribute{
@@ -174,7 +174,7 @@ func (r *integrationGcpResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -318,7 +318,7 @@ func (r *integrationGcpResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	// Do GraphQL request to API to update the resource.
+	// Do GraphQL request to API to delete the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.

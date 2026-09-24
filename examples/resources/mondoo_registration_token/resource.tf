@@ -13,7 +13,7 @@ variable "org_id" {
   default     = ""
 }
 
-# Configure the Mondoo
+# Configure Mondoo
 # ----------------------------------------------
 
 provider "mondoo" {}
@@ -25,7 +25,7 @@ resource "mondoo_space" "my_space" {
 }
 
 resource "mondoo_registration_token" "token" {
-  description   = "Get a mondoo registration token"
+  description   = "Get a Mondoo registration token"
   count         = length(var.space_names)
   space_id      = mondoo_space.my_space[count.index].id
   no_expiration = true

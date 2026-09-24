@@ -174,7 +174,7 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration identifier",
+				MarkdownDescription: "Integration identifier.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -284,7 +284,7 @@ func (r *integrationGcpServerlessResource) Configure(ctx context.Context, req re
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return

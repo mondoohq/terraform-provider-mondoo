@@ -2,7 +2,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the Email integration
+# Set up the Email integration
 resource "mondoo_integration_email" "email_integration" {
   name = "My Email Integration"
 

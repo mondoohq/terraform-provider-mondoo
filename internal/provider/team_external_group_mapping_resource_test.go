@@ -12,7 +12,7 @@ import (
 
 func TestAccTeamExternalGroupMappingResource(t *testing.T) {
 	// These tests are skipped because the tests are run with an agent that is scoped
-	// to a specific organization. Assigning these mappings requires a platform admin
+	// to a specific organization. Assigning these mappings requires a platform admin.
 	t.SkipNow()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -41,7 +41,7 @@ func TestAccTeamExternalGroupMappingResource(t *testing.T) {
 
 func TestAccTeamExternalGroupMappingResourceReplacement(t *testing.T) {
 	// These tests are skipped because the tests are run with an agent that is scoped
-	// to a specific organization. Assigning these mappings requires a platform admin
+	// to a specific organization. Assigning these mappings requires a platform admin.
 	t.SkipNow()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

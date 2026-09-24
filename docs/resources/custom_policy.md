@@ -3,12 +3,12 @@
 page_title: "mondoo_custom_policy Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Custom Policy resource
+  Custom policy resource.
 ---
 
 # mondoo_custom_policy (Resource)
 
-Custom Policy resource
+Custom policy resource.
 
 ## Example Usage
 
@@ -45,11 +45,11 @@ resource "mondoo_policy_assignment" "space" {
 
 - `content` (String, Sensitive) Data as string to be uploaded. Must be defined if source is not. Note: The content field is marked as sensitive. To view the raw contents of the object, please define an output.
 - `overwrite` (Boolean) If set to true, existing policies are overwritten.
-- `scope_mrn` (String) Mondoo scope MRN. Provide this if not uploading to a space
+- `scope_mrn` (String) Mondoo scope MRN. Provide this if not uploading to a space.
 - `source` (String) A path to the data you want to upload. Must be defined if content is not.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 
 - `crc32c` (String) Base64 CRC32 hash of the uploaded data.
-- `mrns` (List of String) The Mondoo Resource Name (MRN) of the created policies
+- `mrns` (List of String) The Mondoo Resource Name (MRN) of the created policies.

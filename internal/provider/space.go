@@ -7,7 +7,7 @@ import "strings"
 
 const spacePrefix = "//captain.api.mondoo.app/spaces/"
 
-// Helper type to handle both, space id and space mrn, interchangeably.
+// Helper type to handle both space ID and space MRN interchangeably.
 type Space string
 
 // SpaceFrom receives either a space id or a space mrn and returns a `Space`.

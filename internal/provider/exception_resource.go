@@ -118,7 +118,7 @@ func (v ValidUntilActionValidator) ValidateString(ctx context.Context, req valid
 	if !slices.Contains(validUntilActions, actionAttr.ValueString()) && !req.ConfigValue.IsNull() {
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
-			"'valid_until' Can Only Be Set with 'action' as `SNOOZE`, 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'",
+			"'valid_until' Can Only Be Set with 'action' as 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'",
 			"To use 'valid_until', the 'action' attribute must be set to one of the above. Either remove 'valid_until' or change 'action'.",
 		)
 	}
@@ -156,20 +156,20 @@ func (v ValidUntilPresentValidator) ValidateString(ctx context.Context, req vali
 	if slices.Contains(validUntilActions, actionAttr.ValueString()) && req.ConfigValue.IsNull() {
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
-			"'valid_until' Must be supplied when 'actions' is 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'",
-			fmt.Sprintf("'valid_until' Must be supplied when 'actions' is %s", actionAttr.ValueString()),
+			"'valid_until' Must be supplied when 'action' is 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'",
+			fmt.Sprintf("'valid_until' Must be supplied when 'action' is %s", actionAttr.ValueString()),
 		)
 	}
 }
 
 // Description returns a plain-text description of the validator's purpose.
 func (v ValidUntilPresentValidator) Description(ctx context.Context) string {
-	return "'valid_until' must be supplied when 'actions' is 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'"
+	return "'valid_until' must be supplied when 'action' is 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'"
 }
 
 // MarkdownDescription returns a markdown-formatted description of the validator's purpose.
 func (v ValidUntilPresentValidator) MarkdownDescription(ctx context.Context) string {
-	return "'valid_until' must be supplied when 'actions' is 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'"
+	return "'valid_until' must be supplied when 'action' is 'SNOOZE', 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'"
 }
 
 func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -177,7 +177,7 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 		MarkdownDescription: `Set custom exceptions for a scope.`,
 		Attributes: map[string]schema.Attribute{
 			"scope_mrn": schema.StringAttribute{
-				MarkdownDescription: "The MRN of the scope (either asset mrn or space mrn).",
+				MarkdownDescription: "The MRN of the scope (either asset MRN or space MRN).",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -194,7 +194,7 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 			},
 			"justification": schema.StringAttribute{
-				MarkdownDescription: "Description why the exception is required.",
+				MarkdownDescription: "Description of why the exception is required.",
 				Optional:            true,
 			},
 			"action": schema.StringAttribute{
@@ -229,7 +229,7 @@ func (r *exceptionResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 			},
 			"exception_id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the exception",
+				MarkdownDescription: "The ID of the exception.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -251,7 +251,7 @@ func (r *exceptionResource) Configure(ctx context.Context, req resource.Configur
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -269,7 +269,7 @@ func (r *exceptionResource) Create(ctx context.Context, req resource.CreateReque
 	if data.Action.ValueString() == "SNOOZE" {
 		resp.Diagnostics.AddWarning(
 			"use of deprecated exception action",
-			`exception action 'SNOOZE' is deprecated, please use 'RISK_ACCEPTED', 'WORKAROUND' OR 'FALSE_POSITIVE'`,
+			`exception action 'SNOOZE' is deprecated, please use 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'`,
 		)
 	}
 
@@ -357,7 +357,7 @@ func (r *exceptionResource) Update(ctx context.Context, req resource.UpdateReque
 	if data.Action.ValueString() == "SNOOZE" {
 		resp.Diagnostics.AddWarning(
 			"use of deprecated exception action",
-			`exception action 'SNOOZE' is deprecated, please use 'RISK_ACCEPTED', 'WORKAROUND' OR 'FALSE_POSITIVE'`,
+			`exception action 'SNOOZE' is deprecated, please use 'RISK_ACCEPTED', 'WORKAROUND' or 'FALSE_POSITIVE'`,
 		)
 	}
 
@@ -451,8 +451,8 @@ func (r *exceptionResource) ImportState(ctx context.Context, req resource.Import
 	advisoryMrns := make(map[string]bool)
 	if len(exception.Exceptions) > 0 {
 		for _, mrn := range exception.Exceptions {
-			// @vj: i dont understand why the items are being marshalled into both structs,
-			// but they seem to be, so im filtering by the mrn prefix to ensure we dont double up
+			// @vj: I don't understand why the items are being marshalled into both structs,
+			// but they seem to be, so I'm filtering by the MRN prefix to ensure we don't double up
 			if strings.HasPrefix(mrn.CheckMrns.Mrn, "//policy.api.mondoo.app/queries") {
 				checkMrns[mrn.CheckMrns.Mrn] = true
 			} else if strings.HasPrefix(mrn.VulnerabilityMrns.Mrn, "//vadvisor.api.mondoo.app/cves") {

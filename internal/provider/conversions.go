@@ -35,7 +35,7 @@ func ConvertListValueInt32(list []int32) types.List {
 	for _, val := range list {
 		valueList = append(valueList, types.Int32Value(val))
 	}
-	// Ensure the list is of type types.StringType
+	// Ensure the list is of type types.Int32Type
 	return types.ListValueMust(types.Int32Type, valueList)
 }
 

@@ -12,12 +12,12 @@ import (
 	"go.mondoo.com/terraform-provider-mondoo/internal/provider"
 )
 
-// Run "go generate" to format example terraform files and generate the docs for the registry/website
+// Run "go generate" to format example Terraform files and generate the docs for the registry/website
 
 // Auto-generation of resources
 //go:generate go run gen/gen.go
 
-// If you do not have terraform installed, you can remove the formatting command, but its suggested to
+// If you do not have Terraform installed, you can remove the formatting command, but it's suggested to
 // ensure the documentation is formatted properly.
 //go:generate terraform fmt -recursive ./examples/
 

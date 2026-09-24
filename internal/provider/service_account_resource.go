@@ -121,7 +121,7 @@ func (r *ServiceAccountResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"credential": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The service account credential in JSON format, base64 encoded. This is the same content when creating service account credentials through the Mondoo Console.",
+				MarkdownDescription: "The service account credential in JSON format, base64 encoded. This is the same content as when creating service account credentials through the Mondoo Console.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -142,7 +142,7 @@ func (r *ServiceAccountResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -216,7 +216,7 @@ func (r *ServiceAccountResource) Create(ctx context.Context, req resource.Create
 		Roles:       &rolesInput,
 	}
 
-	tflog.Debug(ctx, "CreateSpaceInput", map[string]interface{}{
+	tflog.Debug(ctx, "CreateServiceAccountInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createInput),
 	})
 
@@ -399,12 +399,12 @@ func (r *ServiceAccountResource) Delete(ctx context.Context, req resource.Delete
 		ScopeMrn: mondoov1.String(scopeMrn),
 		Mrns:     []mondoov1.String{mondoov1.String(data.Mrn.ValueString())},
 	}
-	tflog.Debug(ctx, "UpdateServiceAccountInput", map[string]interface{}{
+	tflog.Debug(ctx, "DeleteServiceAccountsInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", deleteInput),
 	})
 	err := r.client.Mutate(ctx, &deleteMutation, deleteInput, nil)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update service account. Got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete service account. Got error: %s", err))
 		return
 	}
 }

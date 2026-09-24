@@ -45,14 +45,14 @@ func (r *organizationResource) Schema(ctx context.Context, req resource.SchemaRe
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of the space.",
+				MarkdownDescription: "Name of the organization.",
 				Required:            true,
 				Validators: []validator.String{
 					mondoovalidator.Name(),
 				},
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "ID of the org. Must be globally unique. If the provider has a org configured and this field is empty, the provider org is used.",
+				MarkdownDescription: "ID of the org. Must be globally unique. If the provider has an org configured and this field is empty, the provider org is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -63,7 +63,7 @@ func (r *organizationResource) Schema(ctx context.Context, req resource.SchemaRe
 				},
 			},
 			"mrn": schema.StringAttribute{
-				MarkdownDescription: "Mrn of the org.",
+				MarkdownDescription: "MRN of the org.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),

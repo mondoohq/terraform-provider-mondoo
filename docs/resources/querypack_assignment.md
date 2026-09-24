@@ -29,6 +29,6 @@ resource "mondoo_querypack_assignment" "space" {
 
 ### Optional
 
-- `querypacks` (List of String) QueryPacks to assign to the space.
+- `querypacks` (List of String) Query packs to assign to the space.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
-- `state` (String) QueryPack Assignment State (enabled or disabled).
+- `state` (String) Query pack assignment state (enabled or disabled).

@@ -23,7 +23,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the Jira integration
+# Set up the Jira integration
 resource "mondoo_integration_jira" "jira_integration" {
   name  = "My Jira Integration"
   host  = "https://your-instance.atlassian.net"
@@ -51,7 +51,7 @@ resource "mondoo_integration_jira" "jira_integration" {
 
 ### Optional
 
-- `auto_close` (Boolean) Automatically close Jira issues for resolved Mondoo findings
+- `auto_close` (Boolean) Automatically close Jira issues for resolved Mondoo findings.
 - `auto_create` (Boolean) Automatically create Jira issues for Mondoo findings. This corresponds to the **'Create drift issues in this integration'** toggle in the Mondoo Console.
 - `default_project` (String) Default Jira project (represented by the project key, such as `SEC` or `SECURITY`). This corresponds to the **'Select a default drift issue destination'** dropdown in the Mondoo Console.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
@@ -75,5 +75,5 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 # Import using integration MRN.
-terraform import mondoo_integration_github.gh_integration "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
+terraform import mondoo_integration_jira.jira_integration "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
 ```

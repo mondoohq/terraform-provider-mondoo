@@ -109,7 +109,7 @@ func (r *customFrameworkResource) Configure(_ context.Context, req resource.Conf
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -249,7 +249,7 @@ func (r *customFrameworkResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	// Do GraphQL request to API to update the resource.
+	// Do GraphQL request to API to delete the resource.
 	err := r.client.DeleteFramework(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.
@@ -270,11 +270,11 @@ func (r *customFrameworkResource) ImportState(ctx context.Context, req resource.
 
 	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
 		// The provider is configured to manage resources in a different space than the one the
-		// resource is currently configured, we won't allow that
+		// resource is currently configured in, we won't allow that
 		resp.Diagnostics.AddError(
 			"Conflict Error",
 			fmt.Sprintf(
-				"Unable to import integration. The provider is configured in a different space than the resource. (%s != %s)",
+				"Unable to import compliance framework. The provider is configured in a different space than the resource. (%s != %s)",
 				r.client.Space().ID(), spaceID),
 		)
 		return

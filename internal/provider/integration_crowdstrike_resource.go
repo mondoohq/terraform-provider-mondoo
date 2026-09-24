@@ -70,7 +70,7 @@ func (r *integrationCrowdstrikeResource) Schema(_ context.Context, _ resource.Sc
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration identifier",
+				MarkdownDescription: "Integration identifier.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -83,20 +83,20 @@ func (r *integrationCrowdstrikeResource) Schema(_ context.Context, _ resource.Sc
 				},
 			},
 			"client_id": schema.StringAttribute{
-				MarkdownDescription: "Client ID used for authentication with CrowdStrike Falcon platform.",
+				MarkdownDescription: "Client ID used for authentication with the CrowdStrike Falcon platform.",
 				Required:            true,
 			},
 			"client_secret": schema.StringAttribute{
-				MarkdownDescription: "Client Secret used for authentication with CrowdStrike Falcon platform.",
+				MarkdownDescription: "Client secret used for authentication with the CrowdStrike Falcon platform.",
 				Required:            true,
 				Sensitive:           true,
 			},
 			"cloud": schema.StringAttribute{
-				MarkdownDescription: "The Falcon Cloud to connect.",
+				MarkdownDescription: "The Falcon Cloud to connect to.",
 				Optional:            true,
 			},
 			"member_cid": schema.StringAttribute{
-				MarkdownDescription: "CID selector for cases when the client ID and secret has access to multiple CIDs.",
+				MarkdownDescription: "CID selector for cases when the client ID and secret have access to multiple CIDs.",
 				Optional:            true,
 			},
 		},
@@ -114,7 +114,7 @@ func (r *integrationCrowdstrikeResource) Configure(ctx context.Context, req reso
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -235,7 +235,7 @@ func (r *integrationCrowdstrikeResource) Delete(ctx context.Context, req resourc
 		return
 	}
 
-	// Do GraphQL request to API to update the resource.
+	// Do GraphQL request to API to delete the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.

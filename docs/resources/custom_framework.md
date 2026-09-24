@@ -18,7 +18,7 @@ provider "mondoo" {
 }
 
 variable "my_custom_framework" {
-  description = "Path to the custom policy file. The file must be in MQL format."
+  description = "Path to the custom framework file. The file must be in MQL format."
   type        = string
   default     = "framework.mql.yaml"
 }

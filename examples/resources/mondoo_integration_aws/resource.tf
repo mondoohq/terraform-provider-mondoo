@@ -14,7 +14,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the AWS integration
+# Set up the AWS integration
 resource "mondoo_integration_aws" "name" {
   name = "AWS Integration"
 

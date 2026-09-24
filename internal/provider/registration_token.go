@@ -53,7 +53,7 @@ func (r *RegistrationTokenResource) Metadata(ctx context.Context, req resource.M
 
 func (r *RegistrationTokenResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Registration Token resource",
+		MarkdownDescription: "Registration token resource",
 
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
@@ -116,7 +116,7 @@ func (r *RegistrationTokenResource) Configure(ctx context.Context, req resource.
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -287,7 +287,7 @@ func (r *RegistrationTokenResource) Delete(ctx context.Context, req resource.Del
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to update token. Got error: %s", err),
+				fmt.Sprintf("Unable to revoke registration token. Got error: %s", err),
 			)
 		return
 	}

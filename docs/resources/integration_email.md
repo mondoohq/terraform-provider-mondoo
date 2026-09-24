@@ -17,7 +17,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the Email integration
+# Set up the Email integration
 resource "mondoo_integration_email" "email_integration" {
   name = "My Email Integration"
 
@@ -57,7 +57,7 @@ resource "mondoo_integration_email" "email_integration" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 <a id="nestedatt--recipients"></a>
 ### Nested Schema for `recipients`

@@ -45,7 +45,7 @@ func (r *scimGroupMappingResource) Metadata(ctx context.Context, req resource.Me
 func (r *scimGroupMappingResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
-		This resource provides SCIM 2.0 Group Mapping. It allows the mapping of SCIM 2.0 groups to Mondoo organization or spaces and IAM roles.
+		This resource provides SCIM 2.0 Group Mapping. It allows the mapping of SCIM 2.0 groups to a Mondoo organization or spaces and IAM roles.
 		`,
 		Attributes: map[string]schema.Attribute{
 			"org_id": schema.StringAttribute{
@@ -88,7 +88,7 @@ func (r *scimGroupMappingResource) Configure(ctx context.Context, req resource.C
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -166,7 +166,7 @@ func (r *scimGroupMappingResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
+	// Do GraphQL request to API to update the resource
 	mappings := []mondoov1.ScimGroupMapping{}
 
 	for i := range data.Mappings {
@@ -189,8 +189,8 @@ func (r *scimGroupMappingResource) Update(ctx context.Context, req resource.Upda
 	err := r.client.SetScimGroupMapping(ctx, orgPrefix+data.OrgID.ValueString(), data.Group.ValueString(), mappings)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating SCIM group mapping",
-			fmt.Sprintf("Error creating SCIM group mapping: %s", err),
+			"Error updating SCIM group mapping",
+			fmt.Sprintf("Error updating SCIM group mapping: %s", err),
 		)
 		return
 	}
@@ -209,15 +209,15 @@ func (r *scimGroupMappingResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
+	// Do GraphQL request to API to delete the resource
 
 	// we intentionally set an empty mapping to remove the mapping
 	mappings := []mondoov1.ScimGroupMapping{}
 	err := r.client.SetScimGroupMapping(ctx, orgPrefix+data.OrgID.ValueString(), data.Group.ValueString(), mappings)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating SCIM group mapping",
-			fmt.Sprintf("Error creating SCIM group mapping: %s", err),
+			"Error deleting SCIM group mapping",
+			fmt.Sprintf("Error deleting SCIM group mapping: %s", err),
 		)
 		return
 	}
