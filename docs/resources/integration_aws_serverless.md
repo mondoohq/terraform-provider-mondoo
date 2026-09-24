@@ -72,6 +72,8 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 }
 
 # for organization wide deployments use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instead of aws_cloudformation_stack
+# set is_organization = true (and leave account_ids unset) so the token does not expire; with false it expires after 30 minutes,
+# and accounts that join a targeted OU later fail to register
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set_instance
 ```
@@ -90,7 +92,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 - `account_ids` (List of String) List of AWS account IDs.
 - `console_sign_in_trigger` (Boolean) Enable console sign-in trigger.
 - `instance_state_change_trigger` (Boolean) Enable instance state change trigger.
-- `is_organization` (Boolean) Is organization.
+- `is_organization` (Boolean) Set to `true` when you deploy the CloudFormation template with a StackSet, whether it targets the whole AWS organization or only some organizational units (OUs). Mondoo then issues a `token` that never expires, so accounts that join a targeted OU later can still register. When unset or `false`, the `token` expires 30 minutes after the integration is created. Set this when you create the integration: changing it later does not replace the `token` already in the Terraform state, so recreate the integration to get a token that does not expire. Cannot be combined with `account_ids`.
 - `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
 
 ### Read-Only
@@ -98,7 +100,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 - `cloud_formation_template_url` (String) The CloudFormation template URL for the integration's region (populated by Mondoo after creation). Use it as the `template_url` of the `aws_cloudformation_stack` resource.
 - `mrn` (String) Integration identifier
 - `source_bucket` (String) The S3 bucket the Lambda code is published to for the integration's region (populated by Mondoo after creation). Pass it as the `MondooSourceBucket` parameter of the `aws_cloudformation_stack` resource.
-- `token` (String) Integration token
+- `token` (String) Registration token for the integration. Pass it as the `MondooToken` parameter of the CloudFormation stack or StackSet; a separate `mondoo_registration_token` is not needed. The Mondoo Lambda exchanges it once per account, when the stack is created, for service account credentials that do not expire. The token expires 30 minutes after the integration is created, unless `is_organization` is `true`, in which case it never expires.
 
 <a id="nestedatt--scan_configuration"></a>
 ### Nested Schema for `scan_configuration`

@@ -57,5 +57,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 }
 
 # for organization wide deployments use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instead of aws_cloudformation_stack
+# set is_organization = true (and leave account_ids unset) so the token does not expire; with false it expires after 30 minutes,
+# and accounts that join a targeted OU later fail to register
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set_instance
