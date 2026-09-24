@@ -887,6 +887,17 @@ type GitlabConfigurationOptions struct {
 type Ms365ConfigurationOptions struct {
 	TenantId string
 	ClientId string
+	// Computed Workload Identity Federation fields returned by the server. The
+	// SDK generates inputs/enums/scalars only (no output types), so these are
+	// declared here on the provider's own read-back struct.
+	//
+	// WifIssuerUrl needs an explicit tag: the MS365 schema spells this field
+	// `wifIssuerURL` (Azure spells its own `wifIssuerUrl`), and the untagged
+	// name derivation lowercases the trailing initialism, so any Go spelling
+	// would query for `wifIssuerUrl` and be rejected as an unknown field.
+	UseWif       bool
+	WifSubject   string
+	WifIssuerUrl string `graphql:"wifIssuerURL"`
 }
 
 type MsIntuneConfigurationOptions struct {
