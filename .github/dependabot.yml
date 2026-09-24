@@ -16,3 +16,22 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # Wait a week after a release before proposing it, so a compromised or
+    # broken action release has time to be caught and pulled upstream.
+    cooldown:
+      default-days: 7
+    groups:
+      # codeql-action/init and codeql-action/analyze run as a pair within a single
+      # workflow and must resolve to the same release. Ungrouped, Dependabot opens a
+      # separate PR per sub-action, so each PR bumps only one half and CodeQL fails
+      # with "Loaded a configuration file for version X, but running version Y".
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
+      # Everything else lands in one weekly PR instead of one PR per action.
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
