@@ -28,14 +28,15 @@ that check fails on every server even though you're protected. An exception with
 stops the check from counting against your score, and expires on `exception_valid_until` so someone reviews the
 decision.
 
-| `action`         | Use it when                                                         | Can expire |
-|------------------|---------------------------------------------------------------------|------------|
-| `RISK_ACCEPTED`  | The check fails and you accept the risk, usually for a limited time | Yes        |
-| `WORKAROUND`     | The check fails, but another control addresses the risk             | Yes        |
-| `FALSE_POSITIVE` | The check reports a problem that doesn't exist                      | Yes        |
-| `DISABLE`        | The check doesn't apply to you, so don't run it                     | No         |
+| `action`         | Use it when                                                         | `valid_until` |
+|------------------|---------------------------------------------------------------------|---------------|
+| `RISK_ACCEPTED`  | The check fails and you accept the risk, usually for a limited time | Required      |
+| `WORKAROUND`     | The check fails, but another control addresses the risk             | Required      |
+| `FALSE_POSITIVE` | The check reports a problem that doesn't exist                      | Required      |
+| `DISABLE`        | The check doesn't apply to you, so don't run it                     | Not allowed   |
 
-Only the actions marked "Can expire" accept `valid_until`. The provider rejects it for the others.
+When you set one of the first three actions, the provider requires `valid_until`, so every accepted risk has a review
+date. `SNOOZE` also still works but is deprecated: use `RISK_ACCEPTED` with a `valid_until` date instead.
 
 `scope_mrn` controls where the exception applies. This example uses the space, so it covers every asset in it. To limit
 an exception to one asset, use that asset's MRN instead. The [`mondoo_assets`](../../data-sources/mondoo_assets/)
