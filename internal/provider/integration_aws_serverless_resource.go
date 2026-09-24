@@ -267,7 +267,7 @@ func (r *integrationAwsServerlessResource) Metadata(ctx context.Context, req res
 
 func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously scan AWS organization and accounts for misconfigurations and vulnerabilities.`,
+		MarkdownDescription: `Continuously scan AWS organizations and accounts for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used.",
@@ -279,7 +279,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration identifier",
+				MarkdownDescription: "Integration identifier.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -360,7 +360,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 								Optional:            true,
 							},
 							"vpc_flavour": schema.StringAttribute{
-								MarkdownDescription: "VPC flavour, one of: DEFAULT_VPC, MONDOO_NATGW, MONDOO_IGW",
+								MarkdownDescription: "VPC flavour, one of: DEFAULT_VPC, MONDOO_NATGW, MONDOO_IGW, CUSTOM_VPC.",
 								Optional:            true,
 							},
 							"vpc_tag": schema.SingleNestedAttribute{
@@ -546,7 +546,7 @@ func (r *integrationAwsServerlessResource) Configure(ctx context.Context, req re
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -578,7 +578,7 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 	accountIds, _ := data.AccountIDs.ToListValue(context.Background())
 	accountIds.ElementsAs(context.Background(), &accountIDs, true)
 
-	// Check if both whitelist and blacklist are provided
+	// Check if both account IDs and is_organization are provided
 	if len(accountIDs) > 0 && data.IsOrganization.ValueBool() {
 		resp.Diagnostics.
 			AddError("ConflictingAttributesError",
@@ -683,7 +683,7 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 	accountIds, _ := data.AccountIDs.ToListValue(context.Background())
 	accountIds.ElementsAs(context.Background(), &accountIDs, true)
 
-	// Check if both whitelist and blacklist are provided
+	// Check if both account IDs and is_organization are provided
 	if len(accountIDs) > 0 && data.IsOrganization.ValueBool() {
 		resp.Diagnostics.
 			AddError("ConflictingAttributesError",

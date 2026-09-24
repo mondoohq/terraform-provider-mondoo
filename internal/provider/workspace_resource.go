@@ -97,7 +97,7 @@ func (r *WorkspaceResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -186,7 +186,7 @@ func (r *WorkspaceResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 										},
 									},
 									"rating_condition": schema.SingleNestedAttribute{
-										MarkdownDescription: "A condition with values of type int.",
+										MarkdownDescription: "A condition with values of type rating.",
 										Optional:            true,
 										Attributes: map[string]schema.Attribute{
 											"field": schema.StringAttribute{
@@ -202,7 +202,7 @@ func (r *WorkspaceResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 												Required: true,
 											},
 											"values": schema.ListAttribute{
-												MarkdownDescription: "Int values to match. Values are ORed together.",
+												MarkdownDescription: "Rating values to match. Values are ORed together.",
 												ElementType:         types.StringType,
 												Required:            true,
 											},
@@ -221,7 +221,7 @@ func (r *WorkspaceResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 											},
 											"operator": schema.StringAttribute{
 												MarkdownDescription: fmt.Sprintf(
-													"Rating operator. Valid values: %q", displayPossibleKeyValueOperators(),
+													"key:value operator. Valid values: %q", displayPossibleKeyValueOperators(),
 												),
 												Required: true,
 											},
@@ -264,7 +264,7 @@ func (r *WorkspaceResource) Configure(_ context.Context, req resource.ConfigureR
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -549,7 +549,7 @@ func (r *WorkspaceResource) Read(ctx context.Context, req resource.ReadRequest, 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &m)...)
 }
 
-// Update is not allowed by design. We only read and exist.
+// Update updates the workspace in place.
 func (r *WorkspaceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data WorkspaceResourceModel
 
@@ -568,7 +568,7 @@ func (r *WorkspaceResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
-	// Do GraphQL request to API to create the resource
+	// Do GraphQL request to API to update the resource
 
 	selections := renderSelectionsFromModel(&data)
 	updateInput := mondoov1.UpdateWorkspaceInput{
@@ -578,7 +578,7 @@ func (r *WorkspaceResource) Update(ctx context.Context, req resource.UpdateReque
 		Selections:  &selections,
 	}
 
-	tflog.Debug(ctx, "CreateWorkspaceInput", map[string]interface{}{
+	tflog.Debug(ctx, "UpdateWorkspaceInput", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", updateInput),
 	})
 

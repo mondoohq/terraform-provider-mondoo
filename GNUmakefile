@@ -42,7 +42,7 @@ remove-terraform-rc: ## Remove the terraformrc file
 	@rm -vf "$(HOME)/.terraformrc"
 
 .PHONY: cleanup-examples
-cleanup-examples: ## A quick way to clean up any left over Terraform files inside the examples/ folder
+cleanup-examples: ## A quick way to clean up any leftover Terraform files inside the examples/ folder
 	find . -name ".terraform*" -type f -exec rm -rf {} \;
 	find . -name "terraform.tfstate*" -type f -exec rm -rf {} \;
 	find . -name ".terraform.lock.hcl" -type f -exec rm -rf {} \;
@@ -61,7 +61,7 @@ hcl/lint: ## Runs terraform linter
 
 # Run acceptance tests
 testacc:
-	@echo "** Warning: \n  This requires an _organization_ level service account. \n Please set MONDOO_CONFIG_BASE64 env var to your local dev base64 encoded json service account when running tests locally**\n\n"
+	@echo "** Warning: \n  This requires an _organization_ level service account. \n Please set MONDOO_CONFIG_BASE64 env var to your local dev base64-encoded JSON service account when running tests locally**\n\n"
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
 license: license/headers/check

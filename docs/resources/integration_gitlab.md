@@ -23,14 +23,14 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the GitLab integration
+# Set up the GitLab integration
 resource "mondoo_integration_gitlab" "gitlab_integration" {
   name = "GitLab Integration"
 
   # base_url = "https://my-self-hosted-gitlab.com"
   # group    = "my-group"
 
-  # configure discovery options  
+  # configure discovery options
   discovery = {
     groups        = true
     projects      = true
@@ -61,7 +61,7 @@ resource "mondoo_integration_gitlab" "gitlab_integration" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`
@@ -89,5 +89,5 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 # Import using integration MRN.
-terraform import mondoo_integration_github.gh_integration "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
+terraform import mondoo_integration_gitlab.gitlab_integration "//captain.api.mondoo.app/spaces/hungry-poet-123456/integrations/2Abd08lk860"
 ```

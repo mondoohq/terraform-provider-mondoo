@@ -3,12 +3,12 @@
 page_title: "mondoo_scim_group_mapping Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  This resource provides SCIM 2.0 Group Mapping. It allows the mapping of SCIM 2.0 groups to Mondoo organization or spaces and IAM roles.
+  This resource provides SCIM 2.0 Group Mapping. It allows the mapping of SCIM 2.0 groups to a Mondoo organization or spaces and IAM roles.
 ---
 
 # mondoo_scim_group_mapping (Resource)
 
-This resource provides SCIM 2.0 Group Mapping. It allows the mapping of SCIM 2.0 groups to Mondoo organization or spaces and IAM roles.
+This resource provides SCIM 2.0 Group Mapping. It allows the mapping of SCIM 2.0 groups to a Mondoo organization or spaces and IAM roles.
 
 ## Example Usage
 
@@ -28,12 +28,12 @@ resource "mondoo_scim_group_mapping" "mondoo_admin" {
   org_id = data.mondoo_organization.org.id
   group  = "MondooAdmin"
   mappings = [
-    # Give admin group access to the organization
+    # Give the admin group access to the organization
     {
       org_mrn : data.mondoo_organization.org.mrn,
       iam_role : "//iam.api.mondoo.app/roles/editor"
     },
-    # Give admin group access to the space 
+    # Give the admin group access to the space
     {
       space_mrn : mondoo_space.my_space_1.mrn,
       iam_role : "//iam.api.mondoo.app/roles/viewer"

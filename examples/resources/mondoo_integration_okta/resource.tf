@@ -12,7 +12,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the Okta integration
+# Set up the Okta integration
 resource "mondoo_integration_okta" "example" {
   name         = "Okta Integration"
   organization = var.organization

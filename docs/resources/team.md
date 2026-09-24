@@ -3,7 +3,7 @@
 page_title: "mondoo_team Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  This resource manages Mondoo Teams
+  This resource manages Mondoo teams.
   Example Usage
   
   resource "mondoo_team" "security_team" {
@@ -22,7 +22,7 @@ description: |-
 
 # mondoo_team (Resource)
 
-This resource manages Mondoo Teams
+This resource manages Mondoo teams.
 
 ## Example Usage
 
@@ -84,7 +84,7 @@ resource "mondoo_team_external_group_mapping" "team_2" {
   external_id = "team2"
 }
 
-# Example of team with IAM permissions (using existing mondoo_iam_binding resource)
+# Example of a team with IAM permissions (using existing mondoo_iam_binding resource)
 # This would give the security team editor permissions on their space
 resource "mondoo_iam_binding" "security_team_permissions" {
   identity_mrn = mondoo_team.team_1.mrn

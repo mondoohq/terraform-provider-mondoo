@@ -14,7 +14,7 @@ Zendesk integration to keep track of security tasks and add Zendesk tickets dire
 
 ```terraform
 variable "zendesk_token" {
-  description = "The GitHub Token"
+  description = "The Zendesk Token"
   type        = string
   sensitive   = true
 }
@@ -23,7 +23,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the zendesk integration
+# Set up the Zendesk integration
 resource "mondoo_integration_zendesk" "zendesk_integration" {
   name      = "My Zendesk Integration"
   subdomain = "your-subdomain"
@@ -68,7 +68,7 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`

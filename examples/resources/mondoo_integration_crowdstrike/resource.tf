@@ -19,7 +19,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the CrowdStrike integration
+# Set up the CrowdStrike integration
 resource "mondoo_integration_crowdstrike" "crowdstrike_integration" {
   name          = "CrowdStrike Integration"
   client_id     = var.client_id

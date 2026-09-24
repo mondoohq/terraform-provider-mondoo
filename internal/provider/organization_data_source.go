@@ -42,11 +42,11 @@ func (d *OrganizationDataSource) Metadata(ctx context.Context, req datasource.Me
 
 func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Organization data source",
+		MarkdownDescription: "Organization data source.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Organization ID",
+				MarkdownDescription: "Organization ID.",
 				Computed:            true,
 				Optional:            true,
 				Validators: []validator.String{
@@ -57,7 +57,7 @@ func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.Sche
 				},
 			},
 			"mrn": schema.StringAttribute{
-				MarkdownDescription: "Organization MRN",
+				MarkdownDescription: "Organization MRN.",
 				Computed:            true,
 				Optional:            true,
 				Validators: []validator.String{
@@ -68,7 +68,7 @@ func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.Sche
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Organization name",
+				MarkdownDescription: "Organization name.",
 				Computed:            true,
 			},
 			"annotations": schema.MapAttribute{
@@ -77,7 +77,7 @@ func (d *OrganizationDataSource) Schema(ctx context.Context, req datasource.Sche
 				ElementType:         types.StringType,
 			},
 			"spaces": schema.ListAttribute{
-				MarkdownDescription: "List of spaces (MRNs) in the organization",
+				MarkdownDescription: "List of spaces (MRNs) in the organization.",
 				ElementType:         types.StringType,
 				Computed:            true,
 			},

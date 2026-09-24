@@ -1,5 +1,5 @@
 variable "zendesk_token" {
-  description = "The GitHub Token"
+  description = "The Zendesk Token"
   type        = string
   sensitive   = true
 }
@@ -8,7 +8,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the zendesk integration
+# Set up the Zendesk integration
 resource "mondoo_integration_zendesk" "zendesk_integration" {
   name      = "My Zendesk Integration"
   subdomain = "your-subdomain"

@@ -51,14 +51,14 @@ output "google_service_account_key" {
   sensitive   = true
 }
 
-# Configure the Mondoo
+# Configure Mondoo
 # ----------------------------------------------
 
 provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the GCP integration
+# Set up the GCP integration
 resource "mondoo_integration_gcp" "name" {
   name       = "GCP ${data.google_project.project.name}"
   project_id = data.google_project.project.project_id
@@ -78,12 +78,12 @@ resource "mondoo_integration_gcp" "name" {
 
 ### Optional
 
-- `project_id` (String) GCP project ID
+- `project_id` (String) GCP project ID.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 - `wif_subject` (String) Computed OIDC subject used when Mondoo requests a WIF token for this integration. Configure your cloud provider's trust policy to accept this subject.
 
 <a id="nestedatt--credentials"></a>

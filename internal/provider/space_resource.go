@@ -227,7 +227,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"mrn": schema.StringAttribute{
-				MarkdownDescription: "Mrn of the space.",
+				MarkdownDescription: "MRN of the space.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -264,7 +264,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							"cleanup": schema.BoolAttribute{
 								Optional:            true,
 								Computed:            true,
-								MarkdownDescription: "Whether to cleanup terminated assets.",
+								MarkdownDescription: "Whether to clean up terminated assets.",
 							},
 						},
 					},
@@ -279,7 +279,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							"cleanup": schema.BoolAttribute{
 								Optional:            true,
 								Computed:            true,
-								MarkdownDescription: "Whether to cleanup unused service accounts.",
+								MarkdownDescription: "Whether to clean up unused service accounts.",
 							},
 						},
 					},
@@ -299,7 +299,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							"after_days": schema.Int32Attribute{
 								Optional:            true,
 								Computed:            true,
-								MarkdownDescription: "After how many days to garbage collect. ",
+								MarkdownDescription: "After how many days to garbage collect.",
 							},
 						},
 					},
@@ -321,7 +321,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 					"eol_assets_configuration": schema.SingleNestedAttribute{
 						Optional:            true,
 						Computed:            true,
-						MarkdownDescription: "EOL platform configuration for the space.",
+						MarkdownDescription: "EOL assets configuration for the space.",
 						PlanModifiers: []planmodifier.Object{
 							objectplanmodifier.UseStateForUnknown(),
 						},
@@ -334,7 +334,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							"months_in_advance": schema.Int32Attribute{
 								Optional:            true,
 								Computed:            true,
-								MarkdownDescription: "How many months in advance should EOL be applied as risk factor.",
+								MarkdownDescription: "How many months in advance EOL should be applied as a risk factor.",
 							},
 						},
 					},
@@ -349,7 +349,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							"auto_create": schema.BoolAttribute{
 								Optional:            true,
 								Computed:            true,
-								MarkdownDescription: "Whether to enable auto-create cases on drift.",
+								MarkdownDescription: "Whether to automatically create cases on drift.",
 							},
 							"aggregation_window": schema.Int32Attribute{
 								Optional:            true,
@@ -374,7 +374,7 @@ func (r *SpaceResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							"allow_indefinite_valid_until": schema.BoolAttribute{
 								Optional:            true,
 								Computed:            true,
-								MarkdownDescription: "Whether to allow creation of exception groups with indefinite valid until.",
+								MarkdownDescription: "Whether to allow creation of exception groups that are valid indefinitely.",
 							},
 							"allow_self_approval": schema.BoolAttribute{
 								Optional:            true,
@@ -535,7 +535,7 @@ func (r *SpaceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	// Compute and validate the space
 	space, err := r.client.ComputeSpace(data.SpaceID)
 	if err != nil {
-		// we do not fail if there the user doesn't specify an id
+		// we do not fail if the user doesn't specify an id
 		// because we are creating one, still log the error
 		tflog.Debug(ctx, err.Error())
 	}

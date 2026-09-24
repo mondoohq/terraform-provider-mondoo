@@ -92,7 +92,7 @@ resource "mondoo_exception" "windows_defender_exception" {
 
 ## Apply the configuration to Mondoo Platform
 
-To execute the terraform configuration:
+To execute the Terraform configuration:
 
 1. Set the `MONDOO_CONFIG_BASE64` environment variable to your service account's JSON credentials, base64 encoded:
 
@@ -164,6 +164,6 @@ provider "mondoo" {
 ### Optional
 
 - `credentials` (String) The contents of a service account key file in JSON format.
-- `endpoint` (String) The endpoint url of the server to manage resources.
+- `endpoint` (String) The endpoint URL of the server to manage resources.
 - `region` (String) The default region to manage resources in. Valid regions are `us` or `eu`.
 - `space` (String) The default space to manage resources in.

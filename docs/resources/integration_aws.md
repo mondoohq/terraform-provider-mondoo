@@ -29,7 +29,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the AWS integration
+# Set up the AWS integration
 resource "mondoo_integration_aws" "name" {
   name = "AWS Integration"
 
@@ -56,7 +56,7 @@ resource "mondoo_integration_aws" "name" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 - `wif_subject` (String) Computed OIDC subject used when Mondoo requests a WIF token for this integration. Configure your cloud provider's trust policy to accept this subject.
 
 <a id="nestedatt--credentials"></a>

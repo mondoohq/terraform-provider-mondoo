@@ -69,7 +69,7 @@ resource "mondoo_workspace" "my_workspace" {
 ### Optional
 
 - `description` (String) Description of the workspace.
-- `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 
@@ -93,7 +93,7 @@ Optional:
 
 - `int_condition` (Attributes) A condition with values of type int. (see [below for nested schema](#nestedatt--asset_selections--conditions--int_condition))
 - `key_value_condition` (Attributes) A condition with values of type key:value. (see [below for nested schema](#nestedatt--asset_selections--conditions--key_value_condition))
-- `rating_condition` (Attributes) A condition with values of type int. (see [below for nested schema](#nestedatt--asset_selections--conditions--rating_condition))
+- `rating_condition` (Attributes) A condition with values of type rating. (see [below for nested schema](#nestedatt--asset_selections--conditions--rating_condition))
 - `string_condition` (Attributes) A condition with values of type string. (see [below for nested schema](#nestedatt--asset_selections--conditions--string_condition))
 
 <a id="nestedatt--asset_selections--conditions--int_condition"></a>
@@ -112,7 +112,7 @@ Required:
 Required:
 
 - `field` (String) key:value field to match. Valid values: ["LABELS" "ANNOTATIONS"]
-- `operator` (String) Rating operator. Valid values: ["CONTAINS"]
+- `operator` (String) key:value operator. Valid values: ["CONTAINS"]
 - `values` (Attributes List) key:value list to match. Values are ORed together. (see [below for nested schema](#nestedatt--asset_selections--conditions--key_value_condition--values))
 
 <a id="nestedatt--asset_selections--conditions--key_value_condition--values"></a>
@@ -132,7 +132,7 @@ Required:
 
 - `field` (String) Rating field to match. Valid values: ["RISK"]
 - `operator` (String) Rating operator. Valid values: ["EQUAL" "NOT_EQUAL"]
-- `values` (List of String) Int values to match. Values are ORed together.
+- `values` (List of String) Rating values to match. Values are ORed together.
 
 
 <a id="nestedatt--asset_selections--conditions--string_condition"></a>

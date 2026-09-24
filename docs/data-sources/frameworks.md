@@ -3,12 +3,12 @@
 page_title: "mondoo_frameworks Data Source - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Data source to return compliance frameworks in a Space
+  Data source to return compliance frameworks in a space
 ---
 
 # mondoo_frameworks (Data Source)
 
-Data source to return compliance frameworks in a Space
+Data source to return compliance frameworks in a space
 
 ## Example Usage
 

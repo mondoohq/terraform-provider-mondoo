@@ -14,7 +14,7 @@ SentinelOne integration.
 
 ```terraform
 variable "client_secret" {
-  description = "The foo variable"
+  description = "The SentinelOne client secret"
   type        = string
   sensitive   = true
 }
@@ -23,7 +23,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the SentinelOne integration
+# Set up the SentinelOne integration
 resource "mondoo_integration_sentinel_one" "example" {
   name    = "SentinelOne Integration"
   host    = "https://domain.sentinelone.net"
@@ -51,7 +51,7 @@ resource "mondoo_integration_sentinel_one" "example" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`
