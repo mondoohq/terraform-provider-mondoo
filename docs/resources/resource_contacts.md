@@ -125,4 +125,4 @@ resource "mondoo_resource_contacts" "example" {
 Required:
 
 - `name` (String) Display name of the link.
-- `url` (String) URL of the link. Must start with `http://` or `https://`.
+- `url` (String) URL of the link. Must start with `https://`.

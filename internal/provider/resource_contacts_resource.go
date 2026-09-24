@@ -114,11 +114,11 @@ resource "mondoo_resource_contacts" "example" {
 							},
 						},
 						"url": schema.StringAttribute{
-							MarkdownDescription: "URL of the link. Must start with `http://` or `https://`.",
+							MarkdownDescription: "URL of the link. Must start with `https://`.",
 							Required:            true,
 							Validators: []validator.String{
 								stringvalidator.LengthAtMost(2048),
-								stringvalidator.RegexMatches(regexp.MustCompile(`^https?://`), "must start with http:// or https://"),
+								stringvalidator.RegexMatches(regexp.MustCompile(`^https://`), "must start with https://"),
 							},
 						},
 					},
