@@ -75,12 +75,23 @@ type ResourceContactPayload struct {
 	Name        mondoov1.String              `graphql:"name"`
 }
 
-type SetResourceContactsInput struct {
-	ResourceMrn mondoov1.String                 `json:"resourceMrn"`
-	Contacts    []mondoov1.ResourceContactInput `json:"contacts"`
+// ResourceContactTypeLink is not in mondoo-go yet; replace with
+// mondoov1.ResourceContactTypeLink after the next schema bump.
+const ResourceContactTypeLink mondoov1.ResourceContactType = "LINK"
+
+// ResourceContactInput mirrors mondoov1.ResourceContactInput plus `name`,
+// which mondoo-go does not have yet.
+type ResourceContactInput struct {
+	Identity mondoov1.String  `json:"identity"`
+	Name     *mondoov1.String `json:"name,omitempty"`
 }
 
-func (c *ExtendedGqlClient) SetResourceContacts(ctx context.Context, resourceMrn string, contacts []mondoov1.ResourceContactInput) ([]ResourceContactPayload, error) {
+type SetResourceContactsInput struct {
+	ResourceMrn mondoov1.String        `json:"resourceMrn"`
+	Contacts    []ResourceContactInput `json:"contacts"`
+}
+
+func (c *ExtendedGqlClient) SetResourceContacts(ctx context.Context, resourceMrn string, contacts []ResourceContactInput) ([]ResourceContactPayload, error) {
 	var mutation struct {
 		SetResourceContacts []ResourceContactPayload `graphql:"setResourceContacts(input: $input)"`
 	}

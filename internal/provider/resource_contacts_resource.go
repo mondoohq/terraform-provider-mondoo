@@ -6,12 +6,16 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -31,7 +35,18 @@ type ResourceContactsResource struct {
 type ResourceContactsResourceModel struct {
 	ResourceMrn types.String `tfsdk:"resource_mrn"`
 	Contacts    types.List   `tfsdk:"contacts"`
+	Links       types.List   `tfsdk:"links"`
 }
+
+type contactLinkModel struct {
+	Name types.String `tfsdk:"name"`
+	URL  types.String `tfsdk:"url"`
+}
+
+var contactLinkObjectType = types.ObjectType{AttrTypes: map[string]attr.Type{
+	"name": types.StringType,
+	"url":  types.StringType,
+}}
 
 func (r *ResourceContactsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_resource_contacts"
@@ -64,6 +79,12 @@ resource "mondoo_resource_contacts" "example" {
     mondoo_team.ops.mrn,
     "security@example.com",
   ]
+  links = [
+    {
+      name = "Production runbook"
+      url  = "https://wiki.example.com/runbooks/production"
+    },
+  ]
 }
 ` + "```",
 
@@ -79,6 +100,29 @@ resource "mondoo_resource_contacts" "example" {
 				MarkdownDescription: "List of contacts. Each entry is an identity: user MRN, team MRN, or email address.",
 				Required:            true,
 				ElementType:         types.StringType,
+			},
+			"links": schema.ListNestedAttribute{
+				MarkdownDescription: "List of links, such as runbooks or dashboards, each with a display name.",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							MarkdownDescription: "Display name of the link.",
+							Required:            true,
+							Validators: []validator.String{
+								stringvalidator.LengthBetween(1, 256),
+							},
+						},
+						"url": schema.StringAttribute{
+							MarkdownDescription: "URL of the link. Must start with `http://` or `https://`.",
+							Required:            true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtMost(2048),
+								stringvalidator.RegexMatches(regexp.MustCompile(`^https?://`), "must start with http:// or https://"),
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -109,7 +153,11 @@ func (r *ResourceContactsResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	contacts := expandContactIdentities(data.Contacts)
+	contacts, diags := expandContacts(ctx, data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	_, err := r.client.SetResourceContacts(ctx, data.ResourceMrn.ValueString(), contacts)
 	if err != nil {
@@ -141,7 +189,9 @@ func (r *ResourceContactsResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	data.Contacts = reconcileContacts(data.Contacts, contacts)
+	identities, links := splitContactLinks(contacts)
+	data.Contacts = reconcileContacts(data.Contacts, identities)
+	data.Links = reconcileLinks(data.Links, links)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -154,7 +204,11 @@ func (r *ResourceContactsResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	contacts := expandContactIdentities(data.Contacts)
+	contacts, diags := expandContacts(ctx, data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	_, err := r.client.SetResourceContacts(ctx, data.ResourceMrn.ValueString(), contacts)
 	if err != nil {
@@ -175,7 +229,7 @@ func (r *ResourceContactsResource) Delete(ctx context.Context, req resource.Dele
 	}
 
 	// Clear all contacts by setting an empty list
-	_, err := r.client.SetResourceContacts(ctx, data.ResourceMrn.ValueString(), []mondoov1.ResourceContactInput{})
+	_, err := r.client.SetResourceContacts(ctx, data.ResourceMrn.ValueString(), []ResourceContactInput{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to clear resource contacts", err.Error())
 		return
@@ -195,28 +249,104 @@ func (r *ResourceContactsResource) ImportState(ctx context.Context, req resource
 		return
 	}
 
+	identities, links := splitContactLinks(contacts)
 	model := ResourceContactsResourceModel{
 		ResourceMrn: types.StringValue(resourceMrn),
-		Contacts:    flattenContactIdentities(contacts),
+		Contacts:    flattenContactIdentities(identities),
+		Links:       reconcileLinks(types.ListNull(contactLinkObjectType), links),
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }
 
+// expandContacts converts the configured contacts and links to a single slice of ResourceContactInput.
+func expandContacts(ctx context.Context, data ResourceContactsResourceModel) ([]ResourceContactInput, diag.Diagnostics) {
+	result := expandContactIdentities(data.Contacts)
+	if data.Links.IsNull() || data.Links.IsUnknown() {
+		return result, nil
+	}
+
+	var links []contactLinkModel
+	diags := data.Links.ElementsAs(ctx, &links, false)
+	for _, l := range links {
+		name := mondoov1.String(l.Name.ValueString())
+		result = append(result, ResourceContactInput{
+			Identity: mondoov1.String(l.URL.ValueString()),
+			Name:     &name,
+		})
+	}
+	return result, diags
+}
+
 // expandContactIdentities converts a Terraform list of strings to a slice of ResourceContactInput.
-func expandContactIdentities(l types.List) []mondoov1.ResourceContactInput {
+func expandContactIdentities(l types.List) []ResourceContactInput {
 	if l.IsNull() || l.IsUnknown() {
-		return []mondoov1.ResourceContactInput{}
+		return []ResourceContactInput{}
 	}
 
 	elements := l.Elements()
-	result := make([]mondoov1.ResourceContactInput, 0, len(elements))
+	result := make([]ResourceContactInput, 0, len(elements))
 	for _, v := range elements {
-		result = append(result, mondoov1.ResourceContactInput{
+		result = append(result, ResourceContactInput{
 			Identity: mondoov1.String(v.(types.String).ValueString()),
 		})
 	}
 	return result
+}
+
+// splitContactLinks separates LINK contacts, which are managed by `links`, from the rest.
+func splitContactLinks(contacts []ResourceContactPayload) (identities, links []ResourceContactPayload) {
+	for _, c := range contacts {
+		if c.ContactType == ResourceContactTypeLink {
+			links = append(links, c)
+		} else {
+			identities = append(identities, c)
+		}
+	}
+	return identities, links
+}
+
+// reconcileLinks keeps the configured order of links that still exist on the
+// server and appends any that were added outside Terraform. Unset `links`
+// stays null while the server has none.
+func reconcileLinks(stateLinks types.List, serverLinks []ResourceContactPayload) types.List {
+	if len(serverLinks) == 0 && stateLinks.IsNull() {
+		return stateLinks
+	}
+
+	type link struct{ name, url string }
+	remaining := make(map[link]int, len(serverLinks))
+	for _, sl := range serverLinks {
+		remaining[link{string(sl.Name), string(sl.Identity)}]++
+	}
+
+	elements := make([]attr.Value, 0, len(serverLinks))
+	add := func(l link) {
+		elements = append(elements, types.ObjectValueMust(contactLinkObjectType.AttrTypes, map[string]attr.Value{
+			"name": types.StringValue(l.name),
+			"url":  types.StringValue(l.url),
+		}))
+	}
+
+	if !stateLinks.IsNull() && !stateLinks.IsUnknown() {
+		for _, v := range stateLinks.Elements() {
+			attrs := v.(types.Object).Attributes()
+			l := link{attrs["name"].(types.String).ValueString(), attrs["url"].(types.String).ValueString()}
+			if remaining[l] > 0 {
+				remaining[l]--
+				add(l)
+			}
+		}
+	}
+	for _, sl := range serverLinks {
+		l := link{string(sl.Name), string(sl.Identity)}
+		if remaining[l] > 0 {
+			remaining[l]--
+			add(l)
+		}
+	}
+
+	return types.ListValueMust(contactLinkObjectType, elements)
 }
 
 // flattenContactIdentities converts a slice of ResourceContactPayload to a Terraform list of identity strings.

@@ -23,4 +23,10 @@ resource "mondoo_resource_contacts" "example" {
     mondoo_team.ops.mrn,
     "security@example.com",
   ]
+  links = [
+    {
+      name = "Production runbook"
+      url  = "https://wiki.example.com/runbooks/production"
+    },
+  ]
 }
