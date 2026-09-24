@@ -151,8 +151,8 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 		duration, err := time.ParseDuration(data.ExpiresIn.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Invalide expires_in value: "+data.ExpiresIn.ValueString(),
-				"Invalide expires_in value: "+data.ExpiresIn.ValueString(),
+				"Invalid expires_in value: "+data.ExpiresIn.ValueString(),
+				"Invalid expires_in value: "+data.ExpiresIn.ValueString(),
 			)
 			return
 		}

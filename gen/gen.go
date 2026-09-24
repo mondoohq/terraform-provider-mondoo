@@ -363,7 +363,7 @@ func generateIntegrationResources() error {
 		)
 		mm, mmKeys, err := structToMap(v)
 		if err != nil {
-			log.Fatalf("unable to conver struct %s to map", className)
+			log.Fatalf("unable to convert struct %s to map", className)
 		}
 		if v == nil || len(mm) == 0 {
 			fmt.Printf("❌ %s integration has no fields, skipping\n", className)

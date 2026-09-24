@@ -1,0 +1,19 @@
+# Configuration for crate-ci/typos (see .github/workflows/spell-check.yaml)
+# Run locally with `typos` (and `typos --write-changes` to auto-fix).
+# Docs: https://github.com/crate-ci/typos
+
+[files]
+extend-exclude = [
+  "go.sum",
+]
+
+[default]
+extend-ignore-re = [
+  # JWTs (e.g. example registration tokens in the docs)
+  "eyJ[A-Za-z0-9_.-]+",
+]
+
+# Project-specific terms typos misflags. Each maps the word to itself so typos
+# treats it as correct.
+[default.extend-words]
+copywrite = "copywrite" # HashiCorp copywrite tool (license headers)
