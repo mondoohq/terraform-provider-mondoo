@@ -286,7 +286,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			},
 			"token": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration token",
+				MarkdownDescription: "Registration token for the integration. Pass it as the `MondooToken` parameter of the CloudFormation stack or StackSet; a separate `mondoo_registration_token` is not needed. The Mondoo Lambda exchanges it once per account, when the stack is created, for service account credentials that do not expire. The token expires 30 minutes after the integration is created, unless `is_organization` is `true`, in which case it never expires.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -467,7 +467,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 				ElementType:         types.StringType,
 			},
 			"is_organization": schema.BoolAttribute{
-				MarkdownDescription: "Is organization.",
+				MarkdownDescription: "Set to `true` when you deploy the CloudFormation template with a StackSet, whether it targets the whole AWS organization or only some organizational units (OUs). Mondoo then issues a `token` that never expires, so accounts that join a targeted OU later can still register. When unset or `false`, the `token` expires 30 minutes after the integration is created. Set this when you create the integration: changing it later does not replace the `token` already in the Terraform state, so recreate the integration to get a token that does not expire. Cannot be combined with `account_ids`.",
 				Optional:            true,
 			},
 		},
