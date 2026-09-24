@@ -1,6 +1,6 @@
 module go.mondoo.com/terraform-provider-mondoo
 
-go 1.25.8
+go 1.26.8
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
