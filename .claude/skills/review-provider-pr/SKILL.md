@@ -62,4 +62,4 @@ Leave out empty sections. No praise and no summary of what the PR does. Don't po
 
 ## Scale
 
-For diffs over ~1500 lines, dispatch one subagent per changed resource. Give each one this skill's checklist and the `$LAST` tag, then merge and dedupe the findings yourself.
+For diffs over ~1500 lines, dispatch one subagent per changed resource, all in parallel (they're read-only, so they can share one worktree). Give each one this skill's checklist and the `$LAST` tag, then merge and dedupe the findings yourself.
