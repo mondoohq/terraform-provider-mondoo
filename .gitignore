@@ -22,7 +22,8 @@ website/node_modules
 *.bak
 *~
 .*.swp
-.claude/
+.claude/*
+!.claude/skills/
 .idea
 *.iml
 *.test
