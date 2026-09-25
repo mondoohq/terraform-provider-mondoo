@@ -39,8 +39,8 @@ Every bug listed in `checklist.md` shipped past human review in this repo. Walk 
 4. **Prove each finding.** Name the config or state that triggers it and the exact Terraform error or behaviour it causes. If you can't point to the line that goes wrong, put it under *Needs verification*, not in Blockers.
 5. **Reproduce blockers and needs-verification items** when `TERRAFORM_TESTING_MONDOO_BASE64` is set:
    - Write the test that catches it as a new `*_repro_test.go` in the PR worktree. Model it on an existing `TestAcc…`: use `accSpace.ID()`, and add a plancheck or a follow-up step.
-   - Run it with `MONDOO_CONFIG_BASE64=$TERRAFORM_TESTING_MONDOO_BASE64 TF_ACC=1 go test ./internal/provider/ -run <TestName> -v -timeout 5m`.
-   - If the variable isn't visible in your shell (it's a snapshot from session start), give the user that exact command to run with `!`. Do not go looking for the value.
+   - Run it with `env -u MONDOO_API_ENDPOINT -u MONDOO_CONFIG_PATH -u MONDOO_API_TOKEN MONDOO_CONFIG_BASE64="$TERRAFORM_TESTING_MONDOO_BASE64" TF_ACC=1 go test ./internal/provider/ -run <TestName> -v -timeout 5m`. The `-u` flags matter. `MONDOO_API_ENDPOINT` overrides the service account's endpoint in the provider (not in `TestMain`), so a stray export would send the testing credentials to another environment.
+   - If the variable isn't visible in your shell (it's a snapshot from session start), ask the user to run that exact command themselves. In Claude Code, they can type it prefixed with `!` so the output lands in the conversation. Do not go looking for the value.
    - Reproduced: quote the Terraform error in the finding. Didn't reproduce: move it down a section or drop it.
    - Never push a repro test to someone else's branch unless asked. The test goes in the finding instead.
 6. **Separate pre-existing problems.** A bug in code the PR didn't touch or copy is one line under *Pre-existing*. A bug the PR copied into new code (e.g. a no-op Read in a new resource) counts as introduced, even when a sibling resource has the same bug. Mention the sibling under *Pre-existing*.
