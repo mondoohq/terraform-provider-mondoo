@@ -167,6 +167,19 @@ Use a dedicated test organization, because the tests create and delete spaces. W
 fails to start, which also affects `make test`. To run a single test, use
 `make testacc TESTARGS="-run TestAccSpaceResource"`.
 
+#### Credentials for the PR review skill
+
+The `/review-provider-pr` Claude Code skill (`.claude/skills/review-provider-pr/`) reproduces the bugs it finds with
+acceptance tests. It only uses a service account for the `mondoo-terraform-testing` organization, read from its own
+variable so it never touches your other credentials. Ask an org owner for a service account in that org, then add it
+to your shell profile:
+
+```shell
+export TERRAFORM_TESTING_MONDOO_BASE64=$(base64 < terraform-testing-service-account.json)
+```
+
+Without it, the skill still reviews the PR but leaves reproduction to CI.
+
 ### Lint and format
 
 ```shell

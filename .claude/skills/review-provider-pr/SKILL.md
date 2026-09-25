@@ -18,7 +18,7 @@ Every bug listed in `checklist.md` shipped past human review in this repo. Walk 
    - Check it out outside the repo so you can read whole files: `git fetch origin pull/N/head && git worktree add --detach "$(mktemp -d)/pr-N" FETCH_HEAD`. Remove it when done with `git worktree remove`.
    - `gh pr checks N`: CI acceptance tests (TF_ACC, TF 1.11–1.13) run against the **real API**. A green run is evidence that GraphQL query shapes are accepted. The `generate` job proves docs are regenerated. Read logs early with `gh run view --log`, because they expire.
    - Branch or working tree: diff against `origin/main`.
-   - You can't run tests locally without credentials, because `TestMain` in `internal/provider` creates a real space and panics without `MONDOO_CONFIG_*`. Rely on CI.
+   - Local tests need credentials: `TestMain` in `internal/provider` creates a real space and panics without them. Use **only** `TERRAFORM_TESTING_MONDOO_BASE64`, a service account for the `mondoo-terraform-testing` org (see README → Test). Never use an existing `MONDOO_CONFIG_*` or the CLI config, which may point at a production org. If the variable isn't set, rely on CI.
 2. **Find what's already released.**
    - `git fetch --tags`, then `LAST=$(git describe --tags --abbrev=0 --match 'v*' HEAD)`.
    - For every schema attribute the PR removes, renames, retypes or re-requires: `git show $LAST:<file> | grep '"attr"'`.
@@ -37,7 +37,13 @@ Every bug listed in `checklist.md` shipped past human review in this repo. Walk 
 
    If the PR changes no resource behaviour (docs, examples, CI, schema flags such as `Sensitive`), skip this walk. Instead check what users will see (release notes) and whether a new guard or test really covers what it claims to.
 4. **Prove each finding.** Name the config or state that triggers it and the exact Terraform error or behaviour it causes. If you can't point to the line that goes wrong, put it under *Needs verification*, not in Blockers.
-5. **Separate pre-existing problems.** A bug in code the PR didn't touch or copy is one line under *Pre-existing*. A bug the PR copied into new code (e.g. a no-op Read in a new resource) counts as introduced, even when a sibling resource has the same bug. Mention the sibling under *Pre-existing*.
+5. **Reproduce blockers and needs-verification items** when `TERRAFORM_TESTING_MONDOO_BASE64` is set:
+   - Write the test that catches it as a new `*_repro_test.go` in the PR worktree. Model it on an existing `TestAcc…`: use `accSpace.ID()`, and add a plancheck or a follow-up step.
+   - Run it with `MONDOO_CONFIG_BASE64=$TERRAFORM_TESTING_MONDOO_BASE64 TF_ACC=1 go test ./internal/provider/ -run <TestName> -v -timeout 5m`.
+   - If the variable isn't visible in your shell (it's a snapshot from session start), give the user that exact command to run with `!`. Do not go looking for the value.
+   - Reproduced: quote the Terraform error in the finding. Didn't reproduce: move it down a section or drop it.
+   - Never push a repro test to someone else's branch unless asked. The test goes in the finding instead.
+6. **Separate pre-existing problems.** A bug in code the PR didn't touch or copy is one line under *Pre-existing*. A bug the PR copied into new code (e.g. a no-op Read in a new resource) counts as introduced, even when a sibling resource has the same bug. Mention the sibling under *Pre-existing*.
 
 ## Output
 
@@ -50,6 +56,7 @@ Every bug listed in `checklist.md` shipped past human review in this repo. Walk 
    User sees: <exact error or behaviour>
    Fix: <one line>
    Test that catches it: <TestStep / plancheck / ImportStateVerify>
+   Reproduced: yes (<error excerpt>) | not run (<why>)
 
 ### Should fix   (drift, missing import/tests/docs, unvalidated input)
 ### Needs verification   (depends on API behaviour you can't see offline)
