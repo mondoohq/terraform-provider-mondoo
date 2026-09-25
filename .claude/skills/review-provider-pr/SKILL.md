@@ -23,6 +23,7 @@ Every bug listed in `checklist.md` shipped past human review in this repo. Walk 
    - `git fetch --tags`, then `LAST=$(git describe --tags --abbrev=0 --match 'v*' HEAD)`.
    - For every schema attribute the PR removes, renames, retypes or re-requires: `git show $LAST:<file> | grep '"attr"'`.
    - If the attribute exists in `$LAST`, the change breaks users. If it was added after `$LAST`, it's free to change.
+   - Run `git diff $LAST -- examples/`. Users copy these configs into their pipelines. A new required argument or parameter, a removed variable, or a changed template breaks every existing copy (see "Contracts outside the schema" in `checklist.md`).
 3. **Walk the lifecycle** for every resource or data source the diff touches. Read the whole file and every helper it calls in `gql.go` / `conversions.go`, then trace, in order:
    - ValidateConfig and plan (values unknown, blocks omitted)
    - Create
@@ -43,7 +44,7 @@ Every bug listed in `checklist.md` shipped past human review in this repo. Walk 
 ```
 ## Verdict: BLOCK | FIX BEFORE MERGE | OK TO MERGE
 
-### Blockers   (breaks users: failed plan/apply, lost/orphaned objects, panic, breaking upgrade)
+### Blockers   (breaks users: failed plan/apply, lost/orphaned objects, panic, breaking upgrade, existing user HCL that stops working)
 1. file:line — what's wrong
    Triggers when: <config/state>
    User sees: <exact error or behaviour>

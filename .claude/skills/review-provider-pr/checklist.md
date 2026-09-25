@@ -98,6 +98,18 @@ mondoo-go ships input types only, not the output schema, so query structs can't 
 - **Data source inputs turned Computed-only** break `data` blocks with "Invalid Configuration for Read-Only Attribute" (PR 145, space data source `mrn`).
 - **Changing `space_id` precedence or scope priority** (space vs org) silently moves where objects are created (PR 145, service_account).
 
+## Contracts outside the schema: the customer's own HCL
+
+Users copy our examples into pipelines and wire our outputs into *other* providers' resources (`aws_cloudformation_stack`, `azuread_*`, `google_*`). Those configs break just as surely as a schema change does, and they aren't pinned to our provider version.
+
+- **An example gains a required input for a downstream resource** (a new `parameters`/argument key, a renamed variable, a retired template). Every existing user config without it breaks on its next apply, including configs written against older provider versions.
+  - This is a **Blocker** unless the PR (or its release notes) gives the migration: what to add, and which versions or stacks are affected.
+  - Bug: PR 441. The serverless template made `MondooSourceBucket` required (serverless-scanner-aws #790), the example quietly gained it, and a customer pipeline broke with no notice.
+- **A computed attribute that points to an external artifact** (template URL, script, bucket, image):
+  - Check whether the URL is versioned. An unversioned "latest" URL (`mondoo-serverless-v2.json`) means any upstream change reaches every user with no provider release and no changelog. Flag this under *Needs verification* and ask for a versioned URL or a documented compatibility policy.
+  - When the value is derived from another attribute (e.g. region → bucket), apply the Update "switching modes" rule. `UseStateForUnknown` plus a server recompute gives "inconsistent result after apply" (PR 441, `region`).
+- **The PR says an upstream (server, template, API) now requires or rejects something.** Ask whether that upstream change is already live. If it is, users are broken *before* this provider version ships, and the fix belongs in the release notes and customer comms, not just in the example.
+
 ## Secrets
 
 - **Credential fields need `Sensitive: true`.** For generated integrations, `gen/gen.go` decides this through `isSensitiveField`.
