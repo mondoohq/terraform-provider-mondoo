@@ -225,7 +225,7 @@ func (r *WorkspaceResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 												),
 												Required: true,
 											},
-											"values": schema.ListNestedAttribute{
+											"values": schema.SetNestedAttribute{
 												MarkdownDescription: "key:value list to match. Values are ORed together.",
 												Required:            true,
 												NestedObject: schema.NestedAttributeObject{
