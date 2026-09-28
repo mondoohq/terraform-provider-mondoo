@@ -13,6 +13,10 @@ Okta integration.
 ## Example Usage
 
 ```terraform
+variable "credential_mrn" {
+  description = "The Okta CredentialMrn"
+  type        = string
+}
 variable "organization" {
   description = "The Okta Organization"
   type        = string
@@ -28,9 +32,10 @@ provider "mondoo" {
 
 # Set up the Okta integration
 resource "mondoo_integration_okta" "example" {
-  name         = "Okta Integration"
-  organization = var.organization
-  token        = var.token
+  name           = "Okta Integration"
+  credential_mrn = var.credential_mrn
+  organization   = var.organization
+  token          = var.token
 }
 ```
 
@@ -40,10 +45,11 @@ resource "mondoo_integration_okta" "example" {
 ### Required
 
 - `name` (String) Name of the integration.
-- `organization` (String) The Okta Organization
 
 ### Optional
 
+- `credential_mrn` (String) The Okta CredentialMrn
+- `organization` (String) The Okta Organization
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 - `token` (String) The Okta Token
 
