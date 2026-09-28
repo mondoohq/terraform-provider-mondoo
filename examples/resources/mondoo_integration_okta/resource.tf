@@ -1,4 +1,8 @@
 
+variable "credential_mrn" {
+  description = "The Okta CredentialMrn"
+  type        = string
+}
 variable "organization" {
   description = "The Okta Organization"
   type        = string
@@ -14,7 +18,8 @@ provider "mondoo" {
 
 # Setup the Okta integration
 resource "mondoo_integration_okta" "example" {
-  name         = "Okta Integration"
-  organization = var.organization
-  token        = var.token
+  name           = "Okta Integration"
+  credential_mrn = var.credential_mrn
+  organization   = var.organization
+  token          = var.token
 }

@@ -41,6 +41,7 @@ type integrationGoogleWorkspaceResourceModel struct {
 	Name types.String `tfsdk:"name"`
 
 	// GoogleWorkspace options
+	CredentialMrn         types.String `tfsdk:"credential_mrn"`
 	CustomerId            types.String `tfsdk:"customer_id"`
 	ImpersonatedUserEmail types.String `tfsdk:"impersonated_user_email"`
 	ServiceAccount        types.String `tfsdk:"service_account"`
@@ -49,6 +50,7 @@ type integrationGoogleWorkspaceResourceModel struct {
 func (m integrationGoogleWorkspaceResourceModel) GetConfigurationOptions() *mondoov1.GoogleWorkspaceConfigurationOptionsInput {
 	return &mondoov1.GoogleWorkspaceConfigurationOptionsInput{
 		// GoogleWorkspace options
+		CredentialMrn:         mondoov1.NewStringPtr(mondoov1.String(m.CredentialMrn.ValueString())),
 		CustomerId:            mondoov1.String(m.CustomerId.ValueString()),
 		ImpersonatedUserEmail: mondoov1.String(m.ImpersonatedUserEmail.ValueString()),
 		ServiceAccount:        mondoov1.NewStringPtr(mondoov1.String(m.ServiceAccount.ValueString())),
@@ -86,6 +88,10 @@ func (r *integrationGoogleWorkspaceResource) Schema(_ context.Context, _ resourc
 				},
 			},
 			// GoogleWorkspace options
+			"credential_mrn": schema.StringAttribute{
+				MarkdownDescription: "The GoogleWorkspace CredentialMrn",
+				Optional:            true,
+			},
 			"customer_id": schema.StringAttribute{
 				MarkdownDescription: "The GoogleWorkspace CustomerId",
 				Required:            true,
@@ -275,6 +281,7 @@ func (r *integrationGoogleWorkspaceResource) ImportState(ctx context.Context, re
 		Name:    types.StringValue(integration.Name),
 		SpaceID: types.StringValue(integration.SpaceID()),
 		// GoogleWorkspace options
+		CredentialMrn:         types.StringPointerValue(nil),
 		CustomerId:            types.StringValue(integration.ConfigurationOptions.GoogleWorkspaceConfigurationOptions.CustomerId),
 		ImpersonatedUserEmail: types.StringValue(integration.ConfigurationOptions.GoogleWorkspaceConfigurationOptions.ImpersonatedUserEmail),
 		ServiceAccount:        types.StringPointerValue(nil),

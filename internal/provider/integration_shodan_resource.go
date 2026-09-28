@@ -156,7 +156,7 @@ func (r *integrationShodanResource) Create(ctx context.Context, req resource.Cre
 		mondoov1.ClientIntegrationConfigurationInput{
 			ShodanConfigurationOptions: &mondoov1.ShodanConfigurationOptionsInput{
 				Targets: &targets,
-				Token:   mondoov1.String(data.Credentials.Token.ValueString()),
+				Token:   mondoov1.NewStringPtr(mondoov1.String(data.Credentials.Token.ValueString())),
 			},
 		})
 	if err != nil {
@@ -226,7 +226,7 @@ func (r *integrationShodanResource) Update(ctx context.Context, req resource.Upd
 	opts := mondoov1.ClientIntegrationConfigurationInput{
 		ShodanConfigurationOptions: &mondoov1.ShodanConfigurationOptionsInput{
 			Targets: &targets,
-			Token:   mondoov1.String(data.Credentials.Token.ValueString()),
+			Token:   mondoov1.NewStringPtr(mondoov1.String(data.Credentials.Token.ValueString())),
 		},
 	}
 
