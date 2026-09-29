@@ -34,6 +34,25 @@ type IntegrationResource struct {
 	Fields                map[string]Field
 }
 
+// credentialRefField is the typed-credential reference an integration can
+// authenticate with instead of its inline secret.
+const credentialRefField = "CredentialMrn"
+
+// TestFields are the fields the generated acceptance test configures. It
+// leaves out the credential reference: it must name a real credential, and
+// the API rejects it next to the inline secret the test already sets
+// ("... and credentialMrn are mutually exclusive").
+func (r IntegrationResource) TestFields() map[string]Field {
+	fields := make(map[string]Field, len(r.Fields))
+	for k, v := range r.Fields {
+		if k == credentialRefField {
+			continue
+		}
+		fields[k] = v
+	}
+	return fields
+}
+
 func NewField(base Field, raw any) Field {
 	base.RawStruct = raw
 	return base
