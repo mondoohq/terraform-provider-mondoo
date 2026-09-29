@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -403,8 +404,37 @@ func (c *ExtendedGqlClient) SetCustomPolicy(ctx context.Context, scopeMrn string
 		SetCustomPolicyPayload setCustomPolicyPayload `graphql:"setCustomPolicy(input: $input)"`
 	}
 
-	err := c.Mutate(ctx, &setCustomPolicy, []mondoov1.SetCustomPolicyInput{setCustomPolicyInput}, nil)
+	err := retryConcurrentBundleUpdate(ctx, bundleRetryDelays, func() error {
+		return c.Mutate(ctx, &setCustomPolicy, []mondoov1.SetCustomPolicyInput{setCustomPolicyInput}, nil)
+	})
 	return setCustomPolicy.SetCustomPolicyPayload, err
+}
+
+// concurrentBundleUpdateErr is returned by the API when another write to the
+// same policy bundle landed first. The write is safe to retry.
+const concurrentBundleUpdateErr = "bundle was concurrently updated"
+
+// bundleRetryDelays are the waits before each retry of a bundle write.
+var bundleRetryDelays = []time.Duration{500 * time.Millisecond, time.Second, 2 * time.Second, 4 * time.Second}
+
+// retryConcurrentBundleUpdate calls fn and retries it, waiting each of delays
+// in turn, for as long as it fails because the policy bundle was concurrently
+// updated.
+func retryConcurrentBundleUpdate(ctx context.Context, delays []time.Duration, fn func() error) error {
+	err := fn()
+	for _, delay := range delays {
+		if err == nil || !strings.Contains(err.Error(), concurrentBundleUpdateErr) || ctx.Err() != nil {
+			return err
+		}
+		tflog.Debug(ctx, "policy bundle was concurrently updated, retrying", map[string]interface{}{"delay": delay.String()})
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(delay):
+		}
+		err = fn()
+	}
+	return err
 }
 
 type SpaceReportInput struct {
@@ -658,7 +688,9 @@ func (c *ExtendedGqlClient) SetCustomQueryPack(ctx context.Context, scopeMrn str
 		SetCustomPolicyPayload SetCustomPolicyPayload `graphql:"setCustomQueryPack(input: $input)"`
 	}
 
-	err := c.Mutate(ctx, &setCustomQueryPackPayload, []mondoov1.SetCustomQueryPackInput{setCustomPolicyInput}, nil)
+	err := retryConcurrentBundleUpdate(ctx, bundleRetryDelays, func() error {
+		return c.Mutate(ctx, &setCustomQueryPackPayload, []mondoov1.SetCustomQueryPackInput{setCustomPolicyInput}, nil)
+	})
 	return setCustomQueryPackPayload.SetCustomPolicyPayload, err
 }
 
