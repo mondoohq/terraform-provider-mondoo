@@ -1,4 +1,4 @@
-{{- range $key, $props := .Fields}}
+{{- range $key, $props := .ConfigFields}}
 variable "{{ toSnakeCase $key }}" {
   description = "The {{$.ResourceClassName}} {{ $key }}"
   type        = {{ $props.HclType }}
@@ -12,7 +12,7 @@ provider "mondoo" {
 # Set up the {{.ResourceClassName}} integration
 resource "mondoo_integration_{{.TerraformResourceName}}" "example" {
   name = "{{.ResourceClassName}} Integration"
-{{- range $key, $props := .Fields}}
+{{- range $key, $props := .ConfigFields}}
   {{ toSnakeCase $key }} = var.{{ toSnakeCase $key }}
 {{- end}}
 }

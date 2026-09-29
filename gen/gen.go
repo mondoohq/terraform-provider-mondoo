@@ -38,11 +38,11 @@ type IntegrationResource struct {
 // authenticate with instead of its inline secret.
 const credentialRefField = "CredentialMrn"
 
-// TestFields are the fields the generated acceptance test configures. It
-// leaves out the credential reference: it must name a real credential, and
-// the API rejects it next to the inline secret the test already sets
-// ("... and credentialMrn are mutually exclusive").
-func (r IntegrationResource) TestFields() map[string]Field {
+// ConfigFields are the fields the generated acceptance test and example
+// configure. They leave out the credential reference: it must name a real
+// credential, and the API rejects it next to the inline secret both already
+// set ("... and credentialMrn are mutually exclusive").
+func (r IntegrationResource) ConfigFields() map[string]Field {
 	fields := make(map[string]Field, len(r.Fields))
 	for k, v := range r.Fields {
 		if k == credentialRefField {
