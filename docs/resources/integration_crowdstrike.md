@@ -40,6 +40,14 @@ resource "mondoo_integration_crowdstrike" "crowdstrike_integration" {
   client_id     = var.client_id
   client_secret = var.client_secret
   cloud         = var.cloud
+
+  # Optional: also import Falcon alerts and quarantined files (needs the
+  # Alerts: Read and Quarantined Files: Read API scopes). Spotlight
+  # vulnerabilities are always imported.
+  finding_types = ["VULNERABILITY", "THREAT"]
+
+  # Optional: import only these severities. Omit or leave empty for all.
+  severities = ["CRITICAL", "HIGH"]
 }
 ```
 
@@ -55,7 +63,9 @@ resource "mondoo_integration_crowdstrike" "crowdstrike_integration" {
 ### Optional
 
 - `cloud` (String) The Falcon Cloud to connect to.
+- `finding_types` (Set of String) Kinds of findings to import besides Spotlight vulnerabilities, which are always imported. Add `THREAT` to import Falcon endpoint alerts and quarantined files; the API client then needs the `Alerts: Read` and `Quarantined Files: Read` scopes. Allowed values: `VULNERABILITY`, `THREAT`. Omit it to keep what is stored (vulnerabilities only on a new integration); set it to `[]` to go back to vulnerabilities only.
 - `member_cid` (String) CID selector for cases when the client ID and secret have access to multiple CIDs.
+- `severities` (Set of String) Import only findings of these severities. Allowed values: `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFORMATIONAL`. Empty imports every severity, and a finding whose severity CrowdStrike does not state is always imported. Narrowing it closes the Spotlight vulnerabilities it now excludes at the next import; alerts and quarantined files it excludes keep their last imported state. Omit it to keep what is stored (every severity on a new integration); set it to `[]` to import every severity again.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
