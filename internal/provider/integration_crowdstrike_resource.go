@@ -292,7 +292,30 @@ func (r *integrationCrowdstrikeResource) Read(ctx context.Context, req resource.
 		return
 	}
 
-	// Read API call logic
+	// finding_types and severities are Computed, so refresh them from the
+	// API: a change made elsewhere (the console) then shows up as drift.
+	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+	if err != nil {
+		// Drop the resource only when it no longer exists; any other error
+		// must not remove it from state.
+		if isNotFoundError(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError("Client Error",
+			fmt.Sprintf("Unable to read %s integration. Got error: %s", mondoov1.IntegrationTypeCrowdstrikeFalcon, err),
+		)
+		return
+	}
+	stored := integration.ConfigurationOptions.CrowdstrikeFalconConfigurationOptions
+	var diags diag.Diagnostics
+	data.FindingTypes, diags = enumSetValue(ctx, stored.FindingTypes)
+	resp.Diagnostics.Append(diags...)
+	data.Severities, diags = enumSetValue(ctx, stored.Severities)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
