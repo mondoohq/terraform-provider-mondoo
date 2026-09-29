@@ -4,7 +4,10 @@
 package provider
 
 import (
+	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -174,4 +177,58 @@ func TestIntegration_IsSpaceScoped(t *testing.T) {
 			assert.Equal(t, tt.expected, integration.IsSpaceScoped())
 		})
 	}
+}
+
+func TestRetryConcurrentBundleUpdate(t *testing.T) {
+	origDelays := bundleRetryDelays
+	bundleRetryDelays = []time.Duration{0, 0, 0}
+	t.Cleanup(func() { bundleRetryDelays = origDelays })
+
+	concurrentErr := errors.New("bundle was concurrently updated. retry")
+
+	t.Run("succeeds after concurrent update errors", func(t *testing.T) {
+		calls := 0
+		err := retryConcurrentBundleUpdate(context.Background(), func() error {
+			calls++
+			if calls < 3 {
+				return concurrentErr
+			}
+			return nil
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 3, calls)
+	})
+
+	t.Run("returns other errors without retrying", func(t *testing.T) {
+		calls := 0
+		otherErr := errors.New("permission denied")
+		err := retryConcurrentBundleUpdate(context.Background(), func() error {
+			calls++
+			return otherErr
+		})
+		assert.Equal(t, otherErr, err)
+		assert.Equal(t, 1, calls)
+	})
+
+	t.Run("gives up after the last retry", func(t *testing.T) {
+		calls := 0
+		err := retryConcurrentBundleUpdate(context.Background(), func() error {
+			calls++
+			return concurrentErr
+		})
+		assert.Equal(t, concurrentErr, err)
+		assert.Equal(t, len(bundleRetryDelays)+1, calls)
+	})
+
+	t.Run("stops when the context is cancelled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		calls := 0
+		err := retryConcurrentBundleUpdate(ctx, func() error {
+			calls++
+			return concurrentErr
+		})
+		assert.Equal(t, concurrentErr, err)
+		assert.Equal(t, 1, calls)
+	})
 }
