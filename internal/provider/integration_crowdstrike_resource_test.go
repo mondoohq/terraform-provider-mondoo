@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -196,10 +197,15 @@ func TestAccCrowdstrikeIntegrationResource(t *testing.T) {
 			},
 			// Import restores the stored selections (secrets are write-only)
 			{
-				ResourceName:            "mondoo_integration_crowdstrike.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"client_secret", "member_cid"},
+				ResourceName: "mondoo_integration_crowdstrike.test",
+				// the resource has no id attribute; import by mrn
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["mondoo_integration_crowdstrike.test"].Primary.Attributes["mrn"], nil
+				},
+				ImportStateVerifyIdentifierAttribute: "mrn",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIgnore:              []string{"client_secret", "member_cid"},
 			},
 			// Leaving them out keeps what is stored
 			{
