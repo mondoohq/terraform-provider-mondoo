@@ -5,7 +5,7 @@ variable "aws_region" {
 }
 
 variable "aws_account_id" {
-  description = "value of the AWS account ID"
+  description = "The AWS account ID"
   type        = string
 }
 
@@ -19,7 +19,7 @@ provider "aws" {
 
 data "aws_region" "current" {}
 
-# Setup the AWS integration
+# Set up the AWS integration
 resource "mondoo_integration_aws_serverless" "aws_serverless" {
   name                          = "AWS Integration"
   region                        = data.aws_region.current.region
@@ -56,7 +56,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
   }
 }
 
-# for organization wide deployments use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instead of aws_cloudformation_stack
+# for organization-wide deployments use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instead of aws_cloudformation_stack
 # set is_organization = true (and leave account_ids unset) so the token does not expire; with false it expires after 30 minutes,
 # and accounts that join a targeted OU later fail to register
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set

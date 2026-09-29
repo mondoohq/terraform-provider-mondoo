@@ -39,14 +39,14 @@ type customPolicyResourceModel struct {
 	// scope
 	SpaceID types.String `tfsdk:"space_id"`
 
-	// Provide the scope mrn if the space is not set
+	// Provide the scope MRN if the space is not set
 	ScopeMrn types.String `tfsdk:"scope_mrn"`
 
-	// policy mrn
+	// policy MRNs
 	Mrns      types.List `tfsdk:"mrns"`
 	Overwrite types.Bool `tfsdk:"overwrite"`
 
-	// the content of the policy can be defined as a string a file path or as plain text content
+	// the content of the policy can be defined as a file path or as plain text content
 	Source  types.String `tfsdk:"source"`
 	Content types.String `tfsdk:"content"`
 
@@ -60,21 +60,21 @@ func (r *customPolicyResource) Metadata(ctx context.Context, req resource.Metada
 
 func (r *customPolicyResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Custom Policy resource",
+		MarkdownDescription: "Custom policy resource.",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 			},
 			"scope_mrn": schema.StringAttribute{
-				MarkdownDescription: "Mondoo scope MRN. Provide this if not uploading to a space",
+				MarkdownDescription: "Mondoo scope MRN. Provide this if not uploading to a space.",
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.ConflictsWith(path.MatchRoot("space_id")),
 				},
 			},
 			"mrns": schema.ListAttribute{
-				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created policies",
+				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created policies.",
 				ElementType:         types.StringType,
 				Computed:            true,
 				PlanModifiers: []planmodifier.List{
@@ -130,7 +130,7 @@ func (r *customPolicyResource) Configure(ctx context.Context, req resource.Confi
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
 			fmt.Sprintf(
-				"Expected *http.Client. Got: %T. Please report this issue to the provider developers.",
+				"Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.",
 				req.ProviderData,
 			),
 		)
@@ -336,11 +336,11 @@ func (r *customPolicyResource) ImportState(ctx context.Context, req resource.Imp
 	spaceID := strings.Split(mrn, "/")[len(strings.Split(mrn, "/"))-3]
 	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
 		// The provider is configured to manage resources in a different space than the one the resource is
-		// currently configured, we won't allow that
+		// currently configured in, we won't allow that
 		resp.Diagnostics.AddError(
 			"Conflict Error",
 			fmt.Sprintf(
-				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+				"Unable to import policy, the provider is configured in a different space than the resource. (%s != %s)",
 				r.client.Space().ID(), spaceID),
 		)
 		return

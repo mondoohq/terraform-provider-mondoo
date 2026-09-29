@@ -3,12 +3,12 @@
 page_title: "mondoo_team_external_group_mapping Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  This resource manages external group mappings for Mondoo Teams. External group mappings link OIDC group claims to teams, enabling automatic team membership based on identity provider group membership.
+  This resource manages external group mappings for Mondoo teams. External group mappings link OIDC group claims to teams, enabling automatic team membership based on identity provider group membership.
 ---
 
 # mondoo_team_external_group_mapping (Resource)
 
-This resource manages external group mappings for Mondoo Teams. External group mappings link OIDC group claims to teams, enabling automatic team membership based on identity provider group membership.
+This resource manages external group mappings for Mondoo teams. External group mappings link OIDC group claims to teams, enabling automatic team membership based on identity provider group membership.
 
 
 

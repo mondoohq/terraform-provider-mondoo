@@ -192,7 +192,7 @@ func (d *assetsDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	if spaceMrn == "" {
-		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
+		resp.Diagnostics.AddError("Invalid Configuration", "Either `space_id` or `space_mrn` must be set.")
 		return
 	}
 

@@ -34,7 +34,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the CrowdStrike integration
+# Set up the CrowdStrike integration
 resource "mondoo_integration_crowdstrike" "crowdstrike_integration" {
   name          = "CrowdStrike Integration"
   client_id     = var.client_id
@@ -48,19 +48,19 @@ resource "mondoo_integration_crowdstrike" "crowdstrike_integration" {
 
 ### Required
 
-- `client_id` (String) Client ID used for authentication with CrowdStrike Falcon platform.
-- `client_secret` (String, Sensitive) Client Secret used for authentication with CrowdStrike Falcon platform.
+- `client_id` (String) Client ID used for authentication with the CrowdStrike Falcon platform.
+- `client_secret` (String, Sensitive) Client secret used for authentication with the CrowdStrike Falcon platform.
 - `name` (String) Name of the integration.
 
 ### Optional
 
-- `cloud` (String) The Falcon Cloud to connect.
-- `member_cid` (String) CID selector for cases when the client ID and secret has access to multiple CIDs.
+- `cloud` (String) The Falcon Cloud to connect to.
+- `member_cid` (String) CID selector for cases when the client ID and secret have access to multiple CIDs.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 ## Import
 

@@ -1,12 +1,13 @@
+---
 page_title: "mondoo_registration_token Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Registration Token resource
+  Registration token resource
 ---
 
 # mondoo_registration_token
 
-Registration Token resource
+Registration token resource
 
 ## Example Usage
 
@@ -26,7 +27,7 @@ variable "org_id" {
   default     = ""
 }
 
-# Configure the Mondoo
+# Configure Mondoo
 # ----------------------------------------------
 
 provider "mondoo" {}
@@ -38,7 +39,7 @@ resource "mondoo_space" "my_space" {
 }
 
 resource "mondoo_registration_token" "token" {
-  description   = "Get a mondoo registration token"
+  description   = "Get a Mondoo registration token"
   count         = length(var.space_names)
   space_id      = mondoo_space.my_space[count.index].id
   no_expiration = true
@@ -78,14 +79,14 @@ Before proceeding, make sure you have the following:
 
 **Usage**
 
-1. Adjust the variables `space_names` and `org_id`  in the  `terraform.tfvars` file:
+1. Adjust the variables `space_names` and `org_id` in the `terraform.tfvars` file:
 
 ```hcl
 space_names = ["Terraform Mondoo1", "Terraform Mondoo2", "Terraform Mondoo3"]
 org_id      = "love-mondoo-131514041515"
 ```
 
-2. Set the Mondoo Organization Service Account token
+2. Set the Mondoo Organization Service Account token:
 
 ```bash
 export MONDOO_CONFIG_BASE64=""
@@ -133,7 +134,7 @@ Terraform will perform the following actions:
 
   # mondoo_registration_token.token[0] will be created
   + resource "mondoo_registration_token" "token" {
-      + description   = "Get a mondoo registration token"
+      + description   = "Get a Mondoo registration token"
       + expires_at    = (known after apply)
       + mrn           = (known after apply)
       + no_expiration = true
@@ -144,7 +145,7 @@ Terraform will perform the following actions:
 
   # mondoo_registration_token.token[1] will be created
   + resource "mondoo_registration_token" "token" {
-      + description   = "Get a mondoo registration token"
+      + description   = "Get a Mondoo registration token"
       + expires_at    = (known after apply)
       + mrn           = (known after apply)
       + no_expiration = true
@@ -155,7 +156,7 @@ Terraform will perform the following actions:
 
   # mondoo_registration_token.token[2] will be created
   + resource "mondoo_registration_token" "token" {
-      + description   = "Get a mondoo registration token"
+      + description   = "Get a Mondoo registration token"
       + expires_at    = (known after apply)
       + mrn           = (known after apply)
       + no_expiration = true
@@ -188,7 +189,7 @@ Terraform will perform the following actions:
 Plan: 6 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
-  + complete_space_setup = (sensitive value)
+  + space_registration_token = (sensitive value)
 
 Saved the plan to: plan.out
 
@@ -218,13 +219,13 @@ Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-complete_space_setup = <sensitive>
+space_registration_token = <sensitive>
 ```
 
-6. Extract the value of the output variable `complete_space_setup` from the state file:
+6. Extract the value of the output variable `space_registration_token` from the state file:
 
 ```bash
-terraform output -json complete_space_setup | jq
+terraform output -json space_registration_token | jq
 
 [
   {

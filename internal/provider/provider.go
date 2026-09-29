@@ -31,7 +31,7 @@ var _ provider.Provider = &MondooProvider{}
 // MondooProvider defines the provider implementation.
 type MondooProvider struct {
 	// version is set to the provider version on release, "dev" when the
-	// provider is built and ran locally, and "test" when running acceptance
+	// provider is built and run locally, and "test" when running acceptance
 	// testing.
 	version string
 }
@@ -68,7 +68,7 @@ func (p *MondooProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 				},
 			},
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "The endpoint url of the server to manage resources.",
+				MarkdownDescription: "The endpoint URL of the server to manage resources.",
 				Optional:            true,
 			},
 		},
@@ -134,7 +134,7 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		if err != nil {
 			tflog.Debug(ctx, err.Error())
 			resp.Diagnostics.AddError("No authentication found",
-				"MONDOO_API_TOKEN, MONDOO_CONFIG_PATH or MONDOO_CONFIG_BASE64 need to be set.\n\n"+
+				"One of MONDOO_API_TOKEN, MONDOO_CONFIG_PATH, or MONDOO_CONFIG_BASE64 must be set.\n\n"+
 					"To create a service account, see https://mondoo.com/docs/platform/maintain/access/service_accounts/",
 			)
 			return
@@ -206,7 +206,7 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	}
 
 	// The extended GraphQL client allows us to pass additional information to
-	// resources and data sources, things like the Mondoo space
+	// resources and data sources, such as the Mondoo space.
 	extendedClient := &ExtendedGqlClient{client, SpaceFrom(space)}
 	resp.DataSourceData = extendedClient
 	resp.ResourceData = extendedClient
@@ -268,7 +268,7 @@ func detectDefaultConfig() (string, error) {
 	f := mql_config.DefaultConfigFile
 	homeConfig, err := mql_config.HomePath(f)
 	if err != nil {
-		return "", errors.New("failed to detect mondoo config")
+		return "", errors.New("failed to detect Mondoo config")
 	}
 	if mql_config.ProbeFile(homeConfig) {
 		return homeConfig, nil
@@ -279,7 +279,7 @@ func detectDefaultConfig() (string, error) {
 		return sysConfig, nil
 	}
 
-	return "", errors.New("no mondoo config found")
+	return "", errors.New("no Mondoo config found")
 }
 
 type wif struct {

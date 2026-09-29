@@ -68,7 +68,7 @@ func (r *integrationShodanResource) Schema(_ context.Context, _ resource.SchemaR
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration identifier",
+				MarkdownDescription: "Integration identifier.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -115,7 +115,7 @@ func (r *integrationShodanResource) Configure(ctx context.Context, req resource.
 			Diagnostics.
 			AddError("Unexpected Resource Configure Type",
 				fmt.Sprintf(
-					"Expected *http.Client. Got: %T. Please report this issue to the provider developers.",
+					"Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.",
 					req.ProviderData,
 				),
 			)
@@ -261,7 +261,7 @@ func (r *integrationShodanResource) Delete(ctx context.Context, req resource.Del
 		return
 	}
 
-	// Do GraphQL request to API to update the resource.
+	// Do GraphQL request to API to delete the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.

@@ -8,14 +8,14 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the GitLab integration
+# Set up the GitLab integration
 resource "mondoo_integration_gitlab" "gitlab_integration" {
   name = "GitLab Integration"
 
   # base_url = "https://my-self-hosted-gitlab.com"
   # group    = "my-group"
 
-  # configure discovery options  
+  # configure discovery options
   discovery = {
     groups        = true
     projects      = true

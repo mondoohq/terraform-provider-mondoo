@@ -69,7 +69,7 @@ func (r *IAMWorkloadIdentityBindingResource) Metadata(ctx context.Context, req r
 func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: `Allows management of a Mondoo Workload Identity Federation bindings.`,
+		MarkdownDescription: `Allows management of Mondoo Workload Identity Federation bindings.`,
 
 		Attributes: map[string]schema.Attribute{
 			"scope_mrn": schema.StringAttribute{
@@ -139,7 +139,7 @@ func (r *IAMWorkloadIdentityBindingResource) Schema(ctx context.Context, req res
 				},
 			},
 			"allowed_audiences": schema.ListAttribute{
-				MarkdownDescription: " List of allowed audiences.",
+				MarkdownDescription: "List of allowed audiences.",
 				ElementType:         types.StringType,
 				Optional:            true,
 				Computed:            true,
@@ -184,7 +184,7 @@ func (r *IAMWorkloadIdentityBindingResource) Configure(ctx context.Context, req 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -257,7 +257,7 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 		scopeMRN = r.client.space.MRN()
 	}
 	if scopeMRN == "" {
-		resp.Diagnostics.AddError("Missing Scope", "Provide it via scope_mrn or provider space")
+		resp.Diagnostics.AddError("Missing Scope", "Provide it via scope_mrn or the provider space.")
 		return
 	}
 	ctx = tflog.SetField(ctx, "scope_mrn", scopeMRN)
@@ -325,7 +325,7 @@ func (r *IAMWorkloadIdentityBindingResource) Create(ctx context.Context, req res
 	}
 
 	// Write logs using the tflog package
-	tflog.Debug(ctx, "created a b2nding resource", map[string]interface{}{
+	tflog.Debug(ctx, "created a binding resource", map[string]interface{}{
 		"input": fmt.Sprintf("%+v", createMutation),
 	})
 	// Save scope mrn into the Terraform state.
@@ -421,7 +421,7 @@ func (r *IAMWorkloadIdentityBindingResource) Read(ctx context.Context, req resou
 	resp.Diagnostics.Append(resp.State.Set(ctx, &m)...)
 }
 
-// Update is not allowed by design. We only read and exist.
+// Update is not allowed by design. We only read and exit.
 func (r *IAMWorkloadIdentityBindingResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data IAMWorkloadIdentityBindingResourceModel
 

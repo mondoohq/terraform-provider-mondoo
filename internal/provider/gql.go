@@ -36,8 +36,8 @@ func IsValidPlatformIntegrationMrn(mrn string) bool {
 type ExtendedGqlClient struct {
 	*mondoov1.Client
 
-	// The default space configured at the provider level, if configured, all resources
-	// will be managed there unless the resource itself specifies a different space
+	// The default space configured at the provider level. If configured, all resources
+	// will be managed there unless the resource itself specifies a different space.
 	space Space
 }
 
@@ -46,8 +46,8 @@ func (c *ExtendedGqlClient) Space() Space {
 	return c.space
 }
 
-// ComputeSpace receives an optional space ID, if it is empty, it tries to return the space
-// configured into the exptended client, but if both are empty, it throws an error.
+// ComputeSpace receives an optional space ID. If it is empty, it tries to return the space
+// configured into the extended client, but if both are empty, it returns an error.
 func (c *ExtendedGqlClient) ComputeSpace(spaceID types.String) (Space, error) {
 	if spaceID.ValueString() != "" {
 		return Space(spaceID.ValueString()), nil
@@ -58,7 +58,7 @@ func (c *ExtendedGqlClient) ComputeSpace(spaceID types.String) (Space, error) {
 	return c.space, errors.New("no space configured on either resource or provider blocks")
 }
 
-// newDataUrl generates a https://tools.ietf.org/html/rfc2397 data url for a given content.
+// newDataUrl generates a https://tools.ietf.org/html/rfc2397 data URL for the given content.
 func newDataUrl(content []byte) string {
 	return "data:application/x-yaml;base64," + base64.StdEncoding.EncodeToString(content)
 }
@@ -1310,7 +1310,7 @@ func (c *ExtendedGqlClient) DeleteFramework(ctx context.Context, mrn string) err
 	return c.Mutate(ctx, &deleteMutation, input, nil)
 }
 
-// ImportIntegration is a generic way to import an integration, this function fetches the integration from
+// ImportIntegration is a generic way to import an integration. This function fetches the integration from
 // the provided MRN and if it exists, it compares the space configured at the provider level (if any).
 func (c *ExtendedGqlClient) ImportIntegration(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) (*Integration, bool) {
 	mrn := req.ID
@@ -1330,7 +1330,7 @@ func (c *ExtendedGqlClient) ImportIntegration(ctx context.Context, req resource.
 		spaceID := integration.SpaceID()
 		if c.Space().ID() != "" && c.Space().ID() != spaceID {
 			// The provider is configured to manage resources in a different space than the one the
-			// resource is currently configured, we won't allow that
+			// resource is currently configured in, we won't allow that
 			resp.Diagnostics.AddError(
 				"Conflict Error",
 				fmt.Sprintf(

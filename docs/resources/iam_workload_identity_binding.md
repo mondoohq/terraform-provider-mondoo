@@ -3,12 +3,12 @@
 page_title: "mondoo_iam_workload_identity_binding Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Allows management of a Mondoo Workload Identity Federation bindings.
+  Allows management of Mondoo Workload Identity Federation bindings.
 ---
 
 # mondoo_iam_workload_identity_binding (Resource)
 
-Allows management of a Mondoo Workload Identity Federation bindings.
+Allows management of Mondoo Workload Identity Federation bindings.
 
 ## Example Usage
 

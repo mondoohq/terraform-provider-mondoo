@@ -13,7 +13,7 @@ import (
 func Id() validator.String {
 	return stringvalidator.RegexMatches(
 		regexp.MustCompile(`^[a-z\d]([\d-_]|[a-z]){2,62}[a-z\d]$`),
-		"must contain 4 to 64 digits, dashes, underscores, or lowercase letters, and ending with either a lowercase letter or a digit",
+		"must contain 4 to 64 digits, dashes, underscores, or lowercase letters, and must end with either a lowercase letter or a digit",
 	)
 }
 

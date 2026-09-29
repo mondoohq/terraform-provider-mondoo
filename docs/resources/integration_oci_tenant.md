@@ -17,7 +17,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the OCI integration
+# Set up the OCI integration
 resource "mondoo_integration_oci_tenant" "tenant_abc" {
   name    = "tenant ABC"
   tenancy = "ocid1.tenancy.oc1..aaaaaaaavvvvvvvvwwwwwwwwxxxxxx..."
@@ -45,9 +45,9 @@ EOT
 ### Required
 
 - `credentials` (Attributes) (see [below for nested schema](#nestedatt--credentials))
-- `region` (String) OCI region
-- `tenancy` (String) OCI tenancy
-- `user` (String) OCI user
+- `region` (String) OCI region.
+- `tenancy` (String) OCI tenancy.
+- `user` (String) OCI user.
 
 ### Optional
 
@@ -56,7 +56,7 @@ EOT
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`

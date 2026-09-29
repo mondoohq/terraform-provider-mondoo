@@ -47,7 +47,7 @@ func (r *TeamResource) Metadata(ctx context.Context, req resource.MetadataReques
 func (r *TeamResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
-This resource manages Mondoo Teams
+This resource manages Mondoo teams.
 
 ## Example Usage
 

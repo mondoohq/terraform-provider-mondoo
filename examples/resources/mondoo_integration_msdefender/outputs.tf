@@ -16,7 +16,7 @@ output "available_subscriptions" {
 }
 
 output "cnspec" {
-  description = "cnspec cli command"
+  description = "cnspec CLI command"
   value       = "terraform output -raw private_key_pem > key.pem\ncnspec scan azure --tenant-id ${var.tenant_id} --client-id ${azuread_application.mondoo_security.client_id} --certificate-path key.pem"
 }
 

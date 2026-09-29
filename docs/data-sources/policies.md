@@ -3,12 +3,12 @@
 page_title: "mondoo_policies Data Source - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Data source for policies and querypacks
+  Data source for policies and query packs
 ---
 
 # mondoo_policies (Data Source)
 
-Data source for policies and querypacks
+Data source for policies and query packs
 
 ## Example Usage
 
@@ -31,7 +31,7 @@ output "policies_mrn" {
 ### Optional
 
 - `assigned_only` (Boolean) Only return enabled policies if set to `true`
-- `catalog_type` (String) Catalog type of either `ALL`, `POLICY` or `QUERYPACK`. Defaults to `ALL`
+- `catalog_type` (String) Catalog type: `ALL`, `POLICY`, or `QUERYPACK`. Defaults to `ALL`
 - `space_id` (String) Space ID
 - `space_mrn` (String) Space MRN
 

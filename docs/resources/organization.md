@@ -25,15 +25,15 @@ resource "mondoo_organization" "myorg" {
 
 ### Required
 
-- `name` (String) Name of the space.
+- `name` (String) Name of the organization.
 
 ### Optional
 
 - `annotations` (Map of String) Annotations for the organization as key-value pairs.
 - `company` (String) Company name of the organization.
 - `description` (String) Description of the organization.
-- `id` (String) ID of the org. Must be globally unique. If the provider has a org configured and this field is empty, the provider org is used.
+- `id` (String) ID of the org. Must be globally unique. If the provider has an org configured and this field is empty, the provider org is used.
 
 ### Read-Only
 
-- `mrn` (String) Mrn of the org.
+- `mrn` (String) MRN of the org.

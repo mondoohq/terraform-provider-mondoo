@@ -125,7 +125,7 @@ func (r *integrationJiraResource) Schema(ctx context.Context, req resource.Schem
 				Optional:            true,
 			},
 			"auto_close": schema.BoolAttribute{
-				MarkdownDescription: "Automatically close Jira issues for resolved Mondoo findings",
+				MarkdownDescription: "Automatically close Jira issues for resolved Mondoo findings.",
 				Optional:            true,
 			},
 			"credentials": schema.SingleNestedAttribute{
@@ -153,7 +153,7 @@ func (r *integrationJiraResource) Configure(ctx context.Context, req resource.Co
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -265,7 +265,7 @@ func (r *integrationJiraResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	// Do GraphQL request to API to update the resource.
+	// Do GraphQL request to API to delete the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.

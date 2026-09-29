@@ -42,7 +42,7 @@ provider "azuread" {
 data "azuread_client_config" "current" {}
 
 # Add the required permissions to the application
-# User still need to be grant the permissions to the application via the Azure Portal
+# Users still need to grant the permissions to the application via the Azure Portal
 resource "azuread_application" "mondoo_security" {
   display_name = local.mondoo_security_integration_name
 
@@ -245,14 +245,14 @@ resource "azurerm_role_assignment" "reader" {
   principal_id         = azuread_service_principal.mondoo_security.object_id
 }
 
-# Configure the Mondoo
+# Configure Mondoo
 # ----------------------------------------------
 
 provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the MsDefender integration
+# Set up the Microsoft Defender integration
 resource "mondoo_integration_msdefender" "msdefender_integration" {
   name      = "Azure ${local.mondoo_security_integration_name}"
   tenant_id = var.tenant_id
@@ -263,7 +263,7 @@ resource "mondoo_integration_msdefender" "msdefender_integration" {
   credentials = {
     pem_file = join("\n", [tls_self_signed_cert.credential.cert_pem, tls_private_key.credential.private_key_pem])
   }
-  # wait for the permissions to provisioned
+  # wait for the permissions to be provisioned
   depends_on = [
     azuread_application.mondoo_security,
     azuread_service_principal.mondoo_security,
@@ -291,7 +291,7 @@ resource "mondoo_integration_msdefender" "msdefender_integration" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`

@@ -30,7 +30,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the GoogleWorkspace integration
+# Set up the GoogleWorkspace integration
 resource "mondoo_integration_google_workspace" "example" {
   name                    = "GoogleWorkspace Integration"
   customer_id             = var.customer_id
@@ -55,7 +55,7 @@ resource "mondoo_integration_google_workspace" "example" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 ## Import
 

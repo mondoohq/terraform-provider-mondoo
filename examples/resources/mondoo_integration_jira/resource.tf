@@ -8,7 +8,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the Jira integration
+# Set up the Jira integration
 resource "mondoo_integration_jira" "jira_integration" {
   name  = "My Jira Integration"
   host  = "https://your-instance.atlassian.net"

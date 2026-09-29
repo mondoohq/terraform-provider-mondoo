@@ -73,7 +73,7 @@ func (r *integrationGoogleWorkspaceResource) Schema(_ context.Context, _ resourc
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration identifier",
+				MarkdownDescription: "Integration identifier.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -115,7 +115,7 @@ func (r *integrationGoogleWorkspaceResource) Configure(_ context.Context, req re
 			Diagnostics.
 			AddError("Unexpected Resource Configure Type",
 				fmt.Sprintf(
-					"Expected *http.Client. Got: %T. Please report this issue to the provider developers.",
+					"Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.",
 					req.ProviderData,
 				),
 			)
@@ -251,7 +251,7 @@ func (r *integrationGoogleWorkspaceResource) Delete(ctx context.Context, req res
 		return
 	}
 
-	// Do GraphQL request to API to update the resource.
+	// Do GraphQL request to API to delete the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.

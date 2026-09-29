@@ -10,7 +10,7 @@ resource "mondoo_space" "new_space" {
   description = "A space used to secure my environment"
   org_id      = var.org_id
 
-  # optional id otherwise it will be auto-generated
+  # optional ID; otherwise, it is auto-generated
   # id = "your-space-id"
 }
 
@@ -19,7 +19,7 @@ resource "mondoo_space" "custom_space" {
   description = "A space used to secure my environment"
   org_id      = var.org_id
 
-  # optional id otherwise it will be auto-generated
+  # optional ID; otherwise, it is auto-generated
   id = "your-space-id"
 
   # All space settings are optional

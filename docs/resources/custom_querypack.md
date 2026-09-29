@@ -3,12 +3,12 @@
 page_title: "mondoo_custom_querypack Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Custom Query Pack resource
+  Custom query pack resource.
 ---
 
 # mondoo_custom_querypack (Resource)
 
-Custom Query Pack resource
+Custom query pack resource.
 
 ## Example Usage
 
@@ -43,11 +43,11 @@ resource "mondoo_querypack_assignment" "space" {
 ### Optional
 
 - `content` (String, Sensitive) Data as string to be uploaded. Must be defined if source is not. Note: The content field is marked as sensitive. To view the raw contents of the object, please define an output.
-- `overwrite` (Boolean) If set to true, existing policies are overwritten.
+- `overwrite` (Boolean) If set to true, existing query packs are overwritten.
 - `source` (String) A path to the data you want to upload. Must be defined if content is not.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
 
 - `crc32c` (String) Base64 CRC32 hash of the uploaded data.
-- `mrns` (List of String) The Mondoo Resource Name (MRN) of the created query packs
+- `mrns` (List of String) The Mondoo Resource Name (MRN) of the created query packs.

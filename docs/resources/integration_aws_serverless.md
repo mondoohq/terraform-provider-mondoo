@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_aws_serverless Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously scan AWS organization and accounts for misconfigurations and vulnerabilities.
+  Continuously scan AWS organizations and accounts for misconfigurations and vulnerabilities.
 ---
 
 # mondoo_integration_aws_serverless (Resource)
 
-Continuously scan AWS organization and accounts for misconfigurations and vulnerabilities.
+Continuously scan AWS organizations and accounts for misconfigurations and vulnerabilities.
 
 ## Example Usage
 
@@ -20,7 +20,7 @@ variable "aws_region" {
 }
 
 variable "aws_account_id" {
-  description = "value of the AWS account ID"
+  description = "The AWS account ID"
   type        = string
 }
 
@@ -34,7 +34,7 @@ provider "aws" {
 
 data "aws_region" "current" {}
 
-# Setup the AWS integration
+# Set up the AWS integration
 resource "mondoo_integration_aws_serverless" "aws_serverless" {
   name                          = "AWS Integration"
   region                        = data.aws_region.current.region
@@ -71,7 +71,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
   }
 }
 
-# for organization wide deployments use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instead of aws_cloudformation_stack
+# for organization-wide deployments use aws_cloudformation_stack_set and aws_cloudformation_stack_set_instance instead of aws_cloudformation_stack
 # set is_organization = true (and leave account_ids unset) so the token does not expire; with false it expires after 30 minutes,
 # and accounts that join a targeted OU later fail to register
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set
@@ -98,7 +98,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 ### Read-Only
 
 - `cloud_formation_template_url` (String) The CloudFormation template URL for the integration's region (populated by Mondoo after creation). Use it as the `template_url` of the `aws_cloudformation_stack` resource.
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 - `source_bucket` (String) The S3 bucket the Lambda code is published to for the integration's region (populated by Mondoo after creation). Pass it as the `MondooSourceBucket` parameter of the `aws_cloudformation_stack` resource.
 - `token` (String) Registration token for the integration. Pass it as the `MondooToken` parameter of the CloudFormation stack or StackSet; a separate `mondoo_registration_token` is not needed. The Mondoo Lambda exchanges it once per account, when the stack is created, for service account credentials that do not expire. The token expires 30 minutes after the integration is created, unless `is_organization` is `true`, in which case it never expires.
 
@@ -162,7 +162,7 @@ Optional:
 
 - `cidr_block` (String) CIDR block for the Mondoo VPC.
 - `use_mondoo_vpc` (Boolean, Deprecated) Use Mondoo VPC.
-- `vpc_flavour` (String) VPC flavour, one of: DEFAULT_VPC, MONDOO_NATGW, MONDOO_IGW
+- `vpc_flavour` (String) VPC flavour, one of: DEFAULT_VPC, MONDOO_NATGW, MONDOO_IGW, CUSTOM_VPC.
 - `vpc_tag` (Attributes) VPC tag to use when vpc_flavour is set to CUSTOM_VPC. (see [below for nested schema](#nestedatt--scan_configuration--vpc_configuration--vpc_tag))
 
 <a id="nestedatt--scan_configuration--vpc_configuration--vpc_tag"></a>

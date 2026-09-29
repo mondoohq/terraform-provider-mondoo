@@ -99,7 +99,7 @@ func (r *policyAssignmentResource) Configure(ctx context.Context, req resource.C
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -288,8 +288,8 @@ func (r *policyAssignmentResource) Update(ctx context.Context, req resource.Upda
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating policy assignment",
-			fmt.Sprintf("Error creating policy assignment: %s", err),
+			"Error updating policy assignment",
+			fmt.Sprintf("Error updating policy assignment: %s", err),
 		)
 		return
 	}

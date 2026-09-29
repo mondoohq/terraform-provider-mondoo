@@ -2,7 +2,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the OCI integration
+# Set up the OCI integration
 resource "mondoo_integration_oci_tenant" "tenant_abc" {
   name    = "tenant ABC"
   tenancy = "ocid1.tenancy.oc1..aaaaaaaavvvvvvvvwwwwwwwwxxxxxx..."

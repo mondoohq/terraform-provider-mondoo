@@ -61,7 +61,7 @@ func (d *frameworksDataSource) Metadata(ctx context.Context, req datasource.Meta
 
 func (d *frameworksDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Data source to return compliance frameworks in a Space",
+		MarkdownDescription: "Data source to return compliance frameworks in a space",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				Computed:            true,
@@ -196,7 +196,7 @@ func (d *frameworksDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	if scopeMrn == "" {
-		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
+		resp.Diagnostics.AddError("Invalid Configuration", "Either `space_id` or `space_mrn` must be set.")
 		return
 	}
 

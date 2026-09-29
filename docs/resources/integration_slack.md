@@ -23,7 +23,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the Slack integration
+# Set up the Slack integration
 resource "mondoo_integration_slack" "slack_integration" {
   name        = "My Slack Integration"
   slack_token = var.slack_token
@@ -44,7 +44,7 @@ resource "mondoo_integration_slack" "slack_integration" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 ## Import
 

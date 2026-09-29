@@ -23,12 +23,12 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the GitHub integration
+# Set up the GitHub integration
 resource "mondoo_integration_github" "gh_integration" {
   name  = "GitHub Integration"
   owner = "lunalectric"
 
-  # define a repository if you want to restrict scan to a single repository
+  # define a repository if you want to restrict scanning to a single repository
   # repository  = "repo1"
 
   # alternatively, you can define a list of repositories to allow or deny scanning
@@ -70,7 +70,7 @@ resource "mondoo_integration_github" "gh_integration" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`

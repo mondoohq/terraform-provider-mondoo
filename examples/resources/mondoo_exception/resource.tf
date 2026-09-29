@@ -1,6 +1,6 @@
 variable "space_id" {
   type        = string
-  description = "The ID of the mondoo space."
+  description = "The ID of the Mondoo space."
 }
 
 provider "mondoo" {

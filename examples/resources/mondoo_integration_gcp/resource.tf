@@ -36,14 +36,14 @@ output "google_service_account_key" {
   sensitive   = true
 }
 
-# Configure the Mondoo
+# Configure Mondoo
 # ----------------------------------------------
 
 provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the GCP integration
+# Set up the GCP integration
 resource "mondoo_integration_gcp" "name" {
   name       = "GCP ${data.google_project.project.name}"
   project_id = data.google_project.project.project_id

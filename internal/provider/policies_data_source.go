@@ -50,14 +50,14 @@ func (d *policiesDataSource) Metadata(ctx context.Context, req datasource.Metada
 
 func (d *policiesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Data source for policies and querypacks",
+		MarkdownDescription: "Data source for policies and query packs",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				Computed:            true,
 				Optional:            true,
 				MarkdownDescription: "Space ID",
 				Validators: []validator.String{
-					// Validate only this attribute or other_attr is configured.
+					// Validate that exactly one of space_id or space_mrn is configured.
 					stringvalidator.ExactlyOneOf(path.Expressions{
 						path.MatchRoot("space_mrn"),
 					}...),
@@ -68,7 +68,7 @@ func (d *policiesDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 				Optional:            true,
 				MarkdownDescription: "Space MRN",
 				Validators: []validator.String{
-					// Validate only this attribute or other_attr is configured.
+					// Validate that exactly one of space_id or space_mrn is configured.
 					stringvalidator.ExactlyOneOf(path.Expressions{
 						path.MatchRoot("space_id"),
 					}...),
@@ -77,7 +77,7 @@ func (d *policiesDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 			"catalog_type": schema.StringAttribute{
 				Computed:            true,
 				Optional:            true,
-				MarkdownDescription: "Catalog type of either `ALL`, `POLICY` or `QUERYPACK`. Defaults to `ALL`",
+				MarkdownDescription: "Catalog type: `ALL`, `POLICY`, or `QUERYPACK`. Defaults to `ALL`",
 				Validators: []validator.String{
 					stringvalidator.OneOf("ALL", "POLICY", "QUERYPACK"),
 				},
@@ -170,7 +170,7 @@ func (d *policiesDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	if scopeMrn == "" {
-		resp.Diagnostics.AddError("Invalid Configuration", "Either `id` or `mrn` must be set")
+		resp.Diagnostics.AddError("Invalid Configuration", "Either `space_id` or `space_mrn` must be set.")
 		return
 	}
 

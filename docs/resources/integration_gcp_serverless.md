@@ -41,7 +41,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the GCP serverless integration
+# Set up the GCP serverless integration
 resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
   name            = "GCP Serverless Integration"
   scope           = var.gcp_organization_id
@@ -118,7 +118,7 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless_crossorg" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 - `token` (String, Sensitive) Integration token. Pass this to the serverless scanner deployment to register it with this integration.
 - `wif_auth_binding_mrn` (String) MRN of the server-managed WIF auth binding created for this integration. Empty when `use_wif` is false.
 - `wif_config` (String) Base64-encoded WIF external account configuration for the deployed scanner. Pass it to the customer's Terraform deployment. Empty when `use_wif` is false.

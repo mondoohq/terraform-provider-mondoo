@@ -73,7 +73,7 @@ func (r *integrationOciTenantResource) Schema(ctx context.Context, req resource.
 			},
 			"mrn": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Integration identifier",
+				MarkdownDescription: "Integration identifier.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -86,15 +86,15 @@ func (r *integrationOciTenantResource) Schema(ctx context.Context, req resource.
 				},
 			},
 			"tenancy": schema.StringAttribute{
-				MarkdownDescription: "OCI tenancy",
+				MarkdownDescription: "OCI tenancy.",
 				Required:            true,
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "OCI region",
+				MarkdownDescription: "OCI region.",
 				Required:            true,
 			},
 			"user": schema.StringAttribute{
-				MarkdownDescription: "OCI user",
+				MarkdownDescription: "OCI user.",
 				Required:            true,
 			},
 			"credentials": schema.SingleNestedAttribute{
@@ -124,7 +124,7 @@ func (r *integrationOciTenantResource) Configure(ctx context.Context, req resour
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -260,7 +260,7 @@ func (r *integrationOciTenantResource) Delete(ctx context.Context, req resource.
 		return
 	}
 
-	// Do GraphQL request to API to update the resource.
+	// Do GraphQL request to API to delete the resource.
 	_, err := r.client.DeleteIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
 		resp.Diagnostics.

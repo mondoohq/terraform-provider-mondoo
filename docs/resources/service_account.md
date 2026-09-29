@@ -51,5 +51,5 @@ output "service_account_base64" {
 
 ### Read-Only
 
-- `credential` (String, Sensitive) The service account credential in JSON format, base64 encoded. This is the same content when creating service account credentials through the Mondoo Console.
+- `credential` (String, Sensitive) The service account credential in JSON format, base64 encoded. This is the same content as when creating service account credentials through the Mondoo Console.
 - `mrn` (String) The Mondoo resource name (MRN) of the created service account.

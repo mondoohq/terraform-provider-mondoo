@@ -26,7 +26,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the GCP serverless integration
+# Set up the GCP serverless integration
 resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
   name            = "GCP Serverless Integration"
   scope           = var.gcp_organization_id

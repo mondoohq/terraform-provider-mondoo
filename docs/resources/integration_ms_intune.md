@@ -59,7 +59,7 @@ resource "mondoo_integration_ms_intune" "intune_integration" {
 
 ### Read-Only
 
-- `mrn` (String) Integration identifier
+- `mrn` (String) Integration identifier.
 
 <a id="nestedatt--credentials"></a>
 ### Nested Schema for `credentials`

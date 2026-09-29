@@ -59,7 +59,7 @@ func (r *queryPackAssignmentResource) Schema(_ context.Context, req resource.Sch
 				},
 			},
 			"querypacks": schema.ListAttribute{
-				MarkdownDescription: "QueryPacks to assign to the space.",
+				MarkdownDescription: "Query packs to assign to the space.",
 				ElementType:         types.StringType,
 				Optional:            true,
 				Computed:            true,
@@ -68,7 +68,7 @@ func (r *queryPackAssignmentResource) Schema(_ context.Context, req resource.Sch
 				},
 			},
 			"state": schema.StringAttribute{
-				MarkdownDescription: "QueryPack Assignment State (enabled or disabled).",
+				MarkdownDescription: "Query pack assignment state (enabled or disabled).",
 				Default:             stringdefault.StaticString("enabled"),
 				Computed:            true,
 				Optional:            true,
@@ -91,7 +91,7 @@ func (r *queryPackAssignmentResource) Configure(ctx context.Context, req resourc
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -188,7 +188,7 @@ func (r *queryPackAssignmentResource) Update(ctx context.Context, req resource.U
 	}
 	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
-	// Do GraphQL request to API to create the resource
+	// Do GraphQL request to API to update the resource
 	queryPackMrns := []string{}
 	data.QueryPackMrns.ElementsAs(ctx, &queryPackMrns, false)
 
@@ -211,9 +211,9 @@ func (r *queryPackAssignmentResource) Update(ctx context.Context, req resource.U
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating query pack assignment",
+			"Error updating query pack assignment",
 			fmt.Sprintf(
-				"Error creating query pack assignment: %s\nSpace: %s\nQueryPacks: %s",
+				"Error updating query pack assignment: %s\nSpace: %s\nQueryPacks: %s",
 				err, space.MRN(), strings.Join(queryPackMrns, "\n"),
 			),
 		)
@@ -250,8 +250,8 @@ func (r *queryPackAssignmentResource) Delete(ctx context.Context, req resource.D
 	err = r.client.UnassignPolicy(ctx, space.MRN(), queryPackMrns)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating query pack assignment",
-			fmt.Sprintf("Error creating query pack assignment: %s", err),
+			"Error deleting query pack assignment",
+			fmt.Sprintf("Error deleting query pack assignment: %s", err),
 		)
 		return
 	}

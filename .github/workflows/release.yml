@@ -10,17 +10,17 @@ on:
   workflow_dispatch:
     inputs:
       skip-publish:
-        description: "Skip publishing? ie don't create a GitHub release."
+        description: "Skip publishing? i.e., don't create a GitHub release."
         type: boolean
         required: false
         default: false
       goreleaser-snapshot:
-        description: "Run goreleaser in snapshot mode? this will bypass tag checks."
+        description: "Run goreleaser in snapshot mode? This will bypass tag checks."
         required: false
         default: false
         type: boolean
       upload-artifacts:
-        description: "Uploading artifacts to workflow"
+        description: "Upload artifacts to the workflow?"
         required: false
         default: false
         type: boolean
@@ -55,7 +55,7 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
-      - name: "Setup GPG Key"
+      - name: "Set up GPG Key"
         run: |
           # Configure GPG for CI environment
           export GPG_TTY=$(tty)

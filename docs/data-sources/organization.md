@@ -3,12 +3,12 @@
 page_title: "mondoo_organization Data Source - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Organization data source
+  Organization data source.
 ---
 
 # mondoo_organization (Data Source)
 
-Organization data source
+Organization data source.
 
 ## Example Usage
 
@@ -45,11 +45,11 @@ output "spaces" {
 
 ### Optional
 
-- `id` (String) Organization ID
-- `mrn` (String) Organization MRN
+- `id` (String) Organization ID.
+- `mrn` (String) Organization MRN.
 
 ### Read-Only
 
 - `annotations` (Map of String) Annotations for the organization as key-value pairs.
-- `name` (String) Organization name
-- `spaces` (List of String) List of spaces (MRNs) in the organization
+- `name` (String) Organization name.
+- `spaces` (List of String) List of spaces (MRNs) in the organization.

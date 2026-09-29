@@ -33,7 +33,7 @@ func TestAccGitLabResource(t *testing.T) {
 				),
 			},
 			// ImportState testing
-			// @afiune this doesn't work since most of our resources doesn't have the `id` attribute
+			// @afiune this doesn't work since most of our resources don't have the `id` attribute
 			// if we add it, instead of the `mrn` or as a copy, this import test will work
 			// {
 			// ResourceName:      "mondoo_integration_gitlab.test",

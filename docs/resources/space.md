@@ -25,7 +25,7 @@ resource "mondoo_space" "new_space" {
   description = "A space used to secure my environment"
   org_id      = var.org_id
 
-  # optional id otherwise it will be auto-generated
+  # optional ID; otherwise, it is auto-generated
   # id = "your-space-id"
 }
 
@@ -34,7 +34,7 @@ resource "mondoo_space" "custom_space" {
   description = "A space used to secure my environment"
   org_id      = var.org_id
 
-  # optional id otherwise it will be auto-generated
+  # optional ID; otherwise, it is auto-generated
   id = "your-space-id"
 
   # All space settings are optional
@@ -81,7 +81,7 @@ resource "mondoo_space" "custom_space" {
 
 ### Read-Only
 
-- `mrn` (String) Mrn of the space.
+- `mrn` (String) MRN of the space.
 
 <a id="nestedatt--space_settings"></a>
 ### Nested Schema for `space_settings`
@@ -89,7 +89,7 @@ resource "mondoo_space" "custom_space" {
 Optional:
 
 - `cases_configuration` (Attributes) Cases configuration for the space. (see [below for nested schema](#nestedatt--space_settings--cases_configuration))
-- `eol_assets_configuration` (Attributes) EOL platform configuration for the space. (see [below for nested schema](#nestedatt--space_settings--eol_assets_configuration))
+- `eol_assets_configuration` (Attributes) EOL assets configuration for the space. (see [below for nested schema](#nestedatt--space_settings--eol_assets_configuration))
 - `exceptions_configuration` (Attributes) Exceptions configuration for the space. (see [below for nested schema](#nestedatt--space_settings--exceptions_configuration))
 - `garbage_collect_assets_configuration` (Attributes) Garbage collect assets configuration for the space. (see [below for nested schema](#nestedatt--space_settings--garbage_collect_assets_configuration))
 - `platform_vulnerability_configuration` (Attributes) Platform vulnerability configuration for the space. (see [below for nested schema](#nestedatt--space_settings--platform_vulnerability_configuration))
@@ -102,7 +102,7 @@ Optional:
 Optional:
 
 - `aggregation_window` (Number) Aggregate findings for the same asset within this window. The value is specified in hours. 0 means no aggregation.
-- `auto_create` (Boolean) Whether to enable auto-create cases on drift.
+- `auto_create` (Boolean) Whether to automatically create cases on drift.
 
 
 <a id="nestedatt--space_settings--eol_assets_configuration"></a>
@@ -111,7 +111,7 @@ Optional:
 Optional:
 
 - `enabled` (Boolean) Whether to enable EOL assets analysis.
-- `months_in_advance` (Number) How many months in advance should EOL be applied as risk factor.
+- `months_in_advance` (Number) How many months in advance EOL should be applied as a risk factor.
 
 
 <a id="nestedatt--space_settings--exceptions_configuration"></a>
@@ -119,7 +119,7 @@ Optional:
 
 Optional:
 
-- `allow_indefinite_valid_until` (Boolean) Whether to allow creation of exception groups with indefinite valid until.
+- `allow_indefinite_valid_until` (Boolean) Whether to allow creation of exception groups that are valid indefinitely.
 - `allow_self_approval` (Boolean) Whether a user can approve their own exception requests.
 - `require_approval` (Boolean) Whether to require approval for exceptions.
 
@@ -146,7 +146,7 @@ Optional:
 
 Optional:
 
-- `cleanup` (Boolean) Whether to cleanup terminated assets.
+- `cleanup` (Boolean) Whether to clean up terminated assets.
 
 
 <a id="nestedatt--space_settings--unused_service_accounts_configuration"></a>
@@ -154,7 +154,7 @@ Optional:
 
 Optional:
 
-- `cleanup` (Boolean) Whether to cleanup unused service accounts.
+- `cleanup` (Boolean) Whether to clean up unused service accounts.
 
 ## Import
 

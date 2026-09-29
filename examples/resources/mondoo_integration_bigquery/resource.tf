@@ -1,10 +1,10 @@
 
 variable "dataset_id" {
-  description = "The Bigquery DatasetId"
+  description = "The BigQuery dataset ID"
   type        = string
 }
 variable "service_account" {
-  description = "The Bigquery ServiceAccount"
+  description = "The BigQuery service account"
   type        = string
 }
 
@@ -12,7 +12,7 @@ provider "mondoo" {
   space = "hungry-poet-123456"
 }
 
-# Setup the Bigquery integration
+# Set up the BigQuery integration
 resource "mondoo_integration_bigquery" "example" {
   name            = "Bigquery Integration"
   dataset_id      = var.dataset_id

@@ -75,7 +75,7 @@ func (r *frameworkAssignmentResource) Configure(_ context.Context, req resource.
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -175,7 +175,7 @@ func (r *frameworkAssignmentResource) Update(ctx context.Context, req resource.U
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create compliance framework. Got error: %s", err),
+				fmt.Sprintf("Unable to update compliance framework. Got error: %s", err),
 			)
 		return
 	}
@@ -201,7 +201,7 @@ func (r *frameworkAssignmentResource) Delete(ctx context.Context, req resource.D
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to create compliance framework. Got error: %s", err),
+				fmt.Sprintf("Unable to disable compliance framework. Got error: %s", err),
 			)
 		return
 	}

@@ -38,11 +38,11 @@ type customQueryPackResourceModel struct {
 	// scope
 	SpaceID types.String `tfsdk:"space_id"`
 
-	// policy mrn
+	// query pack MRNs
 	Mrns      types.List `tfsdk:"mrns"`
 	Overwrite types.Bool `tfsdk:"overwrite"`
 
-	// the content of the policy can be defined as a string a file path or as plain text content
+	// the content of the query pack can be defined as a file path or as plain text content
 	Source  types.String `tfsdk:"source"`
 	Content types.String `tfsdk:"content"`
 
@@ -56,14 +56,14 @@ func (r *customQueryPackResource) Metadata(_ context.Context, req resource.Metad
 
 func (r *customQueryPackResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Custom Query Pack resource",
+		MarkdownDescription: "Custom query pack resource.",
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
 				Optional:            true,
 			},
 			"mrns": schema.ListAttribute{
-				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created query packs",
+				MarkdownDescription: "The Mondoo Resource Name (MRN) of the created query packs.",
 				ElementType:         types.StringType,
 				Computed:            true,
 				PlanModifiers: []planmodifier.List{
@@ -94,7 +94,7 @@ func (r *customQueryPackResource) Schema(_ context.Context, _ resource.SchemaReq
 				},
 			},
 			"overwrite": schema.BoolAttribute{
-				MarkdownDescription: "If set to true, existing policies are overwritten.",
+				MarkdownDescription: "If set to true, existing query packs are overwritten.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(true),
@@ -118,7 +118,7 @@ func (r *customQueryPackResource) Configure(_ context.Context, req resource.Conf
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ExtendedGqlClient. Got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -216,7 +216,7 @@ func (r *customQueryPackResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	//  check if the local content has changed, if so, update the policy
+	//  check if the local content has changed, if so, update the query pack
 	policyBundleData, checksum, err := r.getContent(data)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -245,7 +245,7 @@ func (r *customQueryPackResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	//  check if the local content has changed, if so, update the policy
+	//  check if the local content has changed, if so, update the query pack
 	policyBundleData, checksum, err := r.getContent(data)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -309,7 +309,7 @@ func (r *customQueryPackResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	// Do GraphQL request to API to create the resource
+	// Do GraphQL request to API to delete the resource
 	queryPackMrns := []string{}
 	data.Mrns.ElementsAs(ctx, &queryPackMrns, false)
 
@@ -333,11 +333,11 @@ func (r *customQueryPackResource) ImportState(ctx context.Context, req resource.
 
 	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
 		// The provider is configured to manage resources in a different space than the one the
-		// resource is currently configured, we won't allow that
+		// resource is currently configured in, we won't allow that
 		resp.Diagnostics.AddError(
 			"Conflict Error",
 			fmt.Sprintf(
-				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
+				"Unable to import query pack, the provider is configured in a different space than the resource. (%s != %s)",
 				r.client.Space().ID(), spaceID),
 		)
 		return
@@ -347,7 +347,7 @@ func (r *customQueryPackResource) ImportState(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
-				fmt.Sprintf("Unable to get policy. Got error: %s", err),
+				fmt.Sprintf("Unable to get query pack. Got error: %s", err),
 			)
 		return
 	}
