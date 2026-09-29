@@ -180,15 +180,13 @@ func TestIntegration_IsSpaceScoped(t *testing.T) {
 }
 
 func TestRetryConcurrentBundleUpdate(t *testing.T) {
-	origDelays := bundleRetryDelays
-	bundleRetryDelays = []time.Duration{0, 0, 0}
-	t.Cleanup(func() { bundleRetryDelays = origDelays })
+	delays := []time.Duration{0, 0, 0}
 
 	concurrentErr := errors.New("bundle was concurrently updated. retry")
 
 	t.Run("succeeds after concurrent update errors", func(t *testing.T) {
 		calls := 0
-		err := retryConcurrentBundleUpdate(context.Background(), func() error {
+		err := retryConcurrentBundleUpdate(context.Background(), delays, func() error {
 			calls++
 			if calls < 3 {
 				return concurrentErr
@@ -202,7 +200,7 @@ func TestRetryConcurrentBundleUpdate(t *testing.T) {
 	t.Run("returns other errors without retrying", func(t *testing.T) {
 		calls := 0
 		otherErr := errors.New("permission denied")
-		err := retryConcurrentBundleUpdate(context.Background(), func() error {
+		err := retryConcurrentBundleUpdate(context.Background(), delays, func() error {
 			calls++
 			return otherErr
 		})
@@ -212,19 +210,19 @@ func TestRetryConcurrentBundleUpdate(t *testing.T) {
 
 	t.Run("gives up after the last retry", func(t *testing.T) {
 		calls := 0
-		err := retryConcurrentBundleUpdate(context.Background(), func() error {
+		err := retryConcurrentBundleUpdate(context.Background(), delays, func() error {
 			calls++
 			return concurrentErr
 		})
 		assert.Equal(t, concurrentErr, err)
-		assert.Equal(t, len(bundleRetryDelays)+1, calls)
+		assert.Equal(t, len(delays)+1, calls)
 	})
 
 	t.Run("stops when the context is cancelled", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		calls := 0
-		err := retryConcurrentBundleUpdate(ctx, func() error {
+		err := retryConcurrentBundleUpdate(ctx, delays, func() error {
 			calls++
 			return concurrentErr
 		})

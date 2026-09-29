@@ -404,7 +404,7 @@ func (c *ExtendedGqlClient) SetCustomPolicy(ctx context.Context, scopeMrn string
 		SetCustomPolicyPayload setCustomPolicyPayload `graphql:"setCustomPolicy(input: $input)"`
 	}
 
-	err := retryConcurrentBundleUpdate(ctx, func() error {
+	err := retryConcurrentBundleUpdate(ctx, bundleRetryDelays, func() error {
 		return c.Mutate(ctx, &setCustomPolicy, []mondoov1.SetCustomPolicyInput{setCustomPolicyInput}, nil)
 	})
 	return setCustomPolicy.SetCustomPolicyPayload, err
@@ -417,11 +417,12 @@ const concurrentBundleUpdateErr = "bundle was concurrently updated"
 // bundleRetryDelays are the waits before each retry of a bundle write.
 var bundleRetryDelays = []time.Duration{500 * time.Millisecond, time.Second, 2 * time.Second, 4 * time.Second}
 
-// retryConcurrentBundleUpdate calls fn and retries it, with backoff, for as
-// long as it fails because the policy bundle was concurrently updated.
-func retryConcurrentBundleUpdate(ctx context.Context, fn func() error) error {
+// retryConcurrentBundleUpdate calls fn and retries it, waiting each of delays
+// in turn, for as long as it fails because the policy bundle was concurrently
+// updated.
+func retryConcurrentBundleUpdate(ctx context.Context, delays []time.Duration, fn func() error) error {
 	err := fn()
-	for _, delay := range bundleRetryDelays {
+	for _, delay := range delays {
 		if err == nil || !strings.Contains(err.Error(), concurrentBundleUpdateErr) || ctx.Err() != nil {
 			return err
 		}
@@ -687,7 +688,7 @@ func (c *ExtendedGqlClient) SetCustomQueryPack(ctx context.Context, scopeMrn str
 		SetCustomPolicyPayload SetCustomPolicyPayload `graphql:"setCustomQueryPack(input: $input)"`
 	}
 
-	err := retryConcurrentBundleUpdate(ctx, func() error {
+	err := retryConcurrentBundleUpdate(ctx, bundleRetryDelays, func() error {
 		return c.Mutate(ctx, &setCustomQueryPackPayload, []mondoov1.SetCustomQueryPackInput{setCustomPolicyInput}, nil)
 	})
 	return setCustomQueryPackPayload.SetCustomPolicyPayload, err
