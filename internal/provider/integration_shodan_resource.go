@@ -50,6 +50,17 @@ type integrationShodanCredentialModel struct {
 	Token types.String `tfsdk:"token"`
 }
 
+// GetConfigurationOptions builds the API input. It never sets CredentialMrn:
+// the resource authenticates with the inline token, and the API rejects an
+// integration that carries both.
+func (m integrationShodanResourceModel) GetConfigurationOptions() *mondoov1.ShodanConfigurationOptionsInput {
+	targets := ConvertSliceStrings(m.Targets)
+	return &mondoov1.ShodanConfigurationOptionsInput{
+		Targets: &targets,
+		Token:   mondoov1.NewStringPtr(mondoov1.String(m.Credentials.Token.ValueString())),
+	}
+}
+
 func (r *integrationShodanResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_integration_shodan"
 }
@@ -145,8 +156,7 @@ func (r *integrationShodanResource) Create(ctx context.Context, req resource.Cre
 	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
 
 	// Do GraphQL request to API to create the resource.
-	targets := ConvertSliceStrings(data.Targets)
-	ctx = tflog.SetField(ctx, "targets", targets)
+	ctx = tflog.SetField(ctx, "targets", ConvertSliceStrings(data.Targets))
 
 	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
@@ -154,10 +164,7 @@ func (r *integrationShodanResource) Create(ctx context.Context, req resource.Cre
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeShodan,
 		mondoov1.ClientIntegrationConfigurationInput{
-			ShodanConfigurationOptions: &mondoov1.ShodanConfigurationOptionsInput{
-				Targets: &targets,
-				Token:   mondoov1.NewStringPtr(mondoov1.String(data.Credentials.Token.ValueString())),
-			},
+			ShodanConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.
@@ -222,12 +229,8 @@ func (r *integrationShodanResource) Update(ctx context.Context, req resource.Upd
 	}
 
 	// Do GraphQL request to API to update the resource.
-	targets := ConvertSliceStrings(data.Targets)
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		ShodanConfigurationOptions: &mondoov1.ShodanConfigurationOptionsInput{
-			Targets: &targets,
-			Token:   mondoov1.NewStringPtr(mondoov1.String(data.Credentials.Token.ValueString())),
-		},
+		ShodanConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	_, err := r.client.UpdateIntegration(ctx,

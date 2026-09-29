@@ -74,6 +74,12 @@ func (f Field) ConfigurationOption(name string) string {
 	case StringField.MondooType:
 		return fmt.Sprintf("mondoov1.String(m.%s.ValueString())", name)
 	case StringPtrField.MondooType:
+		// Secrets and credential references are alternatives the API checks
+		// for mutual exclusion, and it counts "" as set: leave them out of
+		// the request unless the user configured them.
+		if isSensitiveField(name) {
+			return fmt.Sprintf("OptionalStringPtr(m.%s)", name)
+		}
 		return fmt.Sprintf("mondoov1.NewStringPtr(mondoov1.String(m.%s.ValueString()))", name)
 	case ArrayStringPtrField.MondooType:
 		return fmt.Sprintf("ToPtr(ConvertSliceStrings(m.%s))", name)
