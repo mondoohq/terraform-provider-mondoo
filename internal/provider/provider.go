@@ -312,7 +312,10 @@ func parseWIF(filename string) (*wif, error) {
 }
 
 func serviceAccountFromWIFConfig(config *wif) ([]byte, error) {
-	svcAccount, err := mql_upstream.ExchangeExternalToken(config.UniverseDomain, config.Audience, config.IssuerURI, config.JWTToken)
+	// tokenResponse=false: exchange for a service account (private key and
+	// certificate), which option.WithServiceAccount below expects, rather than
+	// a bearer token.
+	svcAccount, err := mql_upstream.ExchangeExternalToken(config.UniverseDomain, config.Audience, config.IssuerURI, config.JWTToken, false)
 	if err != nil {
 		return nil, err
 	}
