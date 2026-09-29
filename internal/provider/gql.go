@@ -901,8 +901,10 @@ type Ms365ConfigurationOptions struct {
 }
 
 type MsIntuneConfigurationOptions struct {
-	TenantId string
-	ClientId string
+	TenantId      string
+	ClientId      string
+	ImportDevices bool
+	AiDiscovery   bool
 }
 
 // AWSConfigurationOptions is the read-back shape of the AWS serverless
