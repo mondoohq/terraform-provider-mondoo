@@ -82,6 +82,8 @@ The new space appears in the Mondoo Console. Run `terraform destroy -var="org_id
 
 ### Next steps
 
+- Follow the [getting-started walkthroughs](examples/getting-started/) to enable policies, scan a machine, organize
+  spaces per environment, give teams access, and write custom policies.
 - Browse [examples/resources/](examples/resources/) for complete configurations, for example assigning policies with
   `mondoo_policy_assignment` or connecting AWS with `mondoo_integration_aws`.
 - Read the [provider documentation](https://registry.terraform.io/providers/mondoohq/mondoo/latest/docs) for every

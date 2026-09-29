@@ -1,0 +1,7 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is ignored by git.
+
+org_id = "your-org-id"
+
+# region = "eu"
+# space_name = "My first space"
