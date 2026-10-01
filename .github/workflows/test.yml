@@ -73,11 +73,13 @@ jobs:
           - '1.12.*'
           - '1.13.*'
         include:
-          # Org-scoped asset routing tests mutate shared state, so only run them
-          # on a single Terraform version to avoid parallel conflicts.
-          # Other entries get run_asset_routing_tests="" which the Go tests treat as false.
+          # Org-scoped asset routing and organization SLA tests mutate shared
+          # state, so only run them on a single Terraform version to avoid
+          # parallel conflicts. Other entries get run_asset_routing_tests="" and
+          # run_org_sla_tests="", which the Go tests treat as false.
           - terraform: '1.13.*'
             run_asset_routing_tests: true
+            run_org_sla_tests: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -93,6 +95,7 @@ jobs:
           TF_ACC: "1"
           MONDOO_CONFIG_BASE64: ${{ secrets.MONDOO_CONFIG_BASE64 }}
           RUN_ASSET_ROUTING_TESTS: ${{ matrix.run_asset_routing_tests }}
+          RUN_ORG_SLA_TESTS: ${{ matrix.run_org_sla_tests }}
         run: go test -v -cover ./internal/provider/
         timeout-minutes: 10
 

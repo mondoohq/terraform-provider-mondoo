@@ -1938,3 +1938,90 @@ func (c *ExtendedGqlClient) DeleteAssetRoutingRule(ctx context.Context, ruleMrn 
 	}
 	return c.Mutate(ctx, &mutation, nil, variables)
 }
+
+// Security model (SLA) types
+
+// ClearSecurityModelInput mirrors the GraphQL input of the same name, which
+// mondoo-go does not have yet. The Go type name is what the client sends as
+// the variable type, so it must stay exactly "ClearSecurityModelInput".
+// Replace with mondoov1.ClearSecurityModelInput after the next schema bump.
+type ClearSecurityModelInput struct {
+	// The MRN of the organization whose SLAs to remove.
+	ScopeMrn mondoov1.String `json:"scopeMrn"`
+}
+
+// Values of the GraphQL enum SLAConfigurationSource, which mondoo-go does not
+// have yet. Only the source a resource reads is needed here.
+const slaConfigurationSourceOrganization = "ORGANIZATION"
+
+type FindingsSLAPayload struct {
+	Rating            string `graphql:"rating"`
+	DaysToResolve     int32  `graphql:"daysToResolve"`
+	DaysBeforeWarning int32  `graphql:"daysBeforeWarning"`
+}
+
+type SLAsPayload struct {
+	Findings        []FindingsSLAPayload `graphql:"findings"`
+	StartDateConfig string               `graphql:"startDateConfig"`
+	RatingSource    string               `graphql:"ratingSource"`
+}
+
+type SecurityModelPayload struct {
+	ScopeMrn string      `graphql:"scopeMrn"`
+	Slas     SLAsPayload `graphql:"slas"`
+	// Where slas come from: DEFAULT, SPACE or ORGANIZATION. On an
+	// organization, ORGANIZATION means it sets SLAs for all its spaces.
+	SlasSource string `graphql:"slasSource"`
+}
+
+// Security model client methods
+
+// GetSecurityModel reads the SLAs in force for a space, workspace or
+// organization. It returns nil when the API returns no security model.
+func (c *ExtendedGqlClient) GetSecurityModel(ctx context.Context, scopeMrn string) (*SecurityModelPayload, error) {
+	var q struct {
+		SecurityModel *SecurityModelPayload `graphql:"securityModel(scopeMrn: $scopeMrn)"`
+	}
+	variables := map[string]interface{}{
+		"scopeMrn": mondoov1.String(scopeMrn),
+	}
+
+	err := c.Query(ctx, &q, variables)
+	if err != nil {
+		return nil, err
+	}
+	return q.SecurityModel, nil
+}
+
+// UpdateSecurityModel sets the SLAs of a space or an organization. The API
+// merges the input onto the stored SLAs, so a caller that means to replace
+// them sends every rating and both enums.
+func (c *ExtendedGqlClient) UpdateSecurityModel(ctx context.Context, input mondoov1.UpdateSecurityModelInput) error {
+	var mutation struct {
+		UpdateSecurityModel struct {
+			ScopeMrn string `graphql:"scopeMrn"`
+		} `graphql:"updateSecurityModel(input: $input)"`
+	}
+
+	tflog.Trace(ctx, "UpdateSecurityModelInput", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	return c.Mutate(ctx, &mutation, input, nil)
+}
+
+// ClearSecurityModel removes an organization's SLAs. Clearing an organization
+// that sets none is a no-op on the API side.
+func (c *ExtendedGqlClient) ClearSecurityModel(ctx context.Context, orgMrn string) error {
+	var mutation struct {
+		ClearSecurityModel struct {
+			ScopeMrn string `graphql:"scopeMrn"`
+		} `graphql:"clearSecurityModel(input: $input)"`
+	}
+
+	input := ClearSecurityModelInput{
+		ScopeMrn: mondoov1.String(orgMrn),
+	}
+
+	return c.Mutate(ctx, &mutation, input, nil)
+}
