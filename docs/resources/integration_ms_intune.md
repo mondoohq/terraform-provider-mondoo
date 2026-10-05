@@ -55,6 +55,8 @@ resource "mondoo_integration_ms_intune" "intune_integration" {
 
 ### Optional
 
+- `ai_discovery` (Boolean) Discover MCP servers configured on each endpoint during fleet scans (as their own assets). Enabling it also activates the Mondoo AI Security policy in the integration's space. Discovering a stdio MCP server starts the command in its configuration file, with the privileges the scan runs with. Defaults to `false`.
+- `import_devices` (Boolean) Import the Intune-managed Windows devices and their detected software as assets. A device that is also scanned by cnspec is matched to its existing asset instead of creating a new one. Defaults to `false`.
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 
 ### Read-Only
