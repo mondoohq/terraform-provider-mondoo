@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 
@@ -39,6 +40,11 @@ type ExtendedGqlClient struct {
 	// The default space configured at the provider level. If configured, all resources
 	// will be managed there unless the resource itself specifies a different space.
 	space Space
+
+	// httpClient and endpoint send the GraphQL requests that queryJSON makes. They
+	// carry the same credentials and endpoint as the embedded client.
+	httpClient *http.Client
+	endpoint   string
 }
 
 // Space returns the space configured into the extended GraphQL client.

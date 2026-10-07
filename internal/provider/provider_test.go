@@ -64,7 +64,7 @@ func createSpace() error {
 	if err != nil {
 		return err
 	}
-	extendedC := ExtendedGqlClient{client, ""}
+	extendedC := ExtendedGqlClient{Client: client}
 
 	input := mondoov1.CreateSpaceInput{
 		Name:   mondoov1.String("acceptance-test"),
@@ -84,7 +84,7 @@ func deleteSpace() error {
 	if err != nil {
 		return err
 	}
-	extendedC := ExtendedGqlClient{client, ""}
+	extendedC := ExtendedGqlClient{Client: client}
 
 	return extendedC.DeleteSpace(context.Background(), accSpace.ID())
 }

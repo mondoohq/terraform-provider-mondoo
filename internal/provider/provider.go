@@ -205,9 +205,25 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
+	// queryJSON sends its requests through a plain HTTP client. Build it from the
+	// same options, with the same default endpoint that NewClient prepends.
+	httpClient, endpoint, err := mondoov1.NewHttpClient(append([]option.ClientOption{option.WithDefaultEndpoint()}, opts...)...)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to create Mondoo HTTP client",
+			err.Error(),
+		)
+		return
+	}
+
 	// The extended GraphQL client allows us to pass additional information to
 	// resources and data sources, such as the Mondoo space.
-	extendedClient := &ExtendedGqlClient{client, SpaceFrom(space)}
+	extendedClient := &ExtendedGqlClient{
+		Client:     client,
+		space:      SpaceFrom(space),
+		httpClient: httpClient,
+		endpoint:   endpoint,
+	}
 	resp.DataSourceData = extendedClient
 	resp.ResourceData = extendedClient
 }
@@ -243,6 +259,7 @@ func (p *MondooProvider) Resources(_ context.Context) []func() resource.Resource
 		NewIntegrationAuditLogExportResource,
 		NewIntegrationGcpServerlessResource,
 		NewOrganizationSlaResource,
+		NewIntegrationKubernetesResource,
 	}...)
 }
 
