@@ -312,3 +312,15 @@ func TestK8sIntegrationReadAPIResponse(t *testing.T) {
 	require.Equal(t, "mondoo-scan", got.KubernetesResources.JobOverrides.NodeSelector.Elements()["workload-type"].(types.String).ValueString())
 	require.True(t, got.AssetAnnotations.IsNull())
 }
+
+func TestK8sIntegrationUnsupportedNodeScanStyle(t *testing.T) {
+	m := k8sTestMinimalModel()
+	m.Nodes = &k8sNodesModel{
+		Enable: types.BoolValue(true),
+		Style:  types.StringValue("deployment"),
+	}
+
+	_, diags := m.configurationInput(context.Background())
+	require.True(t, diags.HasError())
+	require.Equal(t, "Unsupported node scan style", diags.Errors()[0].Summary())
+}

@@ -24,7 +24,7 @@ import (
 // isNotFoundError works on the result.
 func (c *ExtendedGqlClient) queryJSON(ctx context.Context, query string, variables map[string]any, out any) error {
 	if c.httpClient == nil {
-		return errors.New("the provider's HTTP client is not configured")
+		return errors.New("the provider's HTTP client is not configured (ExtendedGqlClient.httpClient is nil). Please report this issue to the provider developers")
 	}
 
 	body, err := json.Marshal(map[string]any{

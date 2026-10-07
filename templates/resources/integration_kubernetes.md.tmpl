@@ -1,0 +1,64 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## Operator setup
+
+This resource stores the scan configuration in Mondoo, and the mondoo-operator applies it. That only works when the operator is set up for it, so always change both together:
+
+| Where | Setting | Why |
+|---|---|---|
+| The Secret referenced by `spec.mondooCredsSecretRef` | `integrationmrn` set to this resource's `mrn`, next to the service account credentials in `config` | The operator checks in with this integration and fetches its configuration. |
+| MondooAuditConfig | `spec.remoteManaged: true` | The operator applies the integration's configuration instead of the MondooAuditConfig's own spec. |
+| MondooAuditConfig | `spec.consoleIntegration.enable: true` | Turns on check-ins, status reporting and fetching the configuration. It's required because `autoCreate` is off. |
+| MondooAuditConfig | `spec.consoleIntegration.autoCreate: false` | Keeps the operator from creating an integration of its own and writing that integration's MRN into the Secret. |
+
+The example below sets up all of them. The MondooAuditConfig needs no scan settings of its own: they all come from this resource.
+
+What happens when part of the setup is missing:
+
+- **No `remoteManaged`:** the operator scans with the MondooAuditConfig's own spec and never applies the integration's configuration, so the integration shows settings that don't run in the cluster.
+- **No `integrationmrn` in the Secret:** the operator can't check in. With `autoCreate: false` it reports the missing key in its `IntegrationDegraded` condition. With `autoCreate` left on, it creates an integration of its own and rewrites the Secret; if Terraform manages the Secret, the next apply reverts that, and the operator silently stops checking in.
+- **No `consoleIntegration.enable`:** the operator never checks in, so it never fetches the configuration and the integration never becomes active.
+
+Changes reach the cluster on the operator's next check-in, about every 10 minutes. When you switch an existing MondooAuditConfig to `remoteManaged`, the operator applies its now minimal local spec until that first check-in: it removes the scan workloads and recreates them once the configuration arrives.
+
+To check that the operator applies the integration's configuration, look at the MondooAuditConfig's status. It holds the hash of the fetched configuration, and `IntegrationDegraded` is `False`:
+
+```shell
+kubectl -n mondoo-operator get mondooauditconfig mondoo-client \
+  -o jsonpath='{.status.remoteConfigHash}{"\n"}{.status.conditions[?(@.type=="IntegrationDegraded")].status}{"\n"}'
+```
+
+{{ if .HasExamples -}}
+## Example Usage
+
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
+{{- end }}
+
+## Limitations
+
+- This resource manages the integration's whole scan configuration. Settings it doesn't support (external clusters, workload identity for container registries, and routing assets to another space) are cleared when Terraform creates or updates the integration.
+- On import, an optional setting that is set to `false`, `0` or an empty value can't be told apart from an unset one and is imported as unset. If the configuration sets it explicitly, the next apply updates the integration without changing its behavior.
+
+{{ .SchemaMarkdown | trimspace }}
+{{- if .HasImport }}
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}

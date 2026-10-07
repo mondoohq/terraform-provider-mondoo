@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -304,13 +305,7 @@ func (r *integrationKubernetesResource) Schema(_ context.Context, _ resource.Sch
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Manages a Kubernetes integration and the scan configuration of the mondoo-operator that reports to it.
 
-The integration holds the scan configuration, and the operator applies it. Set ` + "`spec.remoteManaged: true`" + ` in the operator's MondooAuditConfig (mondoo-operator v13.4.0 or later): on every check-in, about every 10 minutes, the operator compares its configuration with the integration's and applies the integration's when they differ. The MondooAuditConfig then only needs the credentials and the console integration settings.
-
-The operator finds the integration through the ` + "`integrationmrn`" + ` key of the Secret referenced by ` + "`spec.mondooCredsSecretRef`" + `. Store the ` + "`mrn`" + ` of this resource there, next to the service account credentials in the ` + "`config`" + ` key, and set ` + "`spec.consoleIntegration.autoCreate: false`" + ` so that the operator doesn't create an integration of its own.
-
-This resource manages the integration's whole scan configuration. Settings it doesn't support (external clusters, workload identity for container registries, and routing assets to another space) are cleared when Terraform creates or updates the integration.
-
-On import, an optional setting that is set to ` + "`false`" + `, ` + "`0`" + ` or an empty value can't be told apart from an unset one and is imported as unset. If the configuration sets it explicitly, the next apply updates the integration without changing its behavior.`,
+~> **This resource only works together with a remote-managed operator.** The integration holds the scan configuration, and the mondoo-operator (v13.4.0 or later) applies it only when its credentials Secret holds this resource's ` + "`mrn`" + ` under the ` + "`integrationmrn`" + ` key and its MondooAuditConfig sets ` + "`spec.remoteManaged: true`" + `, ` + "`spec.consoleIntegration.enable: true`" + ` and ` + "`spec.consoleIntegration.autoCreate: false`" + `. Without that setup, the operator scans with its own spec and the integration shows a configuration that doesn't run in the cluster.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
 				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
@@ -652,8 +647,18 @@ func (m integrationKubernetesResourceModel) configurationInput(ctx context.Conte
 
 	if n := m.Nodes; n != nil {
 		opts.ScanNodes = mondoov1.Boolean(n.Enable.ValueBool())
-		if style, ok := k8sNodeScanStyles[n.Style.ValueString()]; ok {
-			opts.ScanNodesStyle = &style
+		if k8sKnown(n.Style) {
+			// The schema validator only accepts the styles in k8sNodeScanStyles, so
+			// a miss here means the two have drifted apart.
+			style, ok := k8sNodeScanStyles[n.Style.ValueString()]
+			if !ok {
+				diags.AddAttributeError(path.Root("nodes").AtName("style"),
+					"Unsupported node scan style",
+					fmt.Sprintf("The node scan style %q has no API value. Please report this issue to the provider developers.", n.Style.ValueString()),
+				)
+			} else {
+				opts.ScanNodesStyle = &style
+			}
 		}
 		opts.NodesSchedule = k8sStringInput(n.Schedule)
 		opts.NodesIntervalTimer = k8sIntInput(n.IntervalTimer)

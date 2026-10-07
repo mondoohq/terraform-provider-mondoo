@@ -49,11 +49,14 @@ resource "kubernetes_secret" "mondoo_client" {
   }
 
   data = {
-    "config"         = base64decode(mondoo_service_account.operator.credential)
+    "config" = base64decode(mondoo_service_account.operator.credential)
+    # Required: the integration the operator checks in with and pulls its configuration from.
     "integrationmrn" = mondoo_integration_kubernetes.cluster.mrn
   }
 }
 
+# The operator only applies the integration's configuration with all three
+# consoleIntegration and remoteManaged settings below.
 resource "kubernetes_manifest" "mondoo_audit_config" {
   manifest = {
     apiVersion = "k8s.mondoo.com/v1alpha2"
@@ -67,9 +70,12 @@ resource "kubernetes_manifest" "mondoo_audit_config" {
         name = kubernetes_secret.mondoo_client.metadata[0].name
       }
       consoleIntegration = {
-        enable     = true
+        # Required: check in with the integration from the Secret.
+        enable = true
+        # Required: Terraform owns the integration, the operator must not create its own.
         autoCreate = false
       }
+      # Required: apply the integration's scan configuration instead of this spec.
       remoteManaged = true
     }
   }

@@ -83,8 +83,10 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
-	// Client configuration for data sources and resources
-	opts := []option.ClientOption{}
+	// Client configuration for data sources and resources. The HTTP client for
+	// queryJSON is built from the same options, and unlike NewClient it doesn't
+	// add the default endpoint itself. Later endpoint options override it.
+	opts := []option.ClientOption{option.WithDefaultEndpoint()}
 
 	// set the credentials to communicate with Mondoo Platform
 	// 1. via MONDOO_CONFIG_BASE64
@@ -205,9 +207,9 @@ func (p *MondooProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
-	// queryJSON sends its requests through a plain HTTP client. Build it from the
-	// same options, with the same default endpoint that NewClient prepends.
-	httpClient, endpoint, err := mondoov1.NewHttpClient(append([]option.ClientOption{option.WithDefaultEndpoint()}, opts...)...)
+	// queryJSON sends its requests through a plain HTTP client with the same
+	// credentials and endpoint.
+	httpClient, endpoint, err := mondoov1.NewHttpClient(opts...)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to create Mondoo HTTP client",
