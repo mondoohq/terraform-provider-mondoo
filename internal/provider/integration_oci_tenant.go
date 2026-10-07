@@ -48,6 +48,19 @@ type integrationOciTenantResourceModel struct {
 	Credential integrationOciCredentialModel `tfsdk:"credentials"`
 }
 
+// GetConfigurationOptions builds the API input. It never sets CredentialMrn:
+// the resource authenticates with the inline key, and the API rejects an
+// integration that carries both.
+func (m integrationOciTenantResourceModel) GetConfigurationOptions() *mondoov1.OciConfigurationOptionsInput {
+	return &mondoov1.OciConfigurationOptionsInput{
+		TenancyOcid: mondoov1.NewStringPtr(mondoov1.String(m.Tenancy.ValueString())),
+		UserOcid:    mondoov1.NewStringPtr(mondoov1.String(m.User.ValueString())),
+		Region:      mondoov1.NewStringPtr(mondoov1.String(m.Region.ValueString())),
+		Fingerprint: mondoov1.NewStringPtr(mondoov1.String(m.Credential.Fingerprint.ValueString())),
+		PrivateKey:  mondoov1.NewStringPtr(mondoov1.String(m.Credential.PrivateKey.ValueString())),
+	}
+}
+
 type integrationOciCredentialModel struct {
 	Fingerprint types.String `tfsdk:"fingerprint"`
 	PrivateKey  types.String `tfsdk:"private_key"`
@@ -158,13 +171,7 @@ func (r *integrationOciTenantResource) Create(ctx context.Context, req resource.
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeOci,
 		mondoov1.ClientIntegrationConfigurationInput{
-			OciConfigurationOptions: &mondoov1.OciConfigurationOptionsInput{
-				TenancyOcid: mondoov1.String(data.Tenancy.ValueString()),
-				UserOcid:    mondoov1.String(data.User.ValueString()),
-				Region:      mondoov1.String(data.Region.ValueString()),
-				Fingerprint: mondoov1.String(data.Credential.Fingerprint.ValueString()),
-				PrivateKey:  mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
-			},
+			OciConfigurationOptions: data.GetConfigurationOptions(),
 		})
 	if err != nil {
 		resp.Diagnostics.
@@ -222,13 +229,7 @@ func (r *integrationOciTenantResource) Update(ctx context.Context, req resource.
 	}
 
 	opts := mondoov1.ClientIntegrationConfigurationInput{
-		OciConfigurationOptions: &mondoov1.OciConfigurationOptionsInput{
-			TenancyOcid: mondoov1.String(data.Tenancy.ValueString()),
-			UserOcid:    mondoov1.String(data.User.ValueString()),
-			Region:      mondoov1.String(data.Region.ValueString()),
-			Fingerprint: mondoov1.String(data.Credential.Fingerprint.ValueString()),
-			PrivateKey:  mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
-		},
+		OciConfigurationOptions: data.GetConfigurationOptions(),
 	}
 
 	// Do GraphQL request to API to update the resource.

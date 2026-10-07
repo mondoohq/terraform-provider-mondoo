@@ -40,10 +40,11 @@ resource "mondoo_integration_okta" "example" {
 ### Required
 
 - `name` (String) Name of the integration.
-- `organization` (String) The Okta Organization
 
 ### Optional
 
+- `credential_mrn` (String) The Okta CredentialMrn
+- `organization` (String) The Okta Organization
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 - `token` (String) The Okta Token
 

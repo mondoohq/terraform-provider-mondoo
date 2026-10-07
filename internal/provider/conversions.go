@@ -59,3 +59,16 @@ func ConvertSlice[T any](list types.List) (slice []T) {
 func ToPtr[T any](v T) *T {
 	return &v
 }
+
+// OptionalStringPtr returns nil for a null or unknown string, so the field is
+// left out of the request, and a pointer to the value otherwise. Use it for
+// write-only secrets and credential references: the API reads an empty string
+// as "set", so sending one alongside the alternative (an inline secret next to
+// credentialMrn) fails as mutually exclusive, and on update it would overwrite
+// what is stored.
+func OptionalStringPtr(v types.String) *mondoov1.String {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return mondoov1.NewStringPtr(mondoov1.String(v.ValueString()))
+}

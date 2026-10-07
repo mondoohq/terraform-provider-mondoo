@@ -34,6 +34,25 @@ type IntegrationResource struct {
 	Fields                map[string]Field
 }
 
+// credentialRefField is the typed-credential reference an integration can
+// authenticate with instead of its inline secret.
+const credentialRefField = "CredentialMrn"
+
+// ConfigFields are the fields the generated acceptance test and example
+// configure. They leave out the credential reference: it must name a real
+// credential, and the API rejects it next to the inline secret both already
+// set ("... and credentialMrn are mutually exclusive").
+func (r IntegrationResource) ConfigFields() map[string]Field {
+	fields := make(map[string]Field, len(r.Fields))
+	for k, v := range r.Fields {
+		if k == credentialRefField {
+			continue
+		}
+		fields[k] = v
+	}
+	return fields
+}
+
 func NewField(base Field, raw any) Field {
 	base.RawStruct = raw
 	return base
@@ -74,6 +93,12 @@ func (f Field) ConfigurationOption(name string) string {
 	case StringField.MondooType:
 		return fmt.Sprintf("mondoov1.String(m.%s.ValueString())", name)
 	case StringPtrField.MondooType:
+		// Secrets and credential references are alternatives the API checks
+		// for mutual exclusion, and it counts "" as set: leave them out of
+		// the request unless the user configured them.
+		if isSensitiveField(name) {
+			return fmt.Sprintf("OptionalStringPtr(m.%s)", name)
+		}
 		return fmt.Sprintf("mondoov1.NewStringPtr(mondoov1.String(m.%s.ValueString()))", name)
 	case ArrayStringPtrField.MondooType:
 		return fmt.Sprintf("ToPtr(ConvertSliceStrings(m.%s))", name)
