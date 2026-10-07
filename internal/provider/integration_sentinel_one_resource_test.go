@@ -12,6 +12,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
+// An integration created with a client secret (an API token) keeps it: Mondoo
+// stores the token as a typed credential and refuses to switch such an
+// integration to a certificate. Certificates are covered by
+// TestAccSentinelOneIntegrationResourceWithCertificate.
 func TestAccSentinelOneIntegrationResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -33,7 +37,7 @@ func TestAccSentinelOneIntegrationResource(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "https://host", "account", "cert"),
+				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", "https://host", "account", "client_secret", "rotated-secret"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
@@ -52,7 +56,7 @@ func TestAccSentinelOneIntegrationResource(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", "https://new-host", "new-account", "cert"),
+				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", "https://new-host", "new-account", "client_secret", "rotated-secret-2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "four"),
 					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
@@ -91,7 +95,7 @@ resource "mondoo_integration_sentinel_one" "test" {
 `, spaceID, intName, host, account, clientSecret)
 }
 
-func testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(spaceID, intName, host, account, certificate string) string {
+func testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(spaceID, intName, host, account, credentialKey, credential string) string {
 	return fmt.Sprintf(`
 provider "mondoo" {
   space = %[1]q
@@ -102,8 +106,35 @@ resource "mondoo_integration_sentinel_one" "test" {
   host          = %[3]q
   account       = %[4]q
 	credentials   = {
-		certificate = %[5]q
+		%[5]s = %[6]q
 	}
 }
-`, spaceID, intName, host, account, certificate)
+`, spaceID, intName, host, account, credentialKey, credential)
+}
+
+// A certificate is only accepted on an integration that was created with one.
+func TestAccSentinelOneIntegrationResourceWithCertificate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "cert-one", "https://host", "account", "certificate", "cert"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "cert-one"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "space_id", accSpace.ID()),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "https://host"),
+				),
+			},
+			{
+				Config: testAccSentinelOneIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "cert-two", "https://new-host", "new-account", "certificate", "new-cert"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "name", "cert-two"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "host", "https://new-host"),
+					resource.TestCheckResourceAttr("mondoo_integration_sentinel_one.test", "account", "new-account"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
 }

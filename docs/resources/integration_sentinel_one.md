@@ -58,7 +58,7 @@ resource "mondoo_integration_sentinel_one" "example" {
 
 Optional:
 
-- `certificate` (String, Sensitive) The certificate for the SentinelOne integration.
+- `certificate` (String, Sensitive) The certificate for the SentinelOne integration. Only accepted on an integration that was created with a certificate: an integration created with `client_secret` can't switch to a certificate.
 - `client_secret` (String, Sensitive) The client secret of the SentinelOne integration.
 
 ## Import

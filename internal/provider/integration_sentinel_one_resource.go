@@ -115,7 +115,7 @@ func (r *integrationSentinelOneResource) Schema(_ context.Context, _ resource.Sc
 				MarkdownDescription: "Credentials require one of certificate or client secret to be provided.",
 				Attributes: map[string]schema.Attribute{
 					"certificate": schema.StringAttribute{
-						MarkdownDescription: "The certificate for the SentinelOne integration.",
+						MarkdownDescription: "The certificate for the SentinelOne integration. Only accepted on an integration that was created with a certificate: an integration created with `client_secret` can't switch to a certificate.",
 						Optional:            true,
 						Sensitive:           true,
 					},
