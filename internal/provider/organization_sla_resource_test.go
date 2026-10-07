@@ -211,7 +211,7 @@ func testAccCheckOrganizationSlaCleared(orgMrn string) tfresource.TestCheckFunc 
 		if err != nil {
 			return err
 		}
-		c := &ExtendedGqlClient{client, ""}
+		c := &ExtendedGqlClient{Client: client}
 		model, err := c.GetSecurityModel(context.Background(), orgMrn)
 		if err != nil {
 			return err
@@ -552,7 +552,7 @@ func newGraphqlTestClient(t *testing.T, response string) (*ExtendedGqlClient, *g
 
 	client, err := mondoov1.NewClient(option.WithEndpoint(srv.URL), option.WithoutAuthentication())
 	require.NoError(t, err)
-	return &ExtendedGqlClient{client, ""}, &got
+	return &ExtendedGqlClient{Client: client}, &got
 }
 
 // The query and mutations must match the API's GraphQL schema, which
