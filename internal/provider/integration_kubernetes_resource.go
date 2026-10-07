@@ -1265,6 +1265,11 @@ func k8sJobOverridesValue(ctx context.Context, v *k8sJobOverridesAPI, prior *k8s
 	return jo
 }
 
+// k8sTolerationsValue converts the API's tolerations, pairing each with the
+// prior element at the same index. That relies on the API returning the list in
+// the order it was sent, which it does: it stores the configuration input as
+// sent. If the order ever changed, the list itself would show the reorder as a
+// diff; only the null-or-empty choice for individual fields could misalign.
 func k8sTolerationsValue(v []k8sTolerationAPI, prior []k8sTolerationModel) []k8sTolerationModel {
 	if len(v) == 0 {
 		if prior != nil {
@@ -1288,6 +1293,8 @@ func k8sTolerationsValue(v []k8sTolerationAPI, prior []k8sTolerationModel) []k8s
 	return tolerations
 }
 
+// k8sEnvValue converts the API's environment variables, pairing each with the
+// prior element at the same index, as k8sTolerationsValue does.
 func k8sEnvValue(v []k8sEnvVarAPI, prior []k8sEnvVarModel) []k8sEnvVarModel {
 	if len(v) == 0 {
 		if prior != nil {
