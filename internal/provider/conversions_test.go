@@ -132,3 +132,14 @@ func TestConvertSliceStrings(t *testing.T) {
 		})
 	}
 }
+
+func TestOptionalString(t *testing.T) {
+	assert.Nil(t, OptionalString(types.StringNull()), "null is omitted")
+	assert.Nil(t, OptionalString(types.StringUnknown()), "unknown is omitted")
+	if v := OptionalString(types.StringValue("")); assert.NotNil(t, v) {
+		assert.Equal(t, mondoov1.String(""), *v, "an explicit empty string is still sent")
+	}
+	if v := OptionalString(types.StringValue("//captain.api.mondoo.app/credentials/c1")); assert.NotNil(t, v) {
+		assert.Equal(t, mondoov1.String("//captain.api.mondoo.app/credentials/c1"), *v)
+	}
+}
