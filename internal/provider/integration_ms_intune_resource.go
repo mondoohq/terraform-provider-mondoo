@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -40,6 +41,10 @@ type integrationMsIntuneResourceModel struct {
 	ClientId types.String `tfsdk:"client_id"`
 	TenantId types.String `tfsdk:"tenant_id"`
 
+	// options
+	ImportDevices types.Bool `tfsdk:"import_devices"`
+	AiDiscovery   types.Bool `tfsdk:"ai_discovery"`
+
 	// credentials
 	Credential integrationMsIntuneCredentialModel `tfsdk:"credentials"`
 }
@@ -52,6 +57,10 @@ func (m integrationMsIntuneResourceModel) GetConfigurationOptions() *mondoov1.Ms
 	opts := &mondoov1.MsIntuneConfigurationOptionsInput{
 		TenantId: mondoov1.String(m.TenantId.ValueString()),
 		ClientId: mondoov1.String(m.ClientId.ValueString()),
+		// Always sent: the attributes default to false, so Terraform owns their
+		// value and turning one off must reach the API as an explicit false.
+		ImportDevices: mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ImportDevices.ValueBool())),
+		AiDiscovery:   mondoov1.NewBooleanPtr(mondoov1.Boolean(m.AiDiscovery.ValueBool())),
 	}
 
 	if secret := m.Credential.ClientSecret.ValueString(); secret != "" {
@@ -98,6 +107,18 @@ func (r *integrationMsIntuneResource) Schema(ctx context.Context, req resource.S
 			"tenant_id": schema.StringAttribute{
 				MarkdownDescription: "Azure tenant ID.",
 				Required:            true,
+			},
+			"import_devices": schema.BoolAttribute{
+				MarkdownDescription: "Import the Intune-managed Windows devices and their detected software as assets. A device that is also scanned by cnspec is matched to its existing asset instead of creating a new one. Defaults to `false`.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"ai_discovery": schema.BoolAttribute{
+				MarkdownDescription: "Discover MCP servers configured on each endpoint during fleet scans (as their own assets). Enabling it also activates the Mondoo AI Security policy in the integration's space. Discovering a stdio MCP server starts the command in its configuration file, with the privileges the scan runs with. Defaults to `false`.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 			"credentials": schema.SingleNestedAttribute{
 				Required: true,
@@ -187,7 +208,31 @@ func (r *integrationMsIntuneResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	// Read API call logic
+	// Refresh the attributes the API reports back.
+	if data.Mrn.ValueString() != "" {
+		integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
+		if err != nil {
+			// Only drop the resource from state when it genuinely no longer
+			// exists. A transient error must not remove it from state.
+			if isNotFoundError(err) {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+			resp.Diagnostics.AddError("Client Error",
+				fmt.Sprintf("Unable to read MS Intune integration: %s", err),
+			)
+			return
+		}
+		// No tenant in the read-back means the API returned no Intune options (a
+		// schema mismatch; a real integration always carries its tenant). Keep the
+		// prior state then instead of writing false into it.
+		if opts := integration.ConfigurationOptions.MsIntuneConfigurationOptions; opts.TenantId != "" {
+			data.TenantId = types.StringValue(opts.TenantId)
+			data.ClientId = types.StringValue(opts.ClientId)
+			data.ImportDevices = types.BoolValue(opts.ImportDevices)
+			data.AiDiscovery = types.BoolValue(opts.AiDiscovery)
+		}
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -265,6 +310,9 @@ func (r *integrationMsIntuneResource) ImportState(ctx context.Context, req resou
 		SpaceID:  types.StringValue(integration.SpaceID()),
 		TenantId: types.StringValue(opts.TenantId),
 		ClientId: types.StringValue(opts.ClientId),
+		// options
+		ImportDevices: types.BoolValue(opts.ImportDevices),
+		AiDiscovery:   types.BoolValue(opts.AiDiscovery),
 		Credential: integrationMsIntuneCredentialModel{
 			ClientSecret: types.StringPointerValue(nil),
 		},
