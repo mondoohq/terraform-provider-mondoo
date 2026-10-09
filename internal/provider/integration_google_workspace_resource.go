@@ -9,7 +9,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -23,6 +25,18 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationGoogleWorkspaceResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationGoogleWorkspaceResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationGoogleWorkspaceResource)(nil)
+
+// ConfigValidators requires a stored credential reference or the inline secret: the API
+// rejects a configuration with neither.
+func (r *integrationGoogleWorkspaceResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("credential_mrn"),
+			path.MatchRoot("service_account"),
+		),
+	}
+}
 
 func NewIntegrationGoogleWorkspaceResource() resource.Resource {
 	return &integrationGoogleWorkspaceResource{}
@@ -41,6 +55,7 @@ type integrationGoogleWorkspaceResourceModel struct {
 	Name types.String `tfsdk:"name"`
 
 	// GoogleWorkspace options
+	CredentialMrn         types.String `tfsdk:"credential_mrn"`
 	CustomerId            types.String `tfsdk:"customer_id"`
 	ImpersonatedUserEmail types.String `tfsdk:"impersonated_user_email"`
 	ServiceAccount        types.String `tfsdk:"service_account"`
@@ -49,9 +64,10 @@ type integrationGoogleWorkspaceResourceModel struct {
 func (m integrationGoogleWorkspaceResourceModel) GetConfigurationOptions() *mondoov1.GoogleWorkspaceConfigurationOptionsInput {
 	return &mondoov1.GoogleWorkspaceConfigurationOptionsInput{
 		// GoogleWorkspace options
+		CredentialMrn:         OptionalString(m.CredentialMrn),
 		CustomerId:            mondoov1.String(m.CustomerId.ValueString()),
 		ImpersonatedUserEmail: mondoov1.String(m.ImpersonatedUserEmail.ValueString()),
-		ServiceAccount:        mondoov1.NewStringPtr(mondoov1.String(m.ServiceAccount.ValueString())),
+		ServiceAccount:        OptionalString(m.ServiceAccount),
 	}
 }
 
@@ -86,6 +102,10 @@ func (r *integrationGoogleWorkspaceResource) Schema(_ context.Context, _ resourc
 				},
 			},
 			// GoogleWorkspace options
+			"credential_mrn": schema.StringAttribute{
+				MarkdownDescription: "The GoogleWorkspace CredentialMrn",
+				Optional:            true,
+			},
 			"customer_id": schema.StringAttribute{
 				MarkdownDescription: "The GoogleWorkspace CustomerId",
 				Required:            true,
@@ -275,6 +295,7 @@ func (r *integrationGoogleWorkspaceResource) ImportState(ctx context.Context, re
 		Name:    types.StringValue(integration.Name),
 		SpaceID: types.StringValue(integration.SpaceID()),
 		// GoogleWorkspace options
+		CredentialMrn:         types.StringPointerValue(nil),
 		CustomerId:            types.StringValue(integration.ConfigurationOptions.GoogleWorkspaceConfigurationOptions.CustomerId),
 		ImpersonatedUserEmail: types.StringValue(integration.ConfigurationOptions.GoogleWorkspaceConfigurationOptions.ImpersonatedUserEmail),
 		ServiceAccount:        types.StringPointerValue(nil),

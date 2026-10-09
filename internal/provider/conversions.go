@@ -59,3 +59,15 @@ func ConvertSlice[T any](list types.List) (slice []T) {
 func ToPtr[T any](v T) *T {
 	return &v
 }
+
+// OptionalString maps an optional string attribute to its API input: nil when the
+// attribute is not set in the configuration (null or unknown), so the field is
+// omitted from the request instead of being sent as "". The API rejects an empty
+// value for fields it treats as mutually exclusive, such as a token next to a
+// credentialMrn. An explicit "" is still sent.
+func OptionalString(v types.String) *mondoov1.String {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return mondoov1.NewStringPtr(mondoov1.String(v.ValueString()))
+}

@@ -9,7 +9,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -23,6 +25,18 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationOktaResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationOktaResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationOktaResource)(nil)
+
+// ConfigValidators requires a stored credential reference or the inline secret: the API
+// rejects a configuration with neither.
+func (r *integrationOktaResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("credential_mrn"),
+			path.MatchRoot("token"),
+		),
+	}
+}
 
 func NewIntegrationOktaResource() resource.Resource {
 	return &integrationOktaResource{}
@@ -41,15 +55,17 @@ type integrationOktaResourceModel struct {
 	Name types.String `tfsdk:"name"`
 
 	// Okta options
-	Organization types.String `tfsdk:"organization"`
-	Token        types.String `tfsdk:"token"`
+	CredentialMrn types.String `tfsdk:"credential_mrn"`
+	Organization  types.String `tfsdk:"organization"`
+	Token         types.String `tfsdk:"token"`
 }
 
 func (m integrationOktaResourceModel) GetConfigurationOptions() *mondoov1.OktaConfigurationOptionsInput {
 	return &mondoov1.OktaConfigurationOptionsInput{
 		// Okta options
-		Organization: mondoov1.String(m.Organization.ValueString()),
-		Token:        mondoov1.NewStringPtr(mondoov1.String(m.Token.ValueString())),
+		CredentialMrn: OptionalString(m.CredentialMrn),
+		Organization:  OptionalString(m.Organization),
+		Token:         OptionalString(m.Token),
 	}
 }
 
@@ -84,9 +100,13 @@ func (r *integrationOktaResource) Schema(_ context.Context, _ resource.SchemaReq
 				},
 			},
 			// Okta options
+			"credential_mrn": schema.StringAttribute{
+				MarkdownDescription: "The Okta CredentialMrn",
+				Optional:            true,
+			},
 			"organization": schema.StringAttribute{
 				MarkdownDescription: "The Okta Organization",
-				Required:            true,
+				Optional:            true,
 			},
 			"token": schema.StringAttribute{
 				MarkdownDescription: "The Okta Token",
@@ -269,8 +289,9 @@ func (r *integrationOktaResource) ImportState(ctx context.Context, req resource.
 		Name:    types.StringValue(integration.Name),
 		SpaceID: types.StringValue(integration.SpaceID()),
 		// Okta options
-		Organization: types.StringValue(integration.ConfigurationOptions.OktaConfigurationOptions.Organization),
-		Token:        types.StringPointerValue(nil),
+		CredentialMrn: types.StringPointerValue(nil),
+		Organization:  types.StringPointerValue(integration.ConfigurationOptions.OktaConfigurationOptions.Organization),
+		Token:         types.StringPointerValue(nil),
 	}
 
 	resp.State.Set(ctx, &model)
@@ -278,5 +299,5 @@ func (r *integrationOktaResource) ImportState(ctx context.Context, req resource.
 
 // Okta options for import state
 type OktaConfigurationOptions struct {
-	Organization string `json:"organization" graphql:"oktaOrganization: organization"`
+	Organization *string `json:"organization" graphql:"oktaOrganization: organization"`
 }

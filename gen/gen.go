@@ -74,7 +74,7 @@ func (f Field) ConfigurationOption(name string) string {
 	case StringField.MondooType:
 		return fmt.Sprintf("mondoov1.String(m.%s.ValueString())", name)
 	case StringPtrField.MondooType:
-		return fmt.Sprintf("mondoov1.NewStringPtr(mondoov1.String(m.%s.ValueString()))", name)
+		return fmt.Sprintf("OptionalString(m.%s)", name)
 	case ArrayStringPtrField.MondooType:
 		return fmt.Sprintf("ToPtr(ConvertSliceStrings(m.%s))", name)
 	}
@@ -229,6 +229,54 @@ var funcMap = template.FuncMap{
 	"formatEnum":       formatEnum,
 	"shouldTrigger":    shouldTrigger,
 	"isSensitiveField": isSensitiveField,
+	"testFields":       testFields,
+	"credentialPaths":  credentialPaths,
+}
+
+// credentialPaths returns the attributes of which at least one must be set, or nil.
+// An integration that can reference a stored credential (credential_mrn) takes either
+// that reference or its inline secret, and the API rejects a configuration with
+// neither, so the plan refuses it first. The inline secret is every sensitive optional
+// string (token, service_account, ...). An integration without credential_mrn gets no
+// such rule: its required secret is enforced by the schema.
+//
+// The result is deterministic although fields is a map: credential_mrn always comes
+// first and the secrets after it are sorted, so the generated code does not churn.
+func credentialPaths(fields map[string]Field) []string {
+	if _, ok := fields["CredentialMrn"]; !ok {
+		return nil
+	}
+	out := []string{"credential_mrn"}
+	for name, f := range fields {
+		if name == "CredentialMrn" || f.MondooType != StringPtrField.MondooType || !isSensitiveField(name) {
+			continue
+		}
+		out = append(out, toSnakeCase(name))
+	}
+	if len(out) < 2 {
+		return nil
+	}
+	sort.Strings(out[1:])
+	return out
+}
+
+// Optional reports whether the field may be left unset (a pointer in the API input).
+func (f Field) Optional() bool {
+	return f.MondooType == StringPtrField.MondooType || f.MondooType == ArrayStringPtrField.MondooType
+}
+
+// testFields returns the fields the generated acceptance tests set. It leaves out
+// credential_mrn: it references a stored credential instead of the inline secret,
+// the API rejects a request that sets both, and a test cannot create one.
+func testFields(fields map[string]Field) map[string]Field {
+	out := make(map[string]Field, len(fields))
+	for name, f := range fields {
+		if toSnakeCase(name) == "credential_mrn" {
+			continue
+		}
+		out[name] = f
+	}
+	return out
 }
 
 var templates = map[string]*template.Template{

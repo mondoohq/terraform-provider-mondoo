@@ -28,6 +28,7 @@ variable "client_secret" {
 variable "default_project_name" {
   description = "The AzureDevops DefaultProjectName"
   type        = string
+  default     = null
 }
 variable "organization_url" {
   description = "The AzureDevops OrganizationUrl"

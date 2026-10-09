@@ -159,10 +159,10 @@ func (r *integrationOciTenantResource) Create(ctx context.Context, req resource.
 		mondoov1.ClientIntegrationTypeOci,
 		mondoov1.ClientIntegrationConfigurationInput{
 			OciConfigurationOptions: &mondoov1.OciConfigurationOptionsInput{
-				TenancyOcid: mondoov1.String(data.Tenancy.ValueString()),
-				UserOcid:    mondoov1.String(data.User.ValueString()),
-				Region:      mondoov1.String(data.Region.ValueString()),
-				Fingerprint: mondoov1.String(data.Credential.Fingerprint.ValueString()),
+				TenancyOcid: mondoov1.NewStringPtr(mondoov1.String(data.Tenancy.ValueString())),
+				UserOcid:    mondoov1.NewStringPtr(mondoov1.String(data.User.ValueString())),
+				Region:      mondoov1.NewStringPtr(mondoov1.String(data.Region.ValueString())),
+				Fingerprint: mondoov1.NewStringPtr(mondoov1.String(data.Credential.Fingerprint.ValueString())),
 				PrivateKey:  mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
 			},
 		})
@@ -223,10 +223,10 @@ func (r *integrationOciTenantResource) Update(ctx context.Context, req resource.
 
 	opts := mondoov1.ClientIntegrationConfigurationInput{
 		OciConfigurationOptions: &mondoov1.OciConfigurationOptionsInput{
-			TenancyOcid: mondoov1.String(data.Tenancy.ValueString()),
-			UserOcid:    mondoov1.String(data.User.ValueString()),
-			Region:      mondoov1.String(data.Region.ValueString()),
-			Fingerprint: mondoov1.String(data.Credential.Fingerprint.ValueString()),
+			TenancyOcid: mondoov1.NewStringPtr(mondoov1.String(data.Tenancy.ValueString())),
+			UserOcid:    mondoov1.NewStringPtr(mondoov1.String(data.User.ValueString())),
+			Region:      mondoov1.NewStringPtr(mondoov1.String(data.Region.ValueString())),
+			Fingerprint: mondoov1.NewStringPtr(mondoov1.String(data.Credential.Fingerprint.ValueString())),
 			PrivateKey:  mondoov1.NewStringPtr(mondoov1.String(data.Credential.PrivateKey.ValueString())),
 		},
 	}
