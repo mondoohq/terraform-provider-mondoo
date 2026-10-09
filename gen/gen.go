@@ -239,6 +239,9 @@ var funcMap = template.FuncMap{
 // neither, so the plan refuses it first. The inline secret is every sensitive optional
 // string (token, service_account, ...). An integration without credential_mrn gets no
 // such rule: its required secret is enforced by the schema.
+//
+// The result is deterministic although fields is a map: credential_mrn always comes
+// first and the secrets after it are sorted, so the generated code does not churn.
 func credentialPaths(fields map[string]Field) []string {
 	if _, ok := fields["CredentialMrn"]; !ok {
 		return nil
