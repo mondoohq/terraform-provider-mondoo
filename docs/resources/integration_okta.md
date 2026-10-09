@@ -16,14 +16,17 @@ Okta integration.
 variable "credential_mrn" {
   description = "The Okta CredentialMrn"
   type        = string
+  default     = null
 }
 variable "organization" {
   description = "The Okta Organization"
   type        = string
+  default     = null
 }
 variable "token" {
   description = "The Okta Token"
   type        = string
+  default     = null
 }
 
 provider "mondoo" {
