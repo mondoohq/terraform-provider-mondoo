@@ -9,7 +9,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -23,6 +25,18 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationGoogleWorkspaceResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationGoogleWorkspaceResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationGoogleWorkspaceResource)(nil)
+
+// ConfigValidators requires a stored credential reference or the inline secret: the API
+// rejects a configuration with neither.
+func (r *integrationGoogleWorkspaceResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("credential_mrn"),
+			path.MatchRoot("service_account"),
+		),
+	}
+}
 
 func NewIntegrationGoogleWorkspaceResource() resource.Resource {
 	return &integrationGoogleWorkspaceResource{}
