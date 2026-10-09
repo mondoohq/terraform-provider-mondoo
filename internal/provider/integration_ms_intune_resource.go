@@ -223,10 +223,10 @@ func (r *integrationMsIntuneResource) Read(ctx context.Context, req resource.Rea
 			)
 			return
 		}
-		// An empty read-back means the API returned no Intune options (a schema
-		// mismatch, not a disabled integration: a real one always carries its tenant
-		// and client). Keep the prior state then instead of writing false into it.
-		if opts := integration.ConfigurationOptions.MsIntuneConfigurationOptions; opts != (MsIntuneConfigurationOptions{}) {
+		// No tenant in the read-back means the API returned no Intune options (a
+		// schema mismatch; a real integration always carries its tenant). Keep the
+		// prior state then instead of writing false into it.
+		if opts := integration.ConfigurationOptions.MsIntuneConfigurationOptions; opts.TenantId != "" {
 			data.TenantId = types.StringValue(opts.TenantId)
 			data.ClientId = types.StringValue(opts.ClientId)
 			data.ImportDevices = types.BoolValue(opts.ImportDevices)
