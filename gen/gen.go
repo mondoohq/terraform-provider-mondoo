@@ -229,6 +229,21 @@ var funcMap = template.FuncMap{
 	"formatEnum":       formatEnum,
 	"shouldTrigger":    shouldTrigger,
 	"isSensitiveField": isSensitiveField,
+	"testFields":       testFields,
+}
+
+// testFields returns the fields the generated acceptance tests set. It leaves out
+// credential_mrn: it references a stored credential instead of the inline secret,
+// the API rejects a request that sets both, and a test cannot create one.
+func testFields(fields map[string]Field) map[string]Field {
+	out := make(map[string]Field, len(fields))
+	for name, f := range fields {
+		if toSnakeCase(name) == "credential_mrn" {
+			continue
+		}
+		out[name] = f
+	}
+	return out
 }
 
 var templates = map[string]*template.Template{
