@@ -50,10 +50,10 @@ type integrationGoogleWorkspaceResourceModel struct {
 func (m integrationGoogleWorkspaceResourceModel) GetConfigurationOptions() *mondoov1.GoogleWorkspaceConfigurationOptionsInput {
 	return &mondoov1.GoogleWorkspaceConfigurationOptionsInput{
 		// GoogleWorkspace options
-		CredentialMrn:         mondoov1.NewStringPtr(mondoov1.String(m.CredentialMrn.ValueString())),
+		CredentialMrn:         OptionalString(m.CredentialMrn),
 		CustomerId:            mondoov1.String(m.CustomerId.ValueString()),
 		ImpersonatedUserEmail: mondoov1.String(m.ImpersonatedUserEmail.ValueString()),
-		ServiceAccount:        mondoov1.NewStringPtr(mondoov1.String(m.ServiceAccount.ValueString())),
+		ServiceAccount:        OptionalString(m.ServiceAccount),
 	}
 }
 

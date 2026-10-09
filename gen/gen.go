@@ -74,7 +74,7 @@ func (f Field) ConfigurationOption(name string) string {
 	case StringField.MondooType:
 		return fmt.Sprintf("mondoov1.String(m.%s.ValueString())", name)
 	case StringPtrField.MondooType:
-		return fmt.Sprintf("mondoov1.NewStringPtr(mondoov1.String(m.%s.ValueString()))", name)
+		return fmt.Sprintf("OptionalString(m.%s)", name)
 	case ArrayStringPtrField.MondooType:
 		return fmt.Sprintf("ToPtr(ConvertSliceStrings(m.%s))", name)
 	}

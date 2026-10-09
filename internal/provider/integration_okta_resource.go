@@ -49,9 +49,9 @@ type integrationOktaResourceModel struct {
 func (m integrationOktaResourceModel) GetConfigurationOptions() *mondoov1.OktaConfigurationOptionsInput {
 	return &mondoov1.OktaConfigurationOptionsInput{
 		// Okta options
-		CredentialMrn: mondoov1.NewStringPtr(mondoov1.String(m.CredentialMrn.ValueString())),
-		Organization:  mondoov1.NewStringPtr(mondoov1.String(m.Organization.ValueString())),
-		Token:         mondoov1.NewStringPtr(mondoov1.String(m.Token.ValueString())),
+		CredentialMrn: OptionalString(m.CredentialMrn),
+		Organization:  OptionalString(m.Organization),
+		Token:         OptionalString(m.Token),
 	}
 }
 
