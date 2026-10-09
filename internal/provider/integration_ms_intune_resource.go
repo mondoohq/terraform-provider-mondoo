@@ -223,9 +223,15 @@ func (r *integrationMsIntuneResource) Read(ctx context.Context, req resource.Rea
 			)
 			return
 		}
-		opts := integration.ConfigurationOptions.MsIntuneConfigurationOptions
-		data.ImportDevices = types.BoolValue(opts.ImportDevices)
-		data.AiDiscovery = types.BoolValue(opts.AiDiscovery)
+		// An empty read-back means the API returned no Intune options (a schema
+		// mismatch, not a disabled integration: a real one always carries its tenant
+		// and client). Keep the prior state then instead of writing false into it.
+		if opts := integration.ConfigurationOptions.MsIntuneConfigurationOptions; opts != (MsIntuneConfigurationOptions{}) {
+			data.TenantId = types.StringValue(opts.TenantId)
+			data.ClientId = types.StringValue(opts.ClientId)
+			data.ImportDevices = types.BoolValue(opts.ImportDevices)
+			data.AiDiscovery = types.BoolValue(opts.AiDiscovery)
+		}
 	}
 
 	// Save updated data into Terraform state
