@@ -2,6 +2,9 @@
 variable "{{ toSnakeCase $key }}" {
   description = "The {{$.ResourceClassName}} {{ $key }}"
   type        = {{ $props.HclType }}
+{{- if $props.Optional }}
+  default     = null
+{{- end }}
 }
 {{- end}}
 

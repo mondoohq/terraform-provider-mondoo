@@ -16,6 +16,7 @@ GoogleWorkspace integration.
 variable "credential_mrn" {
   description = "The GoogleWorkspace CredentialMrn"
   type        = string
+  default     = null
 }
 variable "customer_id" {
   description = "The GoogleWorkspace CustomerId"
@@ -28,6 +29,7 @@ variable "impersonated_user_email" {
 variable "service_account" {
   description = "The GoogleWorkspace ServiceAccount"
   type        = string
+  default     = null
 }
 
 provider "mondoo" {
