@@ -39,9 +39,8 @@ Export data to Google BigQuery.
 
 ### Optional
 
-- `kms_key_name` (String) Cloud KMS CryptoKey resource name for BigQuery query results. The key remains in Google Cloud KMS; Mondoo stores only its name. BigQuery must have permission to use it.
-
 - `credentials` (Attributes) Credentials for the BigQuery export. Provide `wif` for workload identity federation instead of the top-level `service_account_key`. (see [below for nested schema](#nestedatt--credentials))
+- `kms_key_name` (String) Optional Cloud KMS CryptoKey resource name for BigQuery query results (projects/PROJECT/locations/LOCATION/keyRings/RING/cryptoKeys/KEY). The key stays in Google Cloud KMS; Mondoo stores only the name. BigQuery must have permission to use it.
 - `scope_mrn` (String) The MRN of the scope (space, organization, or platform) for the export integration.
 - `service_account_key` (String, Sensitive) Google service account JSON key content. Mutually exclusive with `credentials.wif`.
 - `space_id` (String, Deprecated) Mondoo space identifier. If there is no space ID, the provider space is used.
