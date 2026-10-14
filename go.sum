@@ -561,6 +561,8 @@ go.etcd.io/etcd/client/pkg/v3 v3.5.4/go.mod h1:IJHfcCEKxYu1Os13ZdwCwIUTUVGYTSAM3
 go.etcd.io/etcd/client/v3 v3.5.4/go.mod h1:ZaRkVgBZC+L+dLCjTcF1hRXpgZXQPOvnA/Ak/gq3kiY=
 go.mondoo.com/mondoo-go v0.0.0-20261008120731-913f80b94bcc h1:Vq93efVdLBMZqmggQCmxiQHmYqMTgD1DSk2jBUl7iIM=
 go.mondoo.com/mondoo-go v0.0.0-20261008120731-913f80b94bcc/go.mod h1:hESCStkuJqvuw0cWwVKrorQJJnGdxUnSdR4Zs1/W1W4=
+go.mondoo.com/mondoo-go v0.0.0-20261014154027-e7e6d25bc1c2 h1:Ru9fOn+OeI7Xr4eNXfAD/zWIzd3ngvq5qrL+fJEL4SY=
+go.mondoo.com/mondoo-go v0.0.0-20261014154027-e7e6d25bc1c2/go.mod h1:hESCStkuJqvuw0cWwVKrorQJJnGdxUnSdR4Zs1/W1W4=
 go.mondoo.com/mql/v13 v13.5.1 h1:WpXdy7h6y28npvUYg2YaLa++8CbVjCGQoDiL+IwXbc8=
 go.mondoo.com/mql/v13 v13.5.1/go.mod h1:fZ2CbY2dmjBBiLIKJDuW9HqEGFfzsR/n0kxIRRw6zik=
 go.mondoo.com/ranger-rpc v0.8.0 h1:iBY34IhtPNPnEOZ9eS5t3Gp28HiTuv/M0SaHiBiRJlI=
