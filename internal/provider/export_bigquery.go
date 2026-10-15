@@ -41,6 +41,7 @@ type BigQueryExportResourceModel struct {
 	Mrn        types.String `tfsdk:"mrn"`
 	Name       types.String `tfsdk:"name"`
 	DatasetID  types.String `tfsdk:"dataset_id"`
+	KmsKeyName types.String `tfsdk:"kms_key_name"`
 	WifSubject types.String `tfsdk:"wif_subject"`
 
 	// credentials
@@ -55,6 +56,9 @@ type exportBigQueryCredentialsWrapper struct {
 func (m BigQueryExportResourceModel) GetConfigurationOptions() *mondoov1.BigqueryConfigurationOptionsInput {
 	opts := &mondoov1.BigqueryConfigurationOptionsInput{
 		DatasetId: mondoov1.String(m.DatasetID.ValueString()),
+		// Send an explicit empty value when removed from configuration, so
+		// Terraform can clear a name previously stored on the integration.
+		KmsKeyName: mondoov1.NewStringPtr(mondoov1.String(m.KmsKeyName.ValueString())),
 	}
 
 	if !m.ServiceAccountKey.IsNull() && !m.ServiceAccountKey.IsUnknown() {
@@ -133,6 +137,11 @@ func (r *ExportBigQueryResource) Schema(ctx context.Context, req resource.Schema
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+			},
+			"kms_key_name": schema.StringAttribute{
+				MarkdownDescription: "Optional Cloud KMS CryptoKey resource name for BigQuery query results (projects/PROJECT/locations/LOCATION/keyRings/RING/cryptoKeys/KEY). The key stays in Google Cloud KMS; Mondoo stores only the name. BigQuery must have permission to use it.",
+				Optional:            true,
+				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"service_account_key": schema.StringAttribute{
 				MarkdownDescription: "Google service account JSON key content. Mutually exclusive with `credentials.wif`.",
@@ -300,6 +309,7 @@ func (r *ExportBigQueryResource) Read(ctx context.Context, req resource.ReadRequ
 	opts := integration.ConfigurationOptions.BigqueryConfigurationOptions
 	data.Name = types.StringValue(integration.Name)
 	data.WifSubject = types.StringValue(opts.WifSubject)
+	data.KmsKeyName = stringOrNull(opts.KmsKeyName)
 	if data.Credentials != nil && data.Credentials.Wif != nil {
 		data.Credentials.Wif.Audience = types.StringValue(opts.WifAudience)
 		data.Credentials.Wif.ServiceAccountEmail = stringOrNull(opts.WifServiceAccountEmail)
@@ -365,6 +375,7 @@ func (r *ExportBigQueryResource) ImportState(ctx context.Context, req resource.I
 		Name:              types.StringValue(integration.Name),
 		ScopeMrn:          types.StringValue(integration.ScopeMRN()),
 		DatasetID:         types.StringValue(opts.DatasetId),
+		KmsKeyName:        stringOrNull(opts.KmsKeyName),
 		WifSubject:        types.StringValue(opts.WifSubject),
 		ServiceAccountKey: types.StringPointerValue(nil), // Don't expose sensitive data
 	}

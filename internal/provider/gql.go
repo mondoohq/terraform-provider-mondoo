@@ -886,6 +886,7 @@ type AwsS3ConfigurationOptions struct {
 }
 
 type BigqueryConfigurationOptions struct {
+	KmsKeyName             string
 	DatasetId              string
 	WifAudience            string
 	WifServiceAccountEmail string
