@@ -1017,15 +1017,30 @@ func (r *integrationAwsServerlessResource) ImportState(ctx context.Context, req 
 		return
 	}
 
+	model := importedAwsServerlessModel(*integration)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
+
+// importedAwsServerlessModel is the state an import starts from: the
+// integration's identity and scope, and, for a WIF integration, use_wif and
+// aws_account_id. Those two cannot change in place, so a WIF integration
+// imported without them would plan a new integration on its first apply.
+// Unset use_wif is the same as false, so it stays unset for the others.
+func importedAwsServerlessModel(integration Integration) integrationAwsServerlessResourceModel {
 	model := integrationAwsServerlessResourceModel{
 		Mrn:  types.StringValue(integration.Mrn),
 		Name: types.StringValue(integration.Name),
+		// A list's zero value has no element type, which the state rejects.
+		AccountIDs: types.ListNull(types.StringType),
 	}
 	if integration.IsSpaceScoped() {
 		model.SpaceID = types.StringValue(integration.SpaceID())
 	} else {
 		model.ScopeMrn = types.StringValue(awsIntegrationScopeMrn(integration.Mrn))
 	}
-
-	resp.State.Set(ctx, &model)
+	if opts := integration.ConfigurationOptions.AWSConfigurationOptions; opts.UseWif {
+		model.UseWif = types.BoolValue(true)
+		model.AwsAccountID = types.StringValue(opts.AwsAccountId)
+	}
+	return model
 }

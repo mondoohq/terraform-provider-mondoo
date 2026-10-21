@@ -925,6 +925,11 @@ type AWSConfigurationOptions struct {
 	SourceBucket string `graphql:"sourceBucket"`
 	// The CloudFormation template URL, served out of the same bucket.
 	CloudFormationTemplateUrl string `graphql:"cloudFormationTemplateUrl"`
+	// Whether the Lambda authenticates with Workload Identity Federation, and
+	// the AWS account it is deployed in when it does. Neither can change after
+	// creation, so an import must take them over.
+	UseWif       bool   `graphql:"useWif"`
+	AwsAccountId string `graphql:"awsAccountId"`
 }
 
 type HostedAwsConfigurationOptions struct {

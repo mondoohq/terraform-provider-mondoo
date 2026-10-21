@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -350,21 +351,13 @@ const v048State = `{
 // protocol server, no Terraform and no Mondoo API (planning this resource does
 // not call it).
 func TestIntegrationAwsServerlessUpgradeFromV048(t *testing.T) {
-	const typeName = "mondoo_integration_aws_serverless"
-	ctx := context.Background()
-	server := providerserver.NewProtocol6(New("test")())()
-	schemaResp, err := server.GetProviderSchema(ctx, &tfprotov6.GetProviderSchemaRequest{})
-	require.NoError(t, err)
-	resourceSchema := schemaResp.ResourceSchemas[typeName]
-	require.NotNil(t, resourceSchema)
-	typ := resourceSchema.ValueType()
-
-	upgraded, err := server.UpgradeResourceState(ctx, &tfprotov6.UpgradeResourceStateRequest{
-		TypeName: typeName, Version: 0, RawState: &tfprotov6.RawState{JSON: []byte(v048State)},
+	p := newAwsServerlessProtocol(t)
+	upgraded, err := p.server.UpgradeResourceState(context.Background(), &tfprotov6.UpgradeResourceStateRequest{
+		TypeName: awsServerlessTypeName, Version: 0, RawState: &tfprotov6.RawState{JSON: []byte(v048State)},
 	})
 	require.NoError(t, err)
 	require.Empty(t, upgraded.Diagnostics)
-	prior, err := upgraded.UpgradedState.Unmarshal(typ)
+	prior, err := upgraded.UpgradedState.Unmarshal(p.typ)
 	require.NoError(t, err)
 
 	for _, tc := range []struct {
@@ -394,29 +387,141 @@ func TestIntegrationAwsServerlessUpgradeFromV048(t *testing.T) {
 			for k, v := range tc.extra {
 				attrs[k] = v
 			}
-			configJSON, err := json.Marshal(attrs)
-			require.NoError(t, err)
-			config, err := (&tfprotov6.RawState{JSON: configJSON}).Unmarshal(typ)
-			require.NoError(t, err)
-
-			plan, err := server.PlanResourceChange(ctx, &tfprotov6.PlanResourceChangeRequest{
-				TypeName:         typeName,
-				PriorState:       upgraded.UpgradedState,
-				ProposedNewState: dynamicValue(t, typ, proposedNewState(t, resourceSchema, prior, config)),
-				Config:           dynamicValue(t, typ, config),
-			})
-			require.NoError(t, err)
-			require.Empty(t, plan.Diagnostics)
-			planned, err := plan.PlannedState.Unmarshal(typ)
-			require.NoError(t, err)
+			planned, replaced := p.plan(t, prior, attrs)
 			assert.Equal(t, tc.unchanged, planned.Equal(prior), "planned %s", planned)
-			replaced := []string{}
-			for _, p := range plan.RequiresReplace {
-				replaced = append(replaced, string(p.Steps()[0].(tftypes.AttributeName)))
-			}
 			assert.ElementsMatch(t, tc.replace, replaced, "attributes that force a new integration")
 		})
 	}
+}
+
+// A WIF integration, imported and then planned against the configuration that
+// describes it, is updated in place: the import takes over use_wif and
+// aws_account_id, which cannot change in place.
+func TestIntegrationAwsServerlessImportedWifPlansNoReplace(t *testing.T) {
+	p := newAwsServerlessProtocol(t)
+	for _, tc := range []struct {
+		name  string
+		mrn   string
+		scope map[string]any
+	}{
+		{name: "organization-scoped", mrn: "//integration.api.mondoo.app/organizations/org-1/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM", scope: map[string]any{"scope_mrn": "//captain.api.mondoo.app/organizations/org-1"}},
+		{name: "space-scoped", mrn: "//integration.api.mondoo.app/spaces/space-1/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM", scope: map[string]any{"space_id": "space-1"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			imported := importedAwsServerlessModel(Integration{
+				Mrn:  tc.mrn,
+				Name: "imported",
+				ConfigurationOptions: ClientIntegrationConfigurationOptions{
+					AWSConfigurationOptions: AWSConfigurationOptions{UseWif: true, AwsAccountId: "111111111111"},
+				},
+			})
+			attrs := map[string]any{
+				"name":               "imported",
+				"region":             "us-east-1",
+				"use_wif":            true,
+				"aws_account_id":     "111111111111",
+				"scan_configuration": map[string]any{"ec2_scan_options": map[string]any{}},
+			}
+			for k, v := range tc.scope {
+				attrs[k] = v
+			}
+			_, replaced := p.plan(t, p.stateOf(t, imported), attrs)
+			assert.Empty(t, replaced, "attributes that force a new integration")
+		})
+	}
+}
+
+func TestImportedAwsServerlessModel(t *testing.T) {
+	wif := ClientIntegrationConfigurationOptions{AWSConfigurationOptions: AWSConfigurationOptions{UseWif: true, AwsAccountId: "111111111111"}}
+	for _, tc := range []struct {
+		name        string
+		integration Integration
+		want        integrationAwsServerlessResourceModel
+	}{
+		{
+			name:        "a space-scoped integration without WIF",
+			integration: Integration{Mrn: "//integration.api.mondoo.app/spaces/space-1/aws/int-1", Name: "one"},
+			want: integrationAwsServerlessResourceModel{
+				Mrn: types.StringValue("//integration.api.mondoo.app/spaces/space-1/aws/int-1"), Name: types.StringValue("one"),
+				SpaceID: types.StringValue("space-1"),
+			},
+		},
+		{
+			name:        "a space-scoped integration with WIF",
+			integration: Integration{Mrn: "//integration.api.mondoo.app/spaces/space-1/aws/int-1", Name: "one", ConfigurationOptions: wif},
+			want: integrationAwsServerlessResourceModel{
+				Mrn: types.StringValue("//integration.api.mondoo.app/spaces/space-1/aws/int-1"), Name: types.StringValue("one"),
+				SpaceID: types.StringValue("space-1"), UseWif: types.BoolValue(true), AwsAccountID: types.StringValue("111111111111"),
+			},
+		},
+		{
+			name:        "an organization-scoped integration, which has WIF",
+			integration: Integration{Mrn: "//integration.api.mondoo.app/organizations/org-1/aws/int-1", Name: "one", ConfigurationOptions: wif},
+			want: integrationAwsServerlessResourceModel{
+				Mrn: types.StringValue("//integration.api.mondoo.app/organizations/org-1/aws/int-1"), Name: types.StringValue("one"),
+				ScopeMrn: types.StringValue("//captain.api.mondoo.app/organizations/org-1"), UseWif: types.BoolValue(true), AwsAccountID: types.StringValue("111111111111"),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Every import carries a typed null account_ids.
+			tc.want.AccountIDs = types.ListNull(types.StringType)
+			assert.Equal(t, tc.want, importedAwsServerlessModel(tc.integration))
+		})
+	}
+}
+
+const awsServerlessTypeName = "mondoo_integration_aws_serverless"
+
+// awsServerlessProtocol drives the resource through the provider's own protocol
+// server, as Terraform does, with no Terraform and no Mondoo API: planning this
+// resource does not call it.
+type awsServerlessProtocol struct {
+	server tfprotov6.ProviderServer
+	schema *tfprotov6.Schema
+	typ    tftypes.Type
+}
+
+func newAwsServerlessProtocol(t *testing.T) awsServerlessProtocol {
+	server := providerserver.NewProtocol6(New("test")())()
+	schemaResp, err := server.GetProviderSchema(context.Background(), &tfprotov6.GetProviderSchemaRequest{})
+	require.NoError(t, err)
+	s := schemaResp.ResourceSchemas[awsServerlessTypeName]
+	require.NotNil(t, s)
+	return awsServerlessProtocol{server: server, schema: s, typ: s.ValueType()}
+}
+
+// plan plans the configuration attrs against prior and returns the planned
+// state and the attributes that force a new integration.
+func (p awsServerlessProtocol) plan(t *testing.T, prior tftypes.Value, attrs map[string]any) (tftypes.Value, []string) {
+	configJSON, err := json.Marshal(attrs)
+	require.NoError(t, err)
+	config, err := (&tfprotov6.RawState{JSON: configJSON}).Unmarshal(p.typ)
+	require.NoError(t, err)
+	resp, err := p.server.PlanResourceChange(context.Background(), &tfprotov6.PlanResourceChangeRequest{
+		TypeName:         awsServerlessTypeName,
+		PriorState:       dynamicValue(t, p.typ, prior),
+		ProposedNewState: dynamicValue(t, p.typ, proposedNewState(t, p.schema, prior, config)),
+		Config:           dynamicValue(t, p.typ, config),
+	})
+	require.NoError(t, err)
+	require.Empty(t, resp.Diagnostics)
+	planned, err := resp.PlannedState.Unmarshal(p.typ)
+	require.NoError(t, err)
+	replaced := []string{}
+	for _, path := range resp.RequiresReplace {
+		replaced = append(replaced, string(path.Steps()[0].(tftypes.AttributeName)))
+	}
+	return planned, replaced
+}
+
+// stateOf is the state the resource would store for model.
+func (p awsServerlessProtocol) stateOf(t *testing.T, model integrationAwsServerlessResourceModel) tftypes.Value {
+	var schemaResp fwresource.SchemaResponse
+	(&integrationAwsServerlessResource{}).Schema(context.Background(), fwresource.SchemaRequest{}, &schemaResp)
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(p.typ, nil)}
+	require.Empty(t, state.Set(context.Background(), &model))
+	return state.Raw
 }
 
 // proposedNewState is what Terraform proposes before the provider plans: the
