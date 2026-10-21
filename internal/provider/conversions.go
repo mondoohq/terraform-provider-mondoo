@@ -71,3 +71,14 @@ func OptionalString(v types.String) *mondoov1.String {
 	}
 	return mondoov1.NewStringPtr(mondoov1.String(v.ValueString()))
 }
+
+// OptionalBool maps an optional bool attribute to its API input: nil when the
+// attribute is not set in the configuration (null or unknown), so the field is
+// omitted from the request and the API applies its own default. An explicit
+// false is still sent.
+func OptionalBool(v types.Bool) *mondoov1.Boolean {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return mondoov1.NewBooleanPtr(mondoov1.Boolean(v.ValueBool()))
+}

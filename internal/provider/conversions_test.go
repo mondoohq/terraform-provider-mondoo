@@ -143,3 +143,14 @@ func TestOptionalString(t *testing.T) {
 		assert.Equal(t, mondoov1.String("//captain.api.mondoo.app/credentials/c1"), *v)
 	}
 }
+
+func TestOptionalBool(t *testing.T) {
+	assert.Nil(t, OptionalBool(types.BoolNull()), "null is omitted")
+	assert.Nil(t, OptionalBool(types.BoolUnknown()), "unknown is omitted")
+	if v := OptionalBool(types.BoolValue(false)); assert.NotNil(t, v) {
+		assert.Equal(t, mondoov1.Boolean(false), *v, "an explicit false is still sent")
+	}
+	if v := OptionalBool(types.BoolValue(true)); assert.NotNil(t, v) {
+		assert.Equal(t, mondoov1.Boolean(true), *v)
+	}
+}

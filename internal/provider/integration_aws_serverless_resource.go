@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -38,7 +39,8 @@ type integrationAwsServerlessResource struct {
 
 type integrationAwsServerlessResourceModel struct {
 	// scope
-	SpaceID types.String `tfsdk:"space_id"`
+	SpaceID  types.String `tfsdk:"space_id"`
+	ScopeMrn types.String `tfsdk:"scope_mrn"`
 
 	// integration details
 	Mrn   types.String `tfsdk:"mrn"`
@@ -58,6 +60,13 @@ type integrationAwsServerlessResourceModel struct {
 	AccountIDs types.List `tfsdk:"account_ids"`
 	// (Optional.)
 	IsOrganization types.Bool `tfsdk:"is_organization"`
+
+	// (Optional.) When true, the Lambda authenticates to Mondoo with Workload
+	// Identity Federation instead of the token. Immutable after creation.
+	UseWif types.Bool `tfsdk:"use_wif"`
+	// (Optional.) The AWS account the Lambda is deployed in; the WIF binding's
+	// subject. Required with use_wif, rejected without it. Immutable after creation.
+	AwsAccountID types.String `tfsdk:"aws_account_id"`
 
 	// (Optional.)
 	ConsoleSignInTrigger types.Bool `tfsdk:"console_sign_in_trigger"`
@@ -82,6 +91,54 @@ type ScanConfigurationInput struct {
 	Ec2ScanOptions *Ec2ScanOptionsInput `tfsdk:"ec2_scan_options"`
 	// (Optional.)
 	VpcConfiguration *VPCConfigurationInput `tfsdk:"vpc_configuration"`
+	// (Optional.)
+	CrossAccountScan types.Bool `tfsdk:"cross_account_scan"`
+	// (Optional.)
+	CrossAccountScanOptions *CrossAccountScanOptionsInput `tfsdk:"cross_account_scan_options"`
+	// (Optional.)
+	PropagateAccountTags types.Bool `tfsdk:"propagate_account_tags"`
+}
+
+type CrossAccountScanOptionsInput struct {
+	// (Optional.)
+	RoleName types.String `tfsdk:"role_name"`
+	// (Optional.)
+	AccountIDs types.List `tfsdk:"account_ids"`
+	// (Optional.)
+	AccountTags []AccountTagInput `tfsdk:"account_tags"`
+	// (Optional.)
+	EbsVolumeScan types.Bool `tfsdk:"ebs_volume_scan"`
+}
+
+type AccountTagInput struct {
+	// (Required.)
+	Key types.String `tfsdk:"key"`
+	// (Required.)
+	Value types.String `tfsdk:"value"`
+}
+
+// input maps the cross-account options to their API input. Unset attributes
+// are omitted, so the API applies its own defaults.
+func (o *CrossAccountScanOptionsInput) input() *mondoov1.AWSCrossAccountScanOptionsInput {
+	in := &mondoov1.AWSCrossAccountScanOptionsInput{
+		RoleName:      OptionalString(o.RoleName),
+		EbsVolumeScan: OptionalBool(o.EbsVolumeScan),
+	}
+	if !o.AccountIDs.IsNull() && !o.AccountIDs.IsUnknown() {
+		accountIDs := ConvertSliceStrings(o.AccountIDs)
+		in.AccountIDs = &accountIDs
+	}
+	if o.AccountTags != nil {
+		accountTags := make([]mondoov1.TagInput, 0, len(o.AccountTags))
+		for _, tag := range o.AccountTags {
+			accountTags = append(accountTags, mondoov1.TagInput{
+				Key:   mondoov1.String(tag.Key.ValueString()),
+				Value: mondoov1.String(tag.Value.ValueString()),
+			})
+		}
+		in.AccountTags = &accountTags
+	}
+	return in
 }
 
 type VPCTagInput struct {
@@ -231,6 +288,15 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 		opts.ScanConfiguration.AccountScan = mondoov1.NewBooleanPtr(mondoov1.Boolean(accountScan.ValueBool()))
 	}
 
+	// Cross-account scanning and WIF are only sent when set, for the same reason.
+	opts.ScanConfiguration.CrossAccountScan = OptionalBool(m.ScanConfiguration.CrossAccountScan)
+	if m.ScanConfiguration.CrossAccountScanOptions != nil {
+		opts.ScanConfiguration.CrossAccountScanOptions = m.ScanConfiguration.CrossAccountScanOptions.input()
+	}
+	opts.ScanConfiguration.PropagateAccountTags = OptionalBool(m.ScanConfiguration.PropagateAccountTags)
+	opts.UseWif = OptionalBool(m.UseWif)
+	opts.AwsAccountId = OptionalString(m.AwsAccountID)
+
 	if m.ScanConfiguration.VpcConfiguration != nil {
 		useMondooVPC := m.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool()
 
@@ -270,11 +336,18 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 		MarkdownDescription: `Continuously scan AWS organizations and accounts for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used. Ignored when `scope_mrn` is set.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"scope_mrn": schema.StringAttribute{
+				MarkdownDescription: "The MRN of the scope (space or organization) the integration is created under, e.g. `//captain.api.mondoo.app/organizations/<org-id>`. Takes precedence over `space_id`. An organization-scoped integration requires `use_wif`. Immutable: changing it forces a new integration.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					scopeMrnRequiresReplace,
 				},
 			},
 			"mrn": schema.StringAttribute{
@@ -342,6 +415,49 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 					},
 					"cron_scan_in_hours": schema.Int64Attribute{
 						MarkdownDescription: "Cron scan in hours.",
+						Optional:            true,
+					},
+					"cross_account_scan": schema.BoolAttribute{
+						MarkdownDescription: "Enable cross-account scanning: the Lambda assumes `cross_account_scan_options.role_name` in each target account and scans it from the account it is deployed in.",
+						Optional:            true,
+					},
+					"cross_account_scan_options": schema.SingleNestedAttribute{
+						MarkdownDescription: "Which accounts cross-account scanning targets, and the IAM role it assumes in each.",
+						Optional:            true,
+						Attributes: map[string]schema.Attribute{
+							"role_name": schema.StringAttribute{
+								MarkdownDescription: "The IAM role the Lambda assumes in each target account.",
+								Optional:            true,
+							},
+							"account_ids": schema.ListAttribute{
+								MarkdownDescription: "The AWS account IDs to scan.",
+								Optional:            true,
+								ElementType:         types.StringType,
+							},
+							"account_tags": schema.ListNestedAttribute{
+								MarkdownDescription: "Only accounts that carry at least one of these tags are scanned. When empty, every account is scanned.",
+								Optional:            true,
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: map[string]schema.Attribute{
+										"key": schema.StringAttribute{
+											MarkdownDescription: "Tag key.",
+											Required:            true,
+										},
+										"value": schema.StringAttribute{
+											MarkdownDescription: "Tag value. `*` matches any value of the key.",
+											Required:            true,
+										},
+									},
+								},
+							},
+							"ebs_volume_scan": schema.BoolAttribute{
+								MarkdownDescription: "Scan the target accounts' EC2 instances through snapshots of their EBS volumes. Takes effect only while `cross_account_scan` and `ec2_scan_options.ebs_volume_scan` are on, and only in target accounts whose Mondoo role was deployed with the `EbsScanning` opt-in.",
+								Optional:            true,
+							},
+						},
+					},
+					"propagate_account_tags": schema.BoolAttribute{
+						MarkdownDescription: "Propagate the AWS account tags to every asset discovered in the account.",
 						Optional:            true,
 					},
 					"vpc_configuration": schema.SingleNestedAttribute{
@@ -470,6 +586,20 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 				MarkdownDescription: "Set to `true` when you deploy the CloudFormation template with a StackSet, whether it targets the whole AWS organization or only some organizational units (OUs). Mondoo then issues a `token` that never expires, so accounts that join a targeted OU later can still register. When unset or `false`, the `token` expires 30 minutes after the integration is created. Set this when you create the integration: changing it later does not replace the `token` already in the Terraform state, so recreate the integration to get a token that does not expire. Cannot be combined with `account_ids`.",
 				Optional:            true,
 			},
+			"use_wif": schema.BoolAttribute{
+				MarkdownDescription: "Authenticate the Lambda to Mondoo with Workload Identity Federation instead of the `token`. Required for an organization-scoped integration. Requires `aws_account_id`. Immutable: changing it forces a new integration.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.Bool{
+					useWifRequiresReplace,
+				},
+			},
+			"aws_account_id": schema.StringAttribute{
+				MarkdownDescription: "The AWS account the Lambda is deployed in. Required when `use_wif` is true, and only valid then. Immutable: changing it forces a new integration.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					awsAccountIDRequiresReplace,
+				},
+			},
 		},
 	}
 }
@@ -486,6 +616,9 @@ func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, re
 }
 
 func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
+	diagnostics.Append(validateIntegrationAwsServerlessWif(data)...)
+	diagnostics.Append(validateIntegrationAwsServerlessScope(data)...)
+
 	if data.ScanConfiguration.VpcConfiguration == nil {
 		return
 	}
@@ -535,6 +668,115 @@ func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerles
 	return
 }
 
+// awsIntegrationScopeMrn returns the MRN of the space or organization an AWS
+// integration lives in, or "" when mrn names neither. An AWS integration's MRN
+// carries its type where others carry "integrations",
+// //integration.api.mondoo.app/organizations/<org>/aws/<id>, which
+// Integration.ScopeMRN does not take.
+func awsIntegrationScopeMrn(mrn string) string {
+	parts := strings.Split(mrn, "/")
+	if len(parts) < 4 {
+		return ""
+	}
+	kind, id := parts[len(parts)-4], parts[len(parts)-3]
+	if id == "" {
+		return ""
+	}
+	switch kind {
+	case "spaces":
+		return spacePrefix + id
+	case "organizations":
+		return orgPrefix + id
+	}
+	return ""
+}
+
+// scopeMrnRequiresReplace replaces the integration when scope_mrn changes, as
+// an integration cannot move. Against a state without scope_mrn, it compares
+// with the scope the integration's MRN names, so that naming the scope an
+// existing integration already lives in updates it in place.
+var scopeMrnRequiresReplace = stringplanmodifier.RequiresReplaceIf(
+	func(ctx context.Context, req planmodifier.StringRequest, resp *stringplanmodifier.RequiresReplaceIfFuncResponse) {
+		current := req.StateValue.ValueString()
+		if req.StateValue.IsNull() {
+			var mrn types.String
+			resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("mrn"), &mrn)...)
+			current = awsIntegrationScopeMrn(mrn.ValueString())
+		}
+		resp.RequiresReplace = req.PlanValue.IsUnknown() || req.PlanValue.ValueString() != current
+	},
+	"Changing scope_mrn forces a new integration.",
+	"Changing `scope_mrn` forces a new integration.",
+)
+
+// useWifRequiresReplace replaces the integration when use_wif changes, as the
+// API rejects the change. Unset and false are the same integration, so adding
+// use_wif = false to one created without it updates it in place.
+var useWifRequiresReplace = boolplanmodifier.RequiresReplaceIf(
+	func(_ context.Context, req planmodifier.BoolRequest, resp *boolplanmodifier.RequiresReplaceIfFuncResponse) {
+		resp.RequiresReplace = req.PlanValue.IsUnknown() || req.PlanValue.ValueBool() != req.StateValue.ValueBool()
+	},
+	"Changing use_wif forces a new integration; unset and false are the same.",
+	"Changing `use_wif` forces a new integration; unset and `false` are the same.",
+)
+
+// awsAccountIDRequiresReplace replaces the integration when aws_account_id
+// changes, as the API rejects the change. Unset and empty are the same.
+var awsAccountIDRequiresReplace = stringplanmodifier.RequiresReplaceIf(
+	func(_ context.Context, req planmodifier.StringRequest, resp *stringplanmodifier.RequiresReplaceIfFuncResponse) {
+		resp.RequiresReplace = req.PlanValue.IsUnknown() || req.PlanValue.ValueString() != req.StateValue.ValueString()
+	},
+	"Changing aws_account_id forces a new integration.",
+	"Changing `aws_account_id` forces a new integration.",
+)
+
+// validateIntegrationAwsServerlessScope warns when scope_mrn and space_id name
+// different scopes: scope_mrn takes precedence, so space_id is ignored. Both
+// naming the same space is fine. Values not known yet are skipped.
+func validateIntegrationAwsServerlessScope(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
+	if data.ScopeMrn.IsNull() || data.ScopeMrn.IsUnknown() || data.SpaceID.IsNull() || data.SpaceID.IsUnknown() {
+		return
+	}
+	if data.ScopeMrn.ValueString() != SpaceFrom(data.SpaceID.ValueString()).MRN() {
+		diagnostics.AddAttributeWarning(path.Root("space_id"),
+			"Attribute space_id is ignored",
+			fmt.Sprintf("scope_mrn takes precedence over space_id: the integration is created under %s, not in space %s.",
+				data.ScopeMrn.ValueString(), data.SpaceID.ValueString()),
+		)
+	}
+	return
+}
+
+// validateIntegrationAwsServerlessWif checks the WIF preconditions the API
+// enforces, so they fail at plan time rather than at apply: use_wif goes with
+// aws_account_id, and an organization-scoped integration requires use_wif.
+// Values not known yet are skipped.
+func validateIntegrationAwsServerlessWif(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
+	if data.UseWif.IsUnknown() || data.AwsAccountID.IsUnknown() {
+		return
+	}
+	useWif := data.UseWif.ValueBool()
+	if useWif && data.AwsAccountID.ValueString() == "" {
+		diagnostics.AddAttributeError(path.Root("aws_account_id"),
+			"MissingAttributeError",
+			"Attribute aws_account_id must not be empty when use_wif is set to true.",
+		)
+	}
+	if !useWif && data.AwsAccountID.ValueString() != "" {
+		diagnostics.AddAttributeError(path.Root("aws_account_id"),
+			"ConflictingAttributesError",
+			"Attribute aws_account_id is only valid when use_wif is set to true.",
+		)
+	}
+	if !useWif && !data.ScopeMrn.IsUnknown() && strings.HasPrefix(data.ScopeMrn.ValueString(), orgPrefix) {
+		diagnostics.AddAttributeError(path.Root("use_wif"),
+			"MissingAttributeError",
+			"Attribute use_wif must be set to true for an organization-scoped integration (scope_mrn is an organization).",
+		)
+	}
+	return
+}
+
 func (r *integrationAwsServerlessResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
@@ -565,14 +807,6 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
-	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
-
 	// Do GraphQL request to API to create the resource.
 	var accountIDs []mondoov1.String
 	accountIds, _ := data.AccountIDs.ToListValue(context.Background())
@@ -587,14 +821,37 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
-		data.Name.ValueString(),
-		mondoov1.ClientIntegrationTypeAws,
-		mondoov1.ClientIntegrationConfigurationInput{
-			AwsConfigurationOptions: data.GetConfigurationOptions(),
-		})
+	configInput := mondoov1.ClientIntegrationConfigurationInput{
+		AwsConfigurationOptions: data.GetConfigurationOptions(),
+	}
+
+	// scope_mrn (a space or an organization) takes precedence; otherwise the
+	// space is space_id or the provider space, as before scope_mrn existed.
+	var integration *CreateClientIntegrationPayload
+	var err error
+	if scopeMrn := data.ScopeMrn.ValueString(); scopeMrn != "" {
+		ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
+		tflog.Debug(ctx, "Creating integration")
+		integration, err = r.client.CreateScopedIntegration(ctx,
+			scopeMrn,
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeAws,
+			configInput)
+	} else {
+		var space Space
+		if space, err = r.client.ComputeSpace(data.SpaceID); err != nil {
+			resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+			return
+		}
+		data.SpaceID = types.StringValue(space.ID())
+		ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+		tflog.Debug(ctx, "Creating integration")
+		integration, err = r.client.CreateIntegration(ctx,
+			space.MRN(),
+			data.Name.ValueString(),
+			mondoov1.ClientIntegrationTypeAws,
+			configInput)
+	}
 	if err != nil {
 		resp.Diagnostics.
 			AddError("Client Error",
@@ -603,11 +860,19 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	// Save space mrn into the Terraform state.
+	// space_id is computed: left out of the configuration, it names the space
+	// the integration landed in, if any.
+	if data.SpaceID.IsUnknown() {
+		data.SpaceID = types.StringNull()
+		if created := (Integration{Mrn: string(integration.Mrn)}); created.IsSpaceScoped() {
+			data.SpaceID = types.StringValue(created.SpaceID())
+		}
+	}
+
+	// Save the integration into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
 	data.Token = types.StringValue(string(integration.Token))
-	data.SpaceID = types.StringValue(space.ID())
 
 	// The create payload carries no configuration options, so read the
 	// integration back for the server-computed CloudFormation inputs.
@@ -753,9 +1018,13 @@ func (r *integrationAwsServerlessResource) ImportState(ctx context.Context, req 
 	}
 
 	model := integrationAwsServerlessResourceModel{
-		Mrn:     types.StringValue(integration.Mrn),
-		Name:    types.StringValue(integration.Name),
-		SpaceID: types.StringValue(integration.SpaceID()),
+		Mrn:  types.StringValue(integration.Mrn),
+		Name: types.StringValue(integration.Name),
+	}
+	if integration.IsSpaceScoped() {
+		model.SpaceID = types.StringValue(integration.SpaceID())
+	} else {
+		model.ScopeMrn = types.StringValue(awsIntegrationScopeMrn(integration.Mrn))
 	}
 
 	resp.State.Set(ctx, &model)

@@ -61,3 +61,28 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 # and accounts that join a targeted OU later fail to register
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudformation_stack_set_instance
+
+# Cross-account scanning: the Lambda in this account assumes a role in each
+# target account and scans it. Organization-scoped, so assets land in the
+# organization's spaces by its asset routing rules; that requires Workload
+# Identity Federation, so the stack takes the MondooWifConfig parameter in
+# place of MondooToken.
+resource "mondoo_integration_aws_serverless" "cross_account" {
+  name           = "AWS cross-account"
+  scope_mrn      = "//captain.api.mondoo.app/organizations/your-org-id"
+  region         = data.aws_region.current.region
+  use_wif        = true
+  aws_account_id = var.aws_account_id
+  scan_configuration = {
+    cross_account_scan     = true
+    propagate_account_tags = true
+    cross_account_scan_options = {
+      role_name       = "MondooCrossAccountScan"
+      account_tags    = [{ key = "mondoo-scan", value = "*" }]
+      ebs_volume_scan = true
+    }
+    ec2_scan_options = {
+      ebs_volume_scan = true
+    }
+  }
+}
