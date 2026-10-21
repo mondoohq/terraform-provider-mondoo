@@ -925,6 +925,16 @@ type AWSConfigurationOptions struct {
 	SourceBucket string `graphql:"sourceBucket"`
 	// The CloudFormation template URL, served out of the same bucket.
 	CloudFormationTemplateUrl string `graphql:"cloudFormationTemplateUrl"`
+	// Whether the Lambda authenticates with Workload Identity Federation, and
+	// the AWS account it is deployed in when it does. Neither can change after
+	// creation, so an import must take them over. useWif is aliased: the GCP
+	// serverless options select a nullable useWif in the same query, and
+	// GraphQL rejects two unaliased fields of one name with different types.
+	UseWif       bool   `graphql:"awsUseWif: useWif"`
+	AwsAccountId string `graphql:"awsAccountId"`
+	// The CloudFormation console link to deploy the stack. For a WIF
+	// integration it carries the stack's MondooWifConfig parameter.
+	CloudFormationQuickcreateUrl string `graphql:"cloudFormationQuickcreateUrl"`
 }
 
 type HostedAwsConfigurationOptions struct {
