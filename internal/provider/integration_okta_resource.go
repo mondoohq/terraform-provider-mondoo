@@ -111,6 +111,7 @@ func (r *integrationOktaResource) Schema(_ context.Context, _ resource.SchemaReq
 			"token": schema.StringAttribute{
 				MarkdownDescription: "The Okta Token",
 				Optional:            true,
+				Sensitive:           true,
 			},
 		},
 	}

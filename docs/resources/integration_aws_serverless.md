@@ -100,7 +100,7 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 - `cloud_formation_template_url` (String) The CloudFormation template URL for the integration's region (populated by Mondoo after creation). Use it as the `template_url` of the `aws_cloudformation_stack` resource.
 - `mrn` (String) Integration identifier.
 - `source_bucket` (String) The S3 bucket the Lambda code is published to for the integration's region (populated by Mondoo after creation). Pass it as the `MondooSourceBucket` parameter of the `aws_cloudformation_stack` resource.
-- `token` (String) Registration token for the integration. Pass it as the `MondooToken` parameter of the CloudFormation stack or StackSet; a separate `mondoo_registration_token` is not needed. The Mondoo Lambda exchanges it once per account, when the stack is created, for service account credentials that do not expire. The token expires 30 minutes after the integration is created, unless `is_organization` is `true`, in which case it never expires.
+- `token` (String, Sensitive) Registration token for the integration. Pass it as the `MondooToken` parameter of the CloudFormation stack or StackSet; a separate `mondoo_registration_token` is not needed. The Mondoo Lambda exchanges it once per account, when the stack is created, for service account credentials that do not expire. The token expires 30 minutes after the integration is created, unless `is_organization` is `true`, in which case it never expires.
 
 <a id="nestedatt--scan_configuration"></a>
 ### Nested Schema for `scan_configuration`
