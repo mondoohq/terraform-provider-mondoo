@@ -426,8 +426,11 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"role_name": schema.StringAttribute{
-								MarkdownDescription: "The IAM role the Lambda assumes in each target account.",
+								MarkdownDescription: "The IAM role the Lambda assumes in each target account. Set it when you create the integration: once the integration has a role name, Mondoo keeps the one the deployed CloudFormation stack reports (its `CrossAccountScanRoleName` parameter), so change it there. Changing it here afterwards only warns.",
 								Optional:            true,
+								PlanModifiers: []planmodifier.String{
+									roleNameSyncedFromStack{},
+								},
 							},
 							"account_ids": schema.ListAttribute{
 								MarkdownDescription: "The AWS account IDs to scan.",
@@ -708,6 +711,32 @@ var scopeMrnRequiresReplace = stringplanmodifier.RequiresReplaceIf(
 	"Changing scope_mrn forces a new integration.",
 	"Changing `scope_mrn` forces a new integration.",
 )
+
+// roleNameSyncedFromStack warns when role_name changes on an existing
+// integration. Once the integration has a role name, Mondoo keeps the one the
+// deployed CloudFormation stack reports and keeps it across updates, so the
+// change would update the state and nothing else.
+type roleNameSyncedFromStack struct{}
+
+func (roleNameSyncedFromStack) Description(context.Context) string {
+	return "Warns that changing role_name on an existing integration is not applied once it has one."
+}
+
+func (m roleNameSyncedFromStack) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (roleNameSyncedFromStack) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.State.Raw.IsNull() || req.PlanValue.IsNull() || req.PlanValue.IsUnknown() || req.PlanValue.Equal(req.StateValue) {
+		return
+	}
+	resp.Diagnostics.AddAttributeWarning(req.Path,
+		"Changing role_name is not applied",
+		"Once an integration has a cross-account role name, Mondoo keeps the one the deployed CloudFormation stack reports "+
+			"(its CrossAccountScanRoleName parameter) and keeps it across updates. Change the role name in the stack; "+
+			"this change only updates the Terraform state.",
+	)
+}
 
 // useWifRequiresReplace replaces the integration when use_wif changes, as the
 // API rejects the change. Unset and false are the same integration, so adding

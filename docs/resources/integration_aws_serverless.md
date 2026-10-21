@@ -184,7 +184,7 @@ Optional:
 - `account_ids` (List of String) The AWS account IDs to scan.
 - `account_tags` (Attributes List) Only accounts that carry at least one of these tags are scanned. When empty, every account is scanned. (see [below for nested schema](#nestedatt--scan_configuration--cross_account_scan_options--account_tags))
 - `ebs_volume_scan` (Boolean) Scan the target accounts' EC2 instances through snapshots of their EBS volumes. Takes effect only while `cross_account_scan` and `ec2_scan_options.ebs_volume_scan` are on, and only in target accounts whose Mondoo role was deployed with the `EbsScanning` opt-in.
-- `role_name` (String) The IAM role the Lambda assumes in each target account.
+- `role_name` (String) The IAM role the Lambda assumes in each target account. Set it when you create the integration: once the integration has a role name, Mondoo keeps the one the deployed CloudFormation stack reports (its `CrossAccountScanRoleName` parameter), so change it there. Changing it here afterwards only warns.
 
 <a id="nestedatt--scan_configuration--cross_account_scan_options--account_tags"></a>
 ### Nested Schema for `scan_configuration.cross_account_scan_options.account_tags`

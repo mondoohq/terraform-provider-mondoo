@@ -505,7 +505,10 @@ func (p awsServerlessProtocol) plan(t *testing.T, prior tftypes.Value, attrs map
 		Config:           dynamicValue(t, p.typ, config),
 	})
 	require.NoError(t, err)
-	require.Empty(t, resp.Diagnostics)
+	// Warnings are fine: setting role_name on an existing integration warns.
+	for _, d := range resp.Diagnostics {
+		require.NotEqual(t, tfprotov6.DiagnosticSeverityError, d.Severity, "%s: %s", d.Summary, d.Detail)
+	}
 	planned, err := resp.PlannedState.Unmarshal(p.typ)
 	require.NoError(t, err)
 	replaced := []string{}
@@ -591,6 +594,35 @@ func TestIntegrationAwsServerlessScopeMrnRequiresReplace(t *testing.T) {
 			scopeMrnRequiresReplace.PlanModifyString(context.Background(), req, resp)
 			assert.False(t, resp.Diagnostics.HasError(), "%v", resp.Diagnostics)
 			assert.Equal(t, tc.replace, resp.RequiresReplace)
+		})
+	}
+}
+
+func TestIntegrationAwsServerlessRoleNameSyncedFromStack(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		state, plan types.String
+		created     bool
+		warning     bool
+	}{
+		{name: "set at creation", state: types.StringNull(), plan: types.StringValue("MondooCrossAccountScan"), created: true},
+		{name: "unchanged", state: types.StringValue("MondooCrossAccountScan"), plan: types.StringValue("MondooCrossAccountScan")},
+		{name: "changed", state: types.StringValue("MondooCrossAccountScan"), plan: types.StringValue("MondooScan"), warning: true},
+		{name: "first set on an existing integration", state: types.StringNull(), plan: types.StringValue("MondooScan"), warning: true},
+		{name: "removed", state: types.StringValue("MondooCrossAccountScan"), plan: types.StringNull()},
+		{name: "not known yet", state: types.StringValue("MondooCrossAccountScan"), plan: types.StringUnknown()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			state, plan := replaceCheckState("//integration.api.mondoo.app/spaces/space-1/aws/int-1")
+			if tc.created {
+				state.Raw = tftypes.NewValue(state.Raw.Type(), nil)
+			}
+			req := planmodifier.StringRequest{State: state, Plan: plan, StateValue: tc.state, PlanValue: tc.plan, ConfigValue: tc.plan}
+			resp := &planmodifier.StringResponse{PlanValue: tc.plan}
+			roleNameSyncedFromStack{}.PlanModifyString(context.Background(), req, resp)
+			assert.False(t, resp.Diagnostics.HasError())
+			assert.Equal(t, tc.warning, resp.Diagnostics.WarningsCount() == 1, "%v", resp.Diagnostics)
+			assert.Equal(t, tc.plan, resp.PlanValue, "the plan is left as is")
 		})
 	}
 }
