@@ -103,7 +103,6 @@ func (r *integrationOktaResource) Schema(_ context.Context, _ resource.SchemaReq
 			"credential_mrn": schema.StringAttribute{
 				MarkdownDescription: "The Okta CredentialMrn",
 				Optional:            true,
-				Sensitive:           true,
 			},
 			"organization": schema.StringAttribute{
 				MarkdownDescription: "The Okta Organization",

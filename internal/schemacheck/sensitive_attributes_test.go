@@ -1,14 +1,10 @@
 // Copyright Mondoo, Inc. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-// Package schemacheck holds offline checks over the provider schema. It lives
-// outside internal/provider because that package's TestMain needs a Mondoo
-// service account, and these checks must run without one.
 package schemacheck
 
 import (
 	"context"
-	"regexp"
 	"sort"
 	"testing"
 
@@ -17,12 +13,7 @@ import (
 	"go.mondoo.com/terraform-provider-mondoo/internal/provider"
 )
 
-// credentialAttributeName matches attribute names that carry secret material.
-// It is anchored at the end so that identifiers such as service_account_email
-// or wif_auth_binding_mrn do not match.
-var credentialAttributeName = regexp.MustCompile(`(^|_)(token|secret|password|passphrase|credentials?|certificate|pem_file|service_account(_json)?|(private|secret|access|api|service_account)_key)$`)
-
-// notSecret lists attributes whose name matches credentialAttributeName but
+// notSecret lists attributes whose name matches IsCredentialName but
 // which hold no secret material. Keys are "<schema>.<attribute path>"; values
 // say why the attribute is safe to render.
 var notSecret = map[string]string{}
@@ -81,7 +72,7 @@ func unmarkedCredentials(path string, attrs []*tfprotov6.SchemaAttribute, inheri
 			missing = append(missing, unmarkedCredentials(attrPath, attr.NestedType.Attributes, sensitive)...)
 			continue
 		}
-		if sensitive || !credentialAttributeName.MatchString(attr.Name) {
+		if sensitive || !IsCredentialName(attr.Name) {
 			continue
 		}
 		if _, ok := notSecret[attrPath]; ok {
