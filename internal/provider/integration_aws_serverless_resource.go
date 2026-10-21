@@ -7,10 +7,12 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -611,6 +613,10 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					awsAccountIDRequiresReplace,
+				},
+				Validators: []validator.String{
+					// The WIF binding's subject: a typo makes an integration whose Lambda can never authenticate.
+					stringvalidator.RegexMatches(regexp.MustCompile(`^\d{12}$`), "must be a 12-digit AWS account ID"),
 				},
 			},
 		},

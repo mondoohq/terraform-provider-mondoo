@@ -473,6 +473,51 @@ func TestImportedAwsServerlessModel(t *testing.T) {
 	}
 }
 
+func TestIntegrationAwsServerlessAwsAccountIDIsAnAccount(t *testing.T) {
+	p := newAwsServerlessProtocol(t)
+	for _, tc := range []struct {
+		accountID string
+		valid     bool
+	}{
+		{accountID: "111111111111", valid: true},
+		{accountID: "11111111111"},
+		{accountID: "1111111111111"},
+		{accountID: "11111111111a"},
+		{accountID: " 111111111111"},
+	} {
+		t.Run(tc.accountID, func(t *testing.T) {
+			configJSON, err := json.Marshal(map[string]any{
+				"name":               "one",
+				"region":             "us-east-1",
+				"use_wif":            true,
+				"aws_account_id":     tc.accountID,
+				"scan_configuration": map[string]any{"ec2_scan_options": map[string]any{}},
+			})
+			require.NoError(t, err)
+			config, err := (&tfprotov6.RawState{JSON: configJSON}).Unmarshal(p.typ)
+			require.NoError(t, err)
+			resp, err := p.server.ValidateResourceConfig(context.Background(), &tfprotov6.ValidateResourceConfigRequest{
+				TypeName: awsServerlessTypeName,
+				Config:   dynamicValue(t, p.typ, config),
+			})
+			require.NoError(t, err)
+			errs := []string{}
+			for _, d := range resp.Diagnostics {
+				if d.Severity == tfprotov6.DiagnosticSeverityError {
+					errs = append(errs, d.Detail)
+				}
+			}
+			if tc.valid {
+				assert.Empty(t, errs)
+				return
+			}
+			if assert.Len(t, errs, 1) {
+				assert.Contains(t, errs[0], "must be a 12-digit AWS account ID")
+			}
+		})
+	}
+}
+
 const awsServerlessTypeName = "mondoo_integration_aws_serverless"
 
 // awsServerlessProtocol drives the resource through the provider's own protocol
