@@ -41,7 +41,7 @@ func TestCredentialAttributesAreSensitive(t *testing.T) {
 		if s == nil || s.Block == nil {
 			return
 		}
-		missing = append(missing, unmarkedCredentials(schemaName, s.Block.Attributes, false)...)
+		missing = append(missing, unmarkedBlockCredentials(schemaName, s.Block)...)
 	}
 
 	check("provider", resp.Provider)
@@ -59,6 +59,16 @@ func TestCredentialAttributesAreSensitive(t *testing.T) {
 	for _, path := range missing {
 		t.Errorf("%s looks like a credential but is not marked Sensitive; set Sensitive: true, or add it to notSecret with a reason", path)
 	}
+}
+
+// unmarkedBlockCredentials applies unmarkedCredentials to a block and to every
+// block nested in it. A block cannot be Sensitive, so nothing is inherited.
+func unmarkedBlockCredentials(path string, block *tfprotov6.SchemaBlock) []string {
+	missing := unmarkedCredentials(path, block.Attributes, false)
+	for _, nested := range block.BlockTypes {
+		missing = append(missing, unmarkedBlockCredentials(path+"."+nested.TypeName, nested.Block)...)
+	}
+	return missing
 }
 
 // unmarkedCredentials returns the paths of credential-named leaf attributes
