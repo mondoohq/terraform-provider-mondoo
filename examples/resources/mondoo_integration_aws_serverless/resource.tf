@@ -65,8 +65,8 @@ resource "aws_cloudformation_stack" "mondoo_stack" {
 # Cross-account scanning: the Lambda in this account assumes a role in each
 # target account and scans it. Organization-scoped, so assets land in the
 # organization's spaces by its asset routing rules; that requires Workload
-# Identity Federation, so the stack takes the MondooWifConfig parameter in
-# place of MondooToken.
+# Identity Federation, so the stack below takes the MondooWifConfig parameter
+# in place of MondooToken.
 resource "mondoo_integration_aws_serverless" "cross_account" {
   name           = "AWS cross-account"
   scope_mrn      = "//captain.api.mondoo.app/organizations/your-org-id"
@@ -84,5 +84,19 @@ resource "mondoo_integration_aws_serverless" "cross_account" {
     ec2_scan_options = {
       ebs_volume_scan = true
     }
+  }
+}
+
+# The stack for the cross-account integration. CrossAccountScanRoleName must
+# match role_name above; once deployed, the stack is where it changes.
+resource "aws_cloudformation_stack" "mondoo_cross_account_stack" {
+  name         = "mondoo-cross-account"
+  template_url = mondoo_integration_aws_serverless.cross_account.cloud_formation_template_url
+  capabilities = ["CAPABILITY_NAMED_IAM"]
+  parameters = {
+    MondooIntegrationMrn     = mondoo_integration_aws_serverless.cross_account.mrn
+    MondooWifConfig          = mondoo_integration_aws_serverless.cross_account.wif_config
+    MondooSourceBucket       = mondoo_integration_aws_serverless.cross_account.source_bucket
+    CrossAccountScanRoleName = "MondooCrossAccountScan"
   }
 }

@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -52,6 +53,8 @@ type integrationAwsServerlessResourceModel struct {
 	// MondooSourceBucket parameter the template requires.
 	SourceBucket              types.String `tfsdk:"source_bucket"`
 	CloudFormationTemplateUrl types.String `tfsdk:"cloud_formation_template_url"`
+	// The stack's MondooWifConfig parameter, for a WIF integration.
+	WifConfig types.String `tfsdk:"wif_config"`
 
 	Region            types.String           `tfsdk:"region"`
 	ScanConfiguration ScanConfigurationInput `tfsdk:"scan_configuration"`
@@ -367,6 +370,13 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			"source_bucket": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The S3 bucket the Lambda code is published to for the integration's region (populated by Mondoo after creation). Pass it as the `MondooSourceBucket` parameter of the `aws_cloudformation_stack` resource.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"wif_config": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "For an integration with `use_wif`, how its Lambda authenticates to Mondoo (populated by Mondoo after creation). Pass it as the `MondooWifConfig` parameter of the `aws_cloudformation_stack` resource, in place of `MondooToken`. Unset for an integration without WIF.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -929,10 +939,41 @@ func (r *integrationAwsServerlessResource) refreshComputed(ctx context.Context, 
 }
 
 // setComputedFrom copies the server-computed CloudFormation inputs into the model.
+// wif_config cannot change once known, as neither use_wif nor the scope can;
+// it is only filled in. The server may hand back the link without it when it
+// cannot reach the binding for a moment; that leaves wif_config as it was.
 func (m *integrationAwsServerlessResourceModel) setComputedFrom(integration Integration) {
 	opts := integration.ConfigurationOptions.AWSConfigurationOptions
 	m.SourceBucket = types.StringValue(opts.SourceBucket)
 	m.CloudFormationTemplateUrl = types.StringValue(opts.CloudFormationTemplateUrl)
+	if !m.WifConfig.IsUnknown() && !m.WifConfig.IsNull() {
+		return
+	}
+	if wifConfig := wifConfigFromQuickcreateUrl(opts.CloudFormationQuickcreateUrl); wifConfig != "" {
+		m.WifConfig = types.StringValue(wifConfig)
+	} else {
+		m.WifConfig = types.StringNull()
+	}
+}
+
+// wifConfigFromQuickcreateUrl returns the MondooWifConfig parameter of a
+// CloudFormation quickcreate link, or "" when it carries none. The parameters
+// are the query of the link's fragment, #/stacks/quickcreate?...; the value is
+// base64, query-escaped.
+func wifConfigFromQuickcreateUrl(quickcreateUrl string) string {
+	u, err := url.Parse(quickcreateUrl)
+	if err != nil {
+		return ""
+	}
+	_, query, ok := strings.Cut(u.EscapedFragment(), "?")
+	if !ok {
+		return ""
+	}
+	params, err := url.ParseQuery(query)
+	if err != nil {
+		return ""
+	}
+	return params.Get("param_MondooWifConfig")
 }
 
 func (r *integrationAwsServerlessResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -1010,8 +1051,11 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 	}
 
 	// The server recomputes the CloudFormation inputs from the region, so a
-	// region change would otherwise leave stale values in state.
+	// region change would otherwise leave stale values in state. wif_config
+	// cannot change in an update; it stays as planned.
+	wifConfig := data.WifConfig
 	r.refreshComputed(ctx, &data, "updated", &resp.Diagnostics)
+	data.WifConfig = wifConfig
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

@@ -930,6 +930,9 @@ type AWSConfigurationOptions struct {
 	// creation, so an import must take them over.
 	UseWif       bool   `graphql:"useWif"`
 	AwsAccountId string `graphql:"awsAccountId"`
+	// The CloudFormation console link to deploy the stack. For a WIF
+	// integration it carries the stack's MondooWifConfig parameter.
+	CloudFormationQuickcreateUrl string `graphql:"cloudFormationQuickcreateUrl"`
 }
 
 type HostedAwsConfigurationOptions struct {

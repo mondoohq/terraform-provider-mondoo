@@ -6,6 +6,8 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
@@ -547,6 +549,54 @@ func dynamicValue(t *testing.T, typ tftypes.Type, v tftypes.Value) *tfprotov6.Dy
 	dv, err := tfprotov6.NewDynamicValue(typ, v)
 	require.NoError(t, err)
 	return &dv
+}
+
+// quickcreateUrl builds a CloudFormation quickcreate link the way the server
+// does: the parameters are the query of the fragment, each value query-escaped.
+func quickcreateUrl(params ...string) string {
+	return "https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?" +
+		strings.Join(append([]string{"templateURL=" + url.QueryEscape("https://example.invalid/template.json"), "stackName=mondoo"}, params...), "&")
+}
+
+func TestWifConfigFromQuickcreateUrl(t *testing.T) {
+	// Base64 with the characters query escaping changes: + / =
+	const wifConfig = "eyJ0eXBlIjoiZXh0ZXJuYWxfYWNjb3VudCJ9+abc/def=="
+	for _, tc := range []struct{ name, link, want string }{
+		{name: "a WIF integration's link", link: quickcreateUrl("param_MondooWifConfig="+url.QueryEscape(wifConfig), "param_MondooIntegrationMrn=mrn"), want: wifConfig},
+		{name: "a token integration's link", link: quickcreateUrl("param_MondooIntegrationMrn=mrn", "param_MondooToken=")},
+		{name: "a link without parameters", link: "https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate"},
+		{name: "not a link", link: "%zz"},
+		{name: "empty", link: ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, wifConfigFromQuickcreateUrl(tc.link))
+		})
+	}
+}
+
+func TestIntegrationAwsServerlessSetComputedFrom_WifConfig(t *testing.T) {
+	withWif := quickcreateUrl("param_MondooWifConfig=" + url.QueryEscape("config"))
+	withoutWif := quickcreateUrl("param_MondooToken=")
+	for _, tc := range []struct {
+		name   string
+		before types.String
+		link   string
+		want   types.String
+	}{
+		{name: "created with WIF", before: types.StringUnknown(), link: withWif, want: types.StringValue("config")},
+		{name: "created without WIF", before: types.StringUnknown(), link: withoutWif, want: types.StringNull()},
+		{name: "a refresh fills it in", before: types.StringNull(), link: withWif, want: types.StringValue("config")},
+		{name: "a link that lost it leaves it as it was", before: types.StringValue("config"), link: withoutWif, want: types.StringValue("config")},
+		{name: "once known it stays", before: types.StringValue("config"), link: quickcreateUrl("param_MondooWifConfig=other"), want: types.StringValue("config")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := integrationAwsServerlessResourceModel{WifConfig: tc.before}
+			m.setComputedFrom(Integration{ConfigurationOptions: ClientIntegrationConfigurationOptions{
+				AWSConfigurationOptions: AWSConfigurationOptions{CloudFormationQuickcreateUrl: tc.link},
+			}})
+			assert.Equal(t, tc.want, m.WifConfig)
+		})
+	}
 }
 
 func TestAwsIntegrationScopeMrn(t *testing.T) {
