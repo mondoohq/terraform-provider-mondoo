@@ -18,6 +18,7 @@ import (
 
 	"github.com/go-viper/mapstructure/v2"
 	mondoov1 "go.mondoo.com/mondoo-go"
+	"go.mondoo.com/terraform-provider-mondoo/internal/schemacheck"
 )
 
 func main() {
@@ -81,10 +82,24 @@ func (f Field) ConfigurationOption(name string) string {
 	return "\"unimplemented: check gen/gen.go\""
 }
 
-// Check if a field name indicates it contains sensitive data.
+// isSensitiveField reports whether Terraform should hide the field in plan and
+// apply output. It shares its rule with the schemacheck test.
 func isSensitiveField(fieldName string) bool {
+	return schemacheck.IsCredentialName(toSnakeCase(fieldName))
+}
+
+// isWriteOnlyField reports whether the API does not return the field when an
+// integration is read back, so it is left out of the import query and left
+// empty on import. The match is deliberately broader than isSensitiveField:
+// a false positive only leaves a value empty after import, while a false
+// negative queries a field the API does not expose (credential_mrn, for one)
+// and breaks reading every integration.
+func isWriteOnlyField(fieldName string) bool {
+	if isSensitiveField(fieldName) {
+		return true
+	}
 	lowerFieldName := strings.ToLower(fieldName)
-	sensitivePatterns := []string{
+	patterns := []string{
 		"token",
 		"secret",
 		"key",
@@ -100,7 +115,7 @@ func isSensitiveField(fieldName string) bool {
 		"account",
 	}
 
-	for _, pattern := range sensitivePatterns {
+	for _, pattern := range patterns {
 		if strings.Contains(lowerFieldName, pattern) {
 			return true
 		}
@@ -109,17 +124,17 @@ func isSensitiveField(fieldName string) bool {
 }
 
 func (f Field) ImportConversion(resourceClassName, fieldName string) string {
-	// Handle sensitive fields by setting them to nil during import
-	if isSensitiveField(fieldName) {
+	// Handle write-only fields by setting them to nil during import
+	if isWriteOnlyField(fieldName) {
 		switch f.MondooType {
 		case StringField.MondooType:
-			return "types.StringValue(\"\")" // Empty string for required sensitive fields
+			return "types.StringValue(\"\")" // Empty string for required write-only fields
 		case StringPtrField.MondooType:
-			return "types.StringPointerValue(nil)" // Nil for optional sensitive fields
+			return "types.StringPointerValue(nil)" // Nil for optional write-only fields
 		}
 	}
 
-	// Handle non-sensitive fields normally
+	// Handle fields the API returns normally
 	attr := fmt.Sprintf("integration.ConfigurationOptions.%sConfigurationOptions.%s", resourceClassName, fieldName)
 	switch f.MondooType {
 	case BooleanField.MondooType:
@@ -229,6 +244,7 @@ var funcMap = template.FuncMap{
 	"formatEnum":       formatEnum,
 	"shouldTrigger":    shouldTrigger,
 	"isSensitiveField": isSensitiveField,
+	"isWriteOnlyField": isWriteOnlyField,
 	"testFields":       testFields,
 	"credentialPaths":  credentialPaths,
 }

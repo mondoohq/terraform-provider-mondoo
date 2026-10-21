@@ -364,6 +364,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			},
 			"token": schema.StringAttribute{
 				Computed:            true,
+				Sensitive:           true,
 				MarkdownDescription: "Registration token for the integration. Pass it as the `MondooToken` parameter of the CloudFormation stack or StackSet; a separate `mondoo_registration_token` is not needed. The Mondoo Lambda exchanges it once per account, when the stack is created, for service account credentials that do not expire. The token expires 30 minutes after the integration is created, unless `is_organization` is `true`, in which case it never expires.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
