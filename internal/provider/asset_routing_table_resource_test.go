@@ -8,7 +8,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccAssetRoutingTableResource(t *testing.T) {
@@ -32,6 +34,7 @@ func TestAccAssetRoutingTableResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_asset_routing_table.test", "org_mrn", orgMrn),
 					resource.TestCheckResourceAttr("mondoo_asset_routing_table.test", "rule.#", "1"),
+					resource.TestCheckResourceAttrSet("mondoo_asset_routing_table.test", "rule.0.mrn"),
 					resource.TestCheckResourceAttr("mondoo_asset_routing_table.test", "rule.0.target_space_mrn", targetSpaceMrn),
 					resource.TestCheckResourceAttr("mondoo_asset_routing_table.test", "rule.0.condition.#", "1"),
 					resource.TestCheckResourceAttr("mondoo_asset_routing_table.test", "rule.0.condition.0.field", "PLATFORM"),
@@ -44,6 +47,8 @@ func TestAccAssetRoutingTableResource(t *testing.T) {
 				Config: testAccAssetRoutingTableConfigWithCatchAll(orgMrn, targetSpaceMrn),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_asset_routing_table.test", "rule.#", "2"),
+					resource.TestCheckResourceAttrSet("mondoo_asset_routing_table.test", "rule.0.mrn"),
+					resource.TestCheckResourceAttrSet("mondoo_asset_routing_table.test", "rule.1.mrn"),
 					resource.TestCheckResourceAttr("mondoo_asset_routing_table.test", "rule.0.condition.#", "1"),
 					resource.TestCheckResourceAttr("mondoo_asset_routing_table.test", "rule.1.target_space_mrn", targetSpaceMrn),
 					resource.TestCheckResourceAttr("mondoo_asset_routing_table.test", "rule.1.condition.#", "0"),
@@ -100,4 +105,37 @@ resource "mondoo_asset_routing_table" "test" {
   }
 }
 `, orgMrn, targetSpaceMrn)
+}
+
+func TestTableRulesFromPayload(t *testing.T) {
+	rules := tableRulesFromPayload([]AssetRoutingRulePayload{
+		{
+			Mrn:            "//policy.api.mondoo.app/organizations/org-1/routing-rules/rule-1",
+			TargetSpaceMrn: "//captain.api.mondoo.app/spaces/space-1",
+			Priority:       0,
+			Conditions:     []AssetRoutingConditionPayload{{Field: "LABEL", Operator: "EQUAL", Values: []string{"dev_test"}, Key: "purpose"}},
+		},
+		{
+			Mrn:            "//policy.api.mondoo.app/organizations/org-1/routing-rules/rule-2",
+			TargetSpaceMrn: "//captain.api.mondoo.app/spaces/space-2",
+			Priority:       1,
+		},
+	})
+	assert.Equal(t, []AssetRoutingTableRuleModel{
+		{
+			Mrn:            types.StringValue("//policy.api.mondoo.app/organizations/org-1/routing-rules/rule-1"),
+			TargetSpaceMrn: types.StringValue("//captain.api.mondoo.app/spaces/space-1"),
+			Conditions: []AssetRoutingConditionModel{{
+				Field:    types.StringValue("LABEL"),
+				Operator: types.StringValue("EQUAL"),
+				Values:   ConvertListValue([]string{"dev_test"}),
+				Key:      types.StringValue("purpose"),
+			}},
+		},
+		{
+			Mrn:            types.StringValue("//policy.api.mondoo.app/organizations/org-1/routing-rules/rule-2"),
+			TargetSpaceMrn: types.StringValue("//captain.api.mondoo.app/spaces/space-2"),
+			Conditions:     []AssetRoutingConditionModel{},
+		},
+	}, rules)
 }

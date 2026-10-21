@@ -99,6 +99,10 @@ Optional:
 
 - `condition` (Block List) Conditions that must all match for this rule to apply (AND logic). If empty, the rule matches all assets (catch-all). (see [below for nested schema](#nestedblock--rule--condition))
 
+Read-Only:
+
+- `mrn` (String) The MRN of the rule. Every apply replaces all rules, so a rule's MRN changes whenever the table does. Assets the rule routes carry its relative MRN (`organizations/<org-id>/routing-rules/<id>`) in the `mondoo.com/routing-rule` label.
+
 <a id="nestedblock--rule--condition"></a>
 ### Nested Schema for `rule.condition`
 

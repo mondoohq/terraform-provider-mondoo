@@ -32,6 +32,7 @@ type AssetRoutingTableResourceModel struct {
 }
 
 type AssetRoutingTableRuleModel struct {
+	Mrn            types.String                 `tfsdk:"mrn"`
 	TargetSpaceMrn types.String                 `tfsdk:"target_space_mrn"`
 	Conditions     []AssetRoutingConditionModel `tfsdk:"condition"`
 }
@@ -60,6 +61,10 @@ func (r *AssetRoutingTableResource) Schema(_ context.Context, _ resource.SchemaR
 				MarkdownDescription: "Ordered list of routing rules. Priority is determined by position (first = highest priority). A rule with no conditions acts as a catch-all.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
+						"mrn": schema.StringAttribute{
+							MarkdownDescription: "The MRN of the rule. Every apply replaces all rules, so a rule's MRN changes whenever the table does. Assets the rule routes carry its relative MRN (`organizations/<org-id>/routing-rules/<id>`) in the `mondoo.com/routing-rule` label.",
+							Computed:            true,
+						},
 						"target_space_mrn": schema.StringAttribute{
 							MarkdownDescription: "The MRN of the space where matching assets will be routed.",
 							Required:            true,
@@ -214,6 +219,7 @@ func tableRulesFromPayload(rules []AssetRoutingRulePayload) []AssetRoutingTableR
 	result := make([]AssetRoutingTableRuleModel, len(rules))
 	for i, rule := range rules {
 		result[i] = AssetRoutingTableRuleModel{
+			Mrn:            types.StringValue(rule.Mrn),
 			TargetSpaceMrn: types.StringValue(rule.TargetSpaceMrn),
 			Conditions:     conditionsToModel(rule.Conditions),
 		}
