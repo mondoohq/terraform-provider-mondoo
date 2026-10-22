@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -494,10 +495,23 @@ func (r *WorkspaceResource) Create(ctx context.Context, req resource.CreateReque
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
+// errWorkspaceNotFound is returned by queryWorkspace when the workspace no
+// longer exists, for example because it was deleted outside of Terraform.
+var errWorkspaceNotFound = errors.New("workspace not found")
+
 func (r *WorkspaceResource) queryWorkspace(ctx context.Context, mrn string) (WorkspaceResourceModel, error) {
+	// The API answers with a union, so a missing workspace is not a GraphQL
+	// error: it is a NotFoundError member that must be checked explicitly.
 	var q struct {
 		Workspace struct {
-			Workspace `graphql:"... on Workspace"`
+			Typename      string `graphql:"__typename"`
+			Workspace     `graphql:"... on Workspace"`
+			NotFoundError struct {
+				Message string
+			} `graphql:"... on NotFoundError"`
+			RequestError struct {
+				Message string
+			} `graphql:"... on RequestError"`
 		} `graphql:"workspace(mrn: $mrn)"`
 	}
 	variables := map[string]interface{}{
@@ -516,6 +530,16 @@ func (r *WorkspaceResource) queryWorkspace(ctx context.Context, mrn string) (Wor
 	tflog.Debug(ctx, "workspaceResponse", map[string]interface{}{
 		"payload": fmt.Sprintf("%+v", q),
 	})
+
+	switch q.Workspace.Typename {
+	case "Workspace":
+	case "NotFoundError":
+		return WorkspaceResourceModel{}, errWorkspaceNotFound
+	case "RequestError":
+		return WorkspaceResourceModel{}, errors.New(q.Workspace.RequestError.Message)
+	default:
+		return WorkspaceResourceModel{}, fmt.Errorf("unexpected workspace response type %q", q.Workspace.Typename)
+	}
 
 	return WorkspaceResourceModel{
 		SpaceID:     types.StringValue(SpaceFrom(q.Workspace.OwnerMrn).ID()),
@@ -537,6 +561,13 @@ func (r *WorkspaceResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	m, err := r.queryWorkspace(ctx, data.Mrn.ValueString())
+	if errors.Is(err, errWorkspaceNotFound) {
+		tflog.Warn(ctx, "workspace not found, removing from state", map[string]interface{}{
+			"mrn": data.Mrn.ValueString(),
+		})
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
