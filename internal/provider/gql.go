@@ -955,6 +955,19 @@ type ShodanConfigurationOptions struct {
 	Targets []string
 }
 
+type AttackSurfaceConfigurationOptions struct {
+	Domains               []string
+	Schedule              string
+	Subdomains            bool
+	PortScan              bool
+	WebFingerprint        bool
+	VulnerabilityScanning bool
+	SubdomainTakeover     bool
+	CloudDiscovery        bool
+	Webscan               bool
+	PauseScanning         bool
+}
+
 type ZendeskConfigurationOptions struct {
 	Subdomain         string
 	Email             string
