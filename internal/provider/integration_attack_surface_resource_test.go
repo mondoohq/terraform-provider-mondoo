@@ -6,6 +6,7 @@ package provider
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -25,6 +26,10 @@ func TestAccAttackSurfaceResource(t *testing.T) {
 			{
 				Config:      testAccAttackSurfaceResourceConfig(accSpace.ID(), `domains = ["Example.COM"]`),
 				ExpectError: regexp.MustCompile(`must be a lowercase domain name`),
+			},
+			{
+				Config:      testAccAttackSurfaceResourceConfig(accSpace.ID(), `schedule = "1h"`),
+				ExpectError: regexp.MustCompile(`Schedule Too Short`),
 			},
 			// Create with defaults; the name falls back to the first domain.
 			{
@@ -71,19 +76,21 @@ func TestAccAttackSurfaceResource(t *testing.T) {
 	})
 }
 
-// extra replaces the default domains when it sets them.
+// extra adds attributes, replacing a default of the same name.
 func testAccAttackSurfaceResourceConfig(spaceID, extra string) string {
-	domains := `domains = ["example.com"]`
-	if regexp.MustCompile(`(?m)^\s*domains\s*=`).MatchString(extra) {
-		domains = ""
+	defaults := []string{`domains = ["example.com"]`, `schedule = "once"`, `pause_scanning = true`}
+	var lines []string
+	for _, d := range defaults {
+		name := strings.Fields(d)[0]
+		if !regexp.MustCompile(`(?m)^\s*` + name + `\s*=`).MatchString(extra) {
+			lines = append(lines, d)
+		}
 	}
 	return fmt.Sprintf(`
 resource "mondoo_integration_attack_surface" "test" {
-  space_id       = %q
-  schedule       = "once"
-  pause_scanning = true
+  space_id = %q
   %s
   %s
 }
-`, spaceID, domains, extra)
+`, spaceID, strings.Join(lines, "\n  "), extra)
 }

@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -118,6 +120,7 @@ func (r *integrationAttackSurfaceResource) Schema(_ context.Context, _ resource.
 				Default:  stringdefault.StaticString("24h"),
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
+					minDurationValidator{min: 24 * time.Hour},
 				},
 			},
 			"subdomains":             optionalBool("Discover and scan subdomains of the domains.", true),
@@ -203,6 +206,10 @@ func (r *integrationAttackSurfaceResource) Create(ctx context.Context, req resou
 		var domains []string
 		resp.Diagnostics.Append(data.Domains.ElementsAs(ctx, &domains, false)...)
 		if resp.Diagnostics.HasError() {
+			return
+		}
+		if len(domains) == 0 {
+			resp.Diagnostics.AddAttributeError(path.Root("domains"), "Invalid Configuration", "At least one domain is required.")
 			return
 		}
 		data.Name = types.StringValue(domains[0])
@@ -299,4 +306,29 @@ func (r *integrationAttackSurfaceResource) ImportState(ctx context.Context, req 
 	}
 	model := attackSurfaceModelFrom(*integration)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
+
+// minDurationValidator rejects a schedule that is a Go duration shorter than min.
+// Values that aren't durations (a cron expression, "once") are left to the API.
+type minDurationValidator struct {
+	min time.Duration
+}
+
+func (v minDurationValidator) Description(_ context.Context) string {
+	return fmt.Sprintf("a duration must be at least %s", v.min)
+}
+
+func (v minDurationValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v minDurationValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	d, err := time.ParseDuration(req.ConfigValue.ValueString())
+	if err == nil && d < v.min {
+		resp.Diagnostics.AddAttributeError(req.Path, "Schedule Too Short",
+			fmt.Sprintf("Recurring scans run at most once every %s; got %s.", v.min, req.ConfigValue.ValueString()))
+	}
 }
