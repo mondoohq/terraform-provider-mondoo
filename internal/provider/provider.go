@@ -263,6 +263,7 @@ func (p *MondooProvider) Resources(_ context.Context) []func() resource.Resource
 		NewIntegrationGcpServerlessResource,
 		NewOrganizationSlaResource,
 		NewIntegrationKubernetesResource,
+		NewIntegrationAttackSurfaceResource,
 	}...)
 }
 
