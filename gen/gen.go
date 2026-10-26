@@ -58,9 +58,11 @@ func (f Field) GoTestValue(name string, testcase int) string {
 			return "true"
 		}
 		return "false"
-	case StringField.MondooType:
-		return fmt.Sprintf("\"%s_%d\"", name, testcase)
-	case StringPtrField.MondooType:
+	case StringField.MondooType, StringPtrField.MondooType:
+		// The API checks this one: an Azure DevOps organization name or URL.
+		if name == "OrganizationUrl" {
+			return fmt.Sprintf("\"https://dev.azure.com/tf-acc-%d\"", testcase)
+		}
 		return fmt.Sprintf("\"%s_%d\"", name, testcase)
 	case ArrayStringPtrField.MondooType:
 		return fmt.Sprintf("[]string{\"%s_%d\"}", name, testcase)

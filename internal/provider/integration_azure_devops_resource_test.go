@@ -19,14 +19,14 @@ func TestAccAzureDevopsIntegrationResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccAzureDevopsIntegrationResourceConfig(accSpace.ID(), "one", false, false, "ClientSecret_1", "DefaultProjectName_1", "https://dev.azure.com/tf-acc-one", "ServicePrincipalId_1", "TenantId_1"),
+				Config: testAccAzureDevopsIntegrationResourceConfig(accSpace.ID(), "one", false, false, "ClientSecret_1", "DefaultProjectName_1", "https://dev.azure.com/tf-acc-1", "ServicePrincipalId_1", "TenantId_1"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_azure_devops.test", "name", "one"),
 					resource.TestCheckResourceAttr("mondoo_integration_azure_devops.test", "space_id", accSpace.ID()),
 				),
 			},
 			{
-				Config: testAccAzureDevopsIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", false, false, "ClientSecret_1", "DefaultProjectName_1", "https://dev.azure.com/tf-acc-one", "ServicePrincipalId_1", "TenantId_1"),
+				Config: testAccAzureDevopsIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "two", false, false, "ClientSecret_1", "DefaultProjectName_1", "https://dev.azure.com/tf-acc-1", "ServicePrincipalId_1", "TenantId_1"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_azure_devops.test", "name", "two"),
 					resource.TestCheckResourceAttr("mondoo_integration_azure_devops.test", "space_id", accSpace.ID()),
@@ -34,14 +34,14 @@ func TestAccAzureDevopsIntegrationResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccAzureDevopsIntegrationResourceConfig(accSpace.ID(), "three", true, true, "ClientSecret_2", "DefaultProjectName_2", "https://dev.azure.com/tf-acc-two", "ServicePrincipalId_2", "TenantId_2"),
+				Config: testAccAzureDevopsIntegrationResourceConfig(accSpace.ID(), "three", true, true, "ClientSecret_2", "DefaultProjectName_2", "https://dev.azure.com/tf-acc-2", "ServicePrincipalId_2", "TenantId_2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_azure_devops.test", "name", "three"),
 					resource.TestCheckResourceAttr("mondoo_integration_azure_devops.test", "space_id", accSpace.ID()),
 				),
 			},
 			{
-				Config: testAccAzureDevopsIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", true, true, "ClientSecret_2", "DefaultProjectName_2", "https://dev.azure.com/tf-acc-two", "ServicePrincipalId_2", "TenantId_2"),
+				Config: testAccAzureDevopsIntegrationResourceWithSpaceInProviderConfig(accSpace.ID(), "four", true, true, "ClientSecret_2", "DefaultProjectName_2", "https://dev.azure.com/tf-acc-2", "ServicePrincipalId_2", "TenantId_2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("mondoo_integration_azure_devops.test", "name", "four"),
 					resource.TestCheckResourceAttr("mondoo_integration_azure_devops.test", "space_id", accSpace.ID()),
