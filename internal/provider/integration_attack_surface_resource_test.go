@@ -21,6 +21,11 @@ func TestAccAttackSurfaceResource(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
+			// Rejected at plan, before any API call. First, so the post-test destroy runs with a valid config.
+			{
+				Config:      testAccAttackSurfaceResourceConfig(accSpace.ID(), `domains = ["Example.COM"]`),
+				ExpectError: regexp.MustCompile(`must be a lowercase domain name`),
+			},
 			// Create with defaults; the name falls back to the first domain.
 			{
 				Config: testAccAttackSurfaceResourceConfig(accSpace.ID(), ""),
@@ -61,11 +66,6 @@ func TestAccAttackSurfaceResource(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "mrn",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
-			},
-			// Rejected before any API call.
-			{
-				Config:      testAccAttackSurfaceResourceConfig(accSpace.ID(), `domains = ["Example.COM"]`),
-				ExpectError: regexp.MustCompile(`must be a lowercase domain name`),
 			},
 		},
 	})
