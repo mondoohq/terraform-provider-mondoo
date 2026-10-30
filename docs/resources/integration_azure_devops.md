@@ -24,6 +24,12 @@ variable "auto_create_tickets" {
 variable "client_secret" {
   description = "The AzureDevops ClientSecret"
   type        = string
+  default     = null
+}
+variable "credential_mrn" {
+  description = "The AzureDevops CredentialMrn"
+  type        = string
+  default     = null
 }
 variable "default_project_name" {
   description = "The AzureDevops DefaultProjectName"
@@ -53,6 +59,7 @@ resource "mondoo_integration_azure_devops" "example" {
   auto_close_tickets   = var.auto_close_tickets
   auto_create_tickets  = var.auto_create_tickets
   client_secret        = var.client_secret
+  credential_mrn       = var.credential_mrn
   default_project_name = var.default_project_name
   organization_url     = var.organization_url
   service_principal_id = var.service_principal_id
@@ -67,7 +74,6 @@ resource "mondoo_integration_azure_devops" "example" {
 
 - `auto_close_tickets` (Boolean) The AzureDevops AutoCloseTickets
 - `auto_create_tickets` (Boolean) The AzureDevops AutoCreateTickets
-- `client_secret` (String, Sensitive) The AzureDevops ClientSecret
 - `name` (String) Name of the integration.
 - `organization_url` (String) The AzureDevops OrganizationUrl
 - `service_principal_id` (String) The AzureDevops ServicePrincipalId
@@ -75,6 +81,8 @@ resource "mondoo_integration_azure_devops" "example" {
 
 ### Optional
 
+- `client_secret` (String, Sensitive) The AzureDevops ClientSecret
+- `credential_mrn` (String) The AzureDevops CredentialMrn
 - `default_project_name` (String) The AzureDevops DefaultProjectName
 - `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
 

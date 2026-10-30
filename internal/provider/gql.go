@@ -968,6 +968,32 @@ type AttackSurfaceConfigurationOptions struct {
 	PauseScanning         bool
 }
 
+// AzureDevopsReposConfigurationOptions reads an Azure DevOps repository-scanning
+// integration. Its organization is aliased: the API declares the field with a
+// different nullability than the same-named field on other integration types,
+// and a query cannot select both under one name.
+type AzureDevopsReposConfigurationOptions struct {
+	Organization      string `graphql:"azureDevopsOrganization: organization"`
+	CredentialMode    string
+	EntraClientSecret struct {
+		TenantId string
+		ClientId string
+	}
+	EntraCertificate struct {
+		TenantId string
+		ClientId string
+	}
+	Project              string
+	Repository           string
+	ReposAllowList       []string
+	ReposDenyList        []string
+	DiscoverTerraform    bool
+	DiscoverK8sManifests bool
+	EnableCodeScan       bool
+	EnableSecretScan     bool
+	EnableVulnScan       bool
+}
+
 type ZendeskConfigurationOptions struct {
 	Subdomain         string
 	Email             string
