@@ -265,6 +265,7 @@ func (p *MondooProvider) Resources(_ context.Context) []func() resource.Resource
 		NewIntegrationKubernetesResource,
 		NewIntegrationAttackSurfaceResource,
 		NewIntegrationAzureDevopsReposResource,
+		NewIntegrationErrorNotificationResource,
 	}...)
 }
 
