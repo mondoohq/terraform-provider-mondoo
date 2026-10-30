@@ -10,6 +10,7 @@ type ClientIntegrationConfigurationOptions struct {
 	AWSConfigurationOptions               AWSConfigurationOptions               `graphql:"... on AWSConfigurationOptions"`
 	AuditLogExportConfigurationOptions    AuditLogExportConfigurationOptions    `graphql:"... on AuditLogExportConfigurationOptions"`
 	AzureConfigurationOptions             AzureConfigurationOptions             `graphql:"... on AzureConfigurationOptions"`
+	AzureDevopsReposConfigurationOptions  AzureDevopsReposConfigurationOptions  `graphql:"... on AzureDevopsReposConfigurationOptions"`
 	CrowdstrikeFalconConfigurationOptions CrowdstrikeFalconConfigurationOptions `graphql:"... on CrowdstrikeFalconConfigurationOptions"`
 	EmailConfigurationOptions             EmailConfigurationOptions             `graphql:"... on EmailConfigurationOptions"`
 	GcpConfigurationOptions               GcpConfigurationOptions               `graphql:"... on GcpConfigurationOptions"`

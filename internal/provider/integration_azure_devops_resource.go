@@ -9,7 +9,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -23,6 +25,18 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationAzureDevopsResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationAzureDevopsResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationAzureDevopsResource)(nil)
+
+// ConfigValidators requires a stored credential reference or the inline secret: the API
+// rejects a configuration with neither.
+func (r *integrationAzureDevopsResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("credential_mrn"),
+			path.MatchRoot("client_secret"),
+		),
+	}
+}
 
 func NewIntegrationAzureDevopsResource() resource.Resource {
 	return &integrationAzureDevopsResource{}
@@ -44,6 +58,7 @@ type integrationAzureDevopsResourceModel struct {
 	AutoCloseTickets   types.Bool   `tfsdk:"auto_close_tickets"`
 	AutoCreateTickets  types.Bool   `tfsdk:"auto_create_tickets"`
 	ClientSecret       types.String `tfsdk:"client_secret"`
+	CredentialMrn      types.String `tfsdk:"credential_mrn"`
 	DefaultProjectName types.String `tfsdk:"default_project_name"`
 	OrganizationUrl    types.String `tfsdk:"organization_url"`
 	ServicePrincipalId types.String `tfsdk:"service_principal_id"`
@@ -55,7 +70,8 @@ func (m integrationAzureDevopsResourceModel) GetConfigurationOptions() *mondoov1
 		// AzureDevops options
 		AutoCloseTickets:   mondoov1.Boolean(m.AutoCloseTickets.ValueBool()),
 		AutoCreateTickets:  mondoov1.Boolean(m.AutoCreateTickets.ValueBool()),
-		ClientSecret:       mondoov1.String(m.ClientSecret.ValueString()),
+		ClientSecret:       OptionalString(m.ClientSecret),
+		CredentialMrn:      OptionalString(m.CredentialMrn),
 		DefaultProjectName: OptionalString(m.DefaultProjectName),
 		OrganizationUrl:    mondoov1.String(m.OrganizationUrl.ValueString()),
 		ServicePrincipalId: mondoov1.String(m.ServicePrincipalId.ValueString()),
@@ -104,8 +120,12 @@ func (r *integrationAzureDevopsResource) Schema(_ context.Context, _ resource.Sc
 			},
 			"client_secret": schema.StringAttribute{
 				MarkdownDescription: "The AzureDevops ClientSecret",
-				Required:            true,
+				Optional:            true,
 				Sensitive:           true,
+			},
+			"credential_mrn": schema.StringAttribute{
+				MarkdownDescription: "The AzureDevops CredentialMrn",
+				Optional:            true,
 			},
 			"default_project_name": schema.StringAttribute{
 				MarkdownDescription: "The AzureDevops DefaultProjectName",
@@ -287,7 +307,8 @@ func (r *integrationAzureDevopsResource) ImportState(ctx context.Context, req re
 		// AzureDevops options
 		AutoCloseTickets:   types.BoolValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.AutoCloseTickets),
 		AutoCreateTickets:  types.BoolValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.AutoCreateTickets),
-		ClientSecret:       types.StringValue(""),
+		ClientSecret:       types.StringPointerValue(nil),
+		CredentialMrn:      types.StringPointerValue(nil),
 		DefaultProjectName: types.StringPointerValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.DefaultProjectName),
 		OrganizationUrl:    types.StringValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.OrganizationUrl),
 		ServicePrincipalId: types.StringValue(integration.ConfigurationOptions.AzureDevopsConfigurationOptions.ServicePrincipalId),

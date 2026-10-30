@@ -66,7 +66,7 @@ func (m integrationZendeskResourceModel) GetConfigurationOptions() *mondoov1.Zen
 		AutoCloseTickets:  mondoov1.Boolean(m.AutoClose.ValueBool()),
 		AutoCreateTickets: mondoov1.Boolean(m.AutoCreate.ValueBool()),
 		CustomFields:      convertCustomFields(m.CustomFields),
-		ApiToken:          mondoov1.String(m.Credential.Token.ValueString()),
+		ApiToken:          mondoov1.NewStringPtr(mondoov1.String(m.Credential.Token.ValueString())),
 	}
 
 	return opts
