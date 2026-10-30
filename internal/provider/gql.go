@@ -2047,3 +2047,53 @@ func (c *ExtendedGqlClient) ClearSecurityModel(ctx context.Context, orgMrn strin
 
 	return c.Mutate(ctx, &mutation, input, nil)
 }
+
+// Integration error notification types
+
+// IntegrationErrorNotificationPayload is an integration's failure alert. The
+// API never returns the alert's target: a webhook URL works as a secret.
+type IntegrationErrorNotificationPayload struct {
+	IntegrationMrn string `graphql:"integrationMrn"`
+	WorkflowMrn    string `graphql:"workflowMrn"`
+	Channel        string `graphql:"channel"`
+	Enabled        bool   `graphql:"enabled"`
+}
+
+// GetIntegrationErrorNotification reads an integration's failure alert. It
+// returns nil when the alert is off.
+func (c *ExtendedGqlClient) GetIntegrationErrorNotification(ctx context.Context, integrationMrn string) (*IntegrationErrorNotificationPayload, error) {
+	var q struct {
+		IntegrationErrorNotification *IntegrationErrorNotificationPayload `graphql:"integrationErrorNotification(integrationMrn: $integrationMrn)"`
+	}
+	variables := map[string]interface{}{
+		"integrationMrn": mondoov1.ID(integrationMrn),
+	}
+	if err := c.Query(ctx, &q, variables); err != nil {
+		return nil, err
+	}
+	return q.IntegrationErrorNotification, nil
+}
+
+// SetIntegrationErrorNotification turns on an integration's failure alert, or
+// replaces the one it has.
+func (c *ExtendedGqlClient) SetIntegrationErrorNotification(ctx context.Context, input mondoov1.SetIntegrationErrorNotificationInput) (*IntegrationErrorNotificationPayload, error) {
+	var mutation struct {
+		SetIntegrationErrorNotification IntegrationErrorNotificationPayload `graphql:"setIntegrationErrorNotification(input: $input)"`
+	}
+	if err := c.Mutate(ctx, &mutation, input, nil); err != nil {
+		return nil, err
+	}
+	return &mutation.SetIntegrationErrorNotification, nil
+}
+
+// DeleteIntegrationErrorNotification turns off an integration's failure
+// alert. Turning off an alert that is already off succeeds.
+func (c *ExtendedGqlClient) DeleteIntegrationErrorNotification(ctx context.Context, integrationMrn string) error {
+	var mutation struct {
+		DeleteIntegrationErrorNotification bool `graphql:"deleteIntegrationErrorNotification(integrationMrn: $integrationMrn)"`
+	}
+	variables := map[string]interface{}{
+		"integrationMrn": mondoov1.ID(integrationMrn),
+	}
+	return c.Mutate(ctx, &mutation, nil, variables)
+}

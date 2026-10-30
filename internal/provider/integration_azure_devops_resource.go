@@ -55,7 +55,7 @@ func (m integrationAzureDevopsResourceModel) GetConfigurationOptions() *mondoov1
 		// AzureDevops options
 		AutoCloseTickets:   mondoov1.Boolean(m.AutoCloseTickets.ValueBool()),
 		AutoCreateTickets:  mondoov1.Boolean(m.AutoCreateTickets.ValueBool()),
-		ClientSecret:       mondoov1.String(m.ClientSecret.ValueString()),
+		ClientSecret:       mondoov1.NewStringPtr(mondoov1.String(m.ClientSecret.ValueString())),
 		DefaultProjectName: OptionalString(m.DefaultProjectName),
 		OrganizationUrl:    mondoov1.String(m.OrganizationUrl.ValueString()),
 		ServicePrincipalId: mondoov1.String(m.ServicePrincipalId.ValueString()),
