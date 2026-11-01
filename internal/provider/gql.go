@@ -974,24 +974,24 @@ type AttackSurfaceConfigurationOptions struct {
 // and a query cannot select both under one name.
 type AzureDevopsReposConfigurationOptions struct {
 	Organization      string `graphql:"azureDevopsOrganization: organization"`
-	CredentialMode    string
+	CredentialMode    string `graphql:"azureDevopsCredentialMode: credentialMode"`
 	EntraClientSecret struct {
 		TenantId string
 		ClientId string
-	}
+	} `graphql:"azureDevopsEntraClientSecret: entraClientSecret"`
 	EntraCertificate struct {
 		TenantId string
 		ClientId string
-	}
-	Project              string
-	Repository           string
-	ReposAllowList       []string
-	ReposDenyList        []string
-	DiscoverTerraform    bool
-	DiscoverK8sManifests bool
-	EnableCodeScan       bool
-	EnableSecretScan     bool
-	EnableVulnScan       bool
+	} `graphql:"azureDevopsEntraCertificate: entraCertificate"`
+	Project              string   `graphql:"azureDevopsProject: project"`
+	Repository           string   `graphql:"azureDevopsRepository: repository"`
+	ReposAllowList       []string `graphql:"azureDevopsReposAllowList: reposAllowList"`
+	ReposDenyList        []string `graphql:"azureDevopsReposDenyList: reposDenyList"`
+	DiscoverTerraform    bool     `graphql:"azureDevopsDiscoverTerraform: discoverTerraform"`
+	DiscoverK8sManifests bool     `graphql:"azureDevopsDiscoverK8sManifests: discoverK8sManifests"`
+	EnableCodeScan       bool     `graphql:"azureDevopsEnableCodeScan: enableCodeScan"`
+	EnableSecretScan     bool     `graphql:"azureDevopsEnableSecretScan: enableSecretScan"`
+	EnableVulnScan       bool     `graphql:"azureDevopsEnableVulnScan: enableVulnScan"`
 }
 
 type ZendeskConfigurationOptions struct {

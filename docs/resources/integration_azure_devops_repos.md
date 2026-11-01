@@ -13,6 +13,15 @@ Continuously scan Azure DevOps repositories: every repository of an Azure DevOps
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    mondoo = {
+      source  = "mondoohq/mondoo"
+      version = ">= 0.19"
+    }
+  }
+}
+
 variable "client_secret" {
   description = "Client secret of the Microsoft Entra app registration"
   type        = string
