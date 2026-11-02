@@ -968,6 +968,32 @@ type AttackSurfaceConfigurationOptions struct {
 	PauseScanning         bool
 }
 
+// AzureDevopsReposConfigurationOptions reads an Azure DevOps repository-scanning
+// integration. Its organization is aliased: the API declares the field with a
+// different nullability than the same-named field on other integration types,
+// and a query cannot select both under one name.
+type AzureDevopsReposConfigurationOptions struct {
+	Organization      string `graphql:"azureDevopsOrganization: organization"`
+	CredentialMode    string `graphql:"azureDevopsCredentialMode: credentialMode"`
+	EntraClientSecret struct {
+		TenantId string
+		ClientId string
+	} `graphql:"azureDevopsEntraClientSecret: entraClientSecret"`
+	EntraCertificate struct {
+		TenantId string
+		ClientId string
+	} `graphql:"azureDevopsEntraCertificate: entraCertificate"`
+	Project              string   `graphql:"azureDevopsProject: project"`
+	Repository           string   `graphql:"azureDevopsRepository: repository"`
+	ReposAllowList       []string `graphql:"azureDevopsReposAllowList: reposAllowList"`
+	ReposDenyList        []string `graphql:"azureDevopsReposDenyList: reposDenyList"`
+	DiscoverTerraform    bool     `graphql:"azureDevopsDiscoverTerraform: discoverTerraform"`
+	DiscoverK8sManifests bool     `graphql:"azureDevopsDiscoverK8sManifests: discoverK8sManifests"`
+	EnableCodeScan       bool     `graphql:"azureDevopsEnableCodeScan: enableCodeScan"`
+	EnableSecretScan     bool     `graphql:"azureDevopsEnableSecretScan: enableSecretScan"`
+	EnableVulnScan       bool     `graphql:"azureDevopsEnableVulnScan: enableVulnScan"`
+}
+
 type ZendeskConfigurationOptions struct {
 	Subdomain         string
 	Email             string
