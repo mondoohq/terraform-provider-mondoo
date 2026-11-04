@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -151,6 +152,10 @@ func stringMap(m types.Map) (map[string]string, bool) {
 	if m.IsNull() || m.IsUnknown() {
 		return nil, false
 	}
+	// A null element is the only value ElementsAs cannot convert, and it fails
+	// the whole map, leaving out empty: a dropped account_tags filter would
+	// widen the scan to every account. Both map attributes reject null elements
+	// at plan time (mapvalidator.NoNullValues), so this cannot fail here.
 	out := map[string]string{}
 	m.ElementsAs(context.Background(), &out, false)
 	return out, true
@@ -458,11 +463,17 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 								MarkdownDescription: "Tag key to tag value. Only accounts that carry at least one of these tags are scanned; when empty, every account is scanned. A value of `*` matches any value of the key.",
 								Optional:            true,
 								ElementType:         types.StringType,
+								Validators: []validator.Map{
+									mapvalidator.NoNullValues(),
+								},
 							},
 							"organizations": schema.MapAttribute{
 								MarkdownDescription: "Foreign AWS Organizations to scan in addition to the Lambda's own organization: AWS Organization ID (e.g. `o-abc123defg`) to the 12-digit ID of its management (or delegated administrator) account. The Lambda assumes `role_name` in that account to list the organization's accounts, and scans every active account in it.",
 								Optional:            true,
 								ElementType:         types.StringType,
+								Validators: []validator.Map{
+									mapvalidator.NoNullValues(),
+								},
 							},
 							"ebs_volume_scan": schema.BoolAttribute{
 								MarkdownDescription: "Scan the target accounts' EC2 instances through snapshots of their EBS volumes. Takes effect only while `cross_account_scan` and `ec2_scan_options.ebs_volume_scan` are on, and only in target accounts whose Mondoo role was deployed with the `EbsScanning` opt-in.",
