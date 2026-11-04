@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_gitlab Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously scan GitLab for misconfigurations.
+  Continuously scan GitLab for misconfigurations. Create it in a Mondoo organization (org_id), whose asset routing rules place the assets into spaces, or in a space (space_id).
 ---
 
 # mondoo_integration_gitlab (Resource)
 
-Continuously scan GitLab for misconfigurations.
+Continuously scan GitLab for misconfigurations. Create it in a Mondoo organization (`org_id`), whose asset routing rules place the assets into spaces, or in a space (`space_id`).
 
 ## Example Usage
 
@@ -57,7 +57,8 @@ resource "mondoo_integration_gitlab" "gitlab_integration" {
 - `base_url` (String) Base URL of the GitLab instance (only set this if your instance is self-hosted).
 - `discovery` (Attributes) (see [below for nested schema](#nestedatt--discovery))
 - `group` (String) Group to assign the integration to (by default all groups are discovered).
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `org_id` (String) Mondoo organization identifier. Set this to create the integration in the organization. Conflicts with `space_id`.
+- `space_id` (String) Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.
 
 ### Read-Only
 

@@ -6,7 +6,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -35,6 +34,7 @@ type integrationOciTenantResource struct {
 // integrationOciTenantResourceModel describes the resource data model.
 type integrationOciTenantResourceModel struct {
 	// scope
+	OrgID   types.String `tfsdk:"org_id"`
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -60,17 +60,11 @@ func (r *integrationOciTenantResource) Metadata(ctx context.Context, req resourc
 func (r *integrationOciTenantResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Continuously monitor OCI tenancies and resources for misconfigurations and vulnerabilities.",
+		MarkdownDescription: "Continuously monitor OCI tenancies and resources for misconfigurations and vulnerabilities." + " " + orgScopedIntegrationDescription,
 
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
+			"org_id":   integrationOrgIDAttribute(),
+			"space_id": integrationSpaceIDAttribute(),
 			"mrn": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Integration identifier.",
@@ -143,18 +137,18 @@ func (r *integrationOciTenantResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
+	// Compute and validate the scope: the organization or a space
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource.
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeOci,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -185,10 +179,10 @@ func (r *integrationOciTenantResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	// Save space mrn into the Terraform state.
+	// Save the integration and its scope into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(space.ID())
+	data.SpaceID = spaceID
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -272,34 +266,16 @@ func (r *integrationOciTenantResource) Delete(ctx context.Context, req resource.
 }
 
 func (r *integrationOciTenantResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	mrn := req.ID
-	integration, err := r.client.GetClientIntegration(ctx, mrn)
-	if err != nil {
-		resp.Diagnostics.
-			AddError("Client Error",
-				fmt.Sprintf("Unable to get integration. Got error: %s", err),
-			)
-		return
-	}
-
-	spaceID := strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]
-	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
-		// The provider is configured to manage resources in a different space than the one the
-		// resource is currently configured, we won't allow that
-		resp.Diagnostics.AddError(
-			"Conflict Error",
-			fmt.Sprintf(
-				"Unable to import integration. The provider is configured in a different space than the resource. (%s != %s)",
-				r.client.Space().ID(), spaceID),
-		)
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
 		return
 	}
 
 	model := integrationOciTenantResourceModel{
-		Mrn:     types.StringValue(integration.Mrn),
-		Name:    types.StringValue(integration.Name),
-		SpaceID: types.StringValue(spaceID),
+		Mrn:  types.StringValue(integration.Mrn),
+		Name: types.StringValue(integration.Name),
 	}
 
+	model.OrgID, model.SpaceID = integrationScope(*integration)
 	resp.State.Set(ctx, &model)
 }

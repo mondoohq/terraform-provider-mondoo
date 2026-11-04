@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_gcp Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously scan GCP organizations and projects for misconfigurations and vulnerabilities.
+  Continuously scan GCP organizations and projects for misconfigurations and vulnerabilities. Create it in a Mondoo organization (org_id), whose asset routing rules place the assets into spaces, or in a space (space_id).
 ---
 
 # mondoo_integration_gcp (Resource)
 
-Continuously scan GCP organizations and projects for misconfigurations and vulnerabilities.
+Continuously scan GCP organizations and projects for misconfigurations and vulnerabilities. Create it in a Mondoo organization (`org_id`), whose asset routing rules place the assets into spaces, or in a space (`space_id`).
 
 ## Example Usage
 
@@ -78,8 +78,9 @@ resource "mondoo_integration_gcp" "name" {
 
 ### Optional
 
+- `org_id` (String) Mondoo organization identifier. Set this to create the integration in the organization. Conflicts with `space_id`.
 - `project_id` (String) GCP project ID.
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `space_id` (String) Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.
 
 ### Read-Only
 

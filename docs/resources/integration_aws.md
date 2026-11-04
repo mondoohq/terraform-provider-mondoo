@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_aws Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously scan AWS accounts for misconfigurations and vulnerabilities.
+  Continuously scan AWS accounts for misconfigurations and vulnerabilities. Create it in a Mondoo organization (org_id), whose asset routing rules place the assets into spaces, or in a space (space_id).
 ---
 
 # mondoo_integration_aws (Resource)
 
-Continuously scan AWS accounts for misconfigurations and vulnerabilities.
+Continuously scan AWS accounts for misconfigurations and vulnerabilities. Create it in a Mondoo organization (`org_id`), whose asset routing rules place the assets into spaces, or in a space (`space_id`).
 
 ## Example Usage
 
@@ -52,7 +52,8 @@ resource "mondoo_integration_aws" "name" {
 
 ### Optional
 
-- `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
+- `org_id` (String) Mondoo organization identifier. Set this to create the integration in the organization. Conflicts with `space_id`.
+- `space_id` (String) Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.
 
 ### Read-Only
 

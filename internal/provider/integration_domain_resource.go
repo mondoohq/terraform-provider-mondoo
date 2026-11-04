@@ -35,6 +35,7 @@ type integrationDomainResource struct {
 
 type integrationDomainResourceModel struct {
 	// scope
+	OrgID   types.String `tfsdk:"org_id"`
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -95,16 +96,10 @@ func NewOneRequiredValidator(otherAttribute string) validator.Bool {
 
 func (r *integrationDomainResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously scan endpoints to evaluate domain TLS, SSL, HTTP, and HTTPS security.`,
+		MarkdownDescription: `Continuously scan endpoints to evaluate domain TLS, SSL, HTTP, and HTTPS security.` + " " + orgScopedIntegrationDescription,
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
+			"org_id":   integrationOrgIDAttribute(),
+			"space_id": integrationSpaceIDAttribute(),
 			"mrn": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Integration identifier.",
@@ -175,18 +170,18 @@ func (r *integrationDomainResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
+	// Compute and validate the scope: the organization or a space
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource.
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Host.ValueString(),
 		mondoov1.ClientIntegrationTypeHost,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -215,10 +210,10 @@ func (r *integrationDomainResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
-	// Save space mrn into the Terraform state.
+	// Save the integration and its scope into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Host = types.StringValue(data.Host.ValueString())
-	data.SpaceID = types.StringValue(space.ID())
+	data.SpaceID = spaceID
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -236,22 +231,12 @@ func (r *integrationDomainResource) Read(ctx context.Context, req resource.ReadR
 
 	// Read API call logic
 	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
-	fmt.Println("Read integration domain mrn:", data.Mrn.ValueString())
-	fmt.Println("Read Error:", err)
 	if err != nil {
 		resp.State.RemoveResource(ctx)
 		return
 	}
 
-	model := integrationDomainResourceModel{
-		SpaceID: types.StringValue(integration.SpaceID()),
-		Mrn:     types.StringValue(integration.Mrn),
-		Host:    types.StringValue(integration.ConfigurationOptions.HostConfigurationOptions.Host),
-		Https:   types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTPS),
-		Http:    types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTP),
-	}
-
-	fmt.Println("Read integration domain resource:", model)
+	model := domainModelFrom(integration)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
@@ -321,13 +306,20 @@ func (r *integrationDomainResource) ImportState(ctx context.Context, req resourc
 		return
 	}
 
-	model := integrationDomainResourceModel{
-		SpaceID: types.StringValue(integration.SpaceID()),
-		Mrn:     types.StringValue(integration.Mrn),
-		Host:    types.StringValue(integration.ConfigurationOptions.HostConfigurationOptions.Host),
-		Https:   types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTPS),
-		Http:    types.BoolValue(integration.ConfigurationOptions.HostConfigurationOptions.HTTP),
-	}
-
+	model := domainModelFrom(*integration)
 	resp.State.Set(ctx, &model)
+}
+
+// domainModelFrom builds state from the API. The integration lives in an
+// organization (org_id) or in a space (space_id), never both.
+func domainModelFrom(integration Integration) integrationDomainResourceModel {
+	opts := integration.ConfigurationOptions.HostConfigurationOptions
+	model := integrationDomainResourceModel{
+		Mrn:   types.StringValue(integration.Mrn),
+		Host:  types.StringValue(opts.Host),
+		Https: types.BoolValue(opts.HTTPS),
+		Http:  types.BoolValue(opts.HTTP),
+	}
+	model.OrgID, model.SpaceID = integrationScope(integration)
+	return model
 }

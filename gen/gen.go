@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -245,6 +246,7 @@ var funcMap = template.FuncMap{
 	"toSnakeCase":      toSnakeCase,
 	"formatEnum":       formatEnum,
 	"shouldTrigger":    shouldTrigger,
+	"orgScoped":        orgScoped,
 	"isSensitiveField": isSensitiveField,
 	"isWriteOnlyField": isWriteOnlyField,
 	"testFields":       testFields,
@@ -524,6 +526,18 @@ var ticketSystemIntegrations = []string{
 	"Github",
 	"Gitlab",
 	"AzureDevops",
+}
+
+// orgScopedIntegrations can be created in a Mondoo organization (org_id) as well
+// as in a space: hosted scans whose assets the organization's routing rules place
+// into spaces.
+var orgScopedIntegrations = []string{
+	"Okta",
+	"GoogleWorkspace",
+}
+
+func orgScoped(className string) bool {
+	return slices.Contains(orgScopedIntegrations, className)
 }
 
 func shouldTrigger(enum string) bool {

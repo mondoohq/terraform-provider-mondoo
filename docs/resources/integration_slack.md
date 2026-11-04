@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_slack Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously scan your Slack teams for security misconfigurations.
+  Continuously scan your Slack teams for security misconfigurations. Create it in a Mondoo organization (org_id), whose asset routing rules place the assets into spaces, or in a space (space_id).
 ---
 
 # mondoo_integration_slack (Resource)
 
-Continuously scan your Slack teams for security misconfigurations.
+Continuously scan your Slack teams for security misconfigurations. Create it in a Mondoo organization (`org_id`), whose asset routing rules place the assets into spaces, or in a space (`space_id`).
 
 ## Example Usage
 
@@ -40,7 +40,8 @@ resource "mondoo_integration_slack" "slack_integration" {
 
 ### Optional
 
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `org_id` (String) Mondoo organization identifier. Set this to create the integration in the organization. Conflicts with `space_id`.
+- `space_id` (String) Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.
 
 ### Read-Only
 
