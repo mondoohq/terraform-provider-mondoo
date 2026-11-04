@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_oci_tenant Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously monitor OCI tenancies and resources for misconfigurations and vulnerabilities.
+  Continuously monitor OCI tenancies and resources for misconfigurations and vulnerabilities. Create it in a Mondoo organization (org_id), whose asset routing rules place the assets into spaces, or in a space (space_id).
 ---
 
 # mondoo_integration_oci_tenant (Resource)
 
-Continuously monitor OCI tenancies and resources for misconfigurations and vulnerabilities.
+Continuously monitor OCI tenancies and resources for misconfigurations and vulnerabilities. Create it in a Mondoo organization (`org_id`), whose asset routing rules place the assets into spaces, or in a space (`space_id`).
 
 ## Example Usage
 
@@ -52,7 +52,8 @@ EOT
 ### Optional
 
 - `name` (String) Name of the integration.
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `org_id` (String) Mondoo organization identifier. Set this to create the integration in the organization. Conflicts with `space_id`.
+- `space_id` (String) Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.
 
 ### Read-Only
 

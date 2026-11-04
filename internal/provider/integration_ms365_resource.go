@@ -6,7 +6,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -33,6 +32,7 @@ type integrationMs365Resource struct {
 
 type integrationMs365ResourceModel struct {
 	// scope
+	OrgID   types.String `tfsdk:"org_id"`
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -55,16 +55,10 @@ func (r *integrationMs365Resource) Metadata(ctx context.Context, req resource.Me
 
 func (r *integrationMs365Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. To learn more, read the [Mondoo documentation](https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/).`,
+		MarkdownDescription: `Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. To learn more, read the [Mondoo documentation](https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/).` + " " + orgScopedIntegrationDescription,
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
+			"org_id":   integrationOrgIDAttribute(),
+			"space_id": integrationSpaceIDAttribute(),
 			"mrn": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Integration identifier.",
@@ -131,18 +125,18 @@ func (r *integrationMs365Resource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
+	// Compute and validate the scope: the organization or a space
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource.
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeMs365,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -171,10 +165,10 @@ func (r *integrationMs365Resource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	// Save space mrn into the Terraform state.
+	// Save the integration and its scope into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(space.ID())
+	data.SpaceID = spaceID
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -255,33 +249,14 @@ func (r *integrationMs365Resource) Delete(ctx context.Context, req resource.Dele
 }
 
 func (r *integrationMs365Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	mrn := req.ID
-	integration, err := r.client.GetClientIntegration(ctx, mrn)
-	if err != nil {
-		resp.Diagnostics.
-			AddError("Client Error",
-				fmt.Sprintf("Unable to get integration. Got error: %s", err),
-			)
-		return
-	}
-
-	spaceID := strings.Split(integration.Mrn, "/")[len(strings.Split(integration.Mrn, "/"))-3]
-	if r.client.Space().ID() != "" && r.client.Space().ID() != spaceID {
-		// The provider is configured to manage resources in a different space than the one the
-		// resource is currently configured, we won't allow that
-		resp.Diagnostics.AddError(
-			"Conflict Error",
-			fmt.Sprintf(
-				"Unable to import integration, the provider is configured in a different space than the resource. (%s != %s)",
-				r.client.Space().ID(), spaceID),
-		)
+	integration, ok := r.client.ImportIntegration(ctx, req, resp)
+	if !ok {
 		return
 	}
 
 	model := integrationMs365ResourceModel{
 		Mrn:      types.StringValue(integration.Mrn),
 		Name:     types.StringValue(integration.Name),
-		SpaceID:  types.StringValue(spaceID),
 		TenantId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.TenantId),
 		ClientId: types.StringValue(integration.ConfigurationOptions.Ms365ConfigurationOptions.ClientId),
 		Credential: integrationMs365CredentialModel{
@@ -289,5 +264,6 @@ func (r *integrationMs365Resource) ImportState(ctx context.Context, req resource
 		},
 	}
 
+	model.OrgID, model.SpaceID = integrationScope(*integration)
 	resp.State.Set(ctx, &model)
 }

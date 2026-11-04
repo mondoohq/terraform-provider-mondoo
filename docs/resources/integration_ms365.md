@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_ms365 Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. To learn more, read the Mondoo documentation https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/.
+  Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. To learn more, read the Mondoo documentation https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/. Create it in a Mondoo organization (org_id), whose asset routing rules place the assets into spaces, or in a space (space_id).
 ---
 
 # mondoo_integration_ms365 (Resource)
 
-Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. To learn more, read the [Mondoo documentation](https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/).
+Continuously monitor your Microsoft 365 resources for misconfigurations and vulnerabilities. To learn more, read the [Mondoo documentation](https://mondoo.com/docs/platform/infra/saas/ms365/ms365-auto/). Create it in a Mondoo organization (`org_id`), whose asset routing rules place the assets into spaces, or in a space (`space_id`).
 
 ## Example Usage
 
@@ -303,7 +303,8 @@ resource "mondoo_integration_ms365" "ms365_integration" {
 
 ### Optional
 
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `org_id` (String) Mondoo organization identifier. Set this to create the integration in the organization. Conflicts with `space_id`.
+- `space_id` (String) Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.
 
 ### Read-Only
 

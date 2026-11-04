@@ -48,6 +48,7 @@ type integrationGoogleWorkspaceResource struct {
 
 type integrationGoogleWorkspaceResourceModel struct {
 	// scope
+	OrgID   types.String `tfsdk:"org_id"`
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -77,16 +78,10 @@ func (r *integrationGoogleWorkspaceResource) Metadata(_ context.Context, req res
 
 func (r *integrationGoogleWorkspaceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `GoogleWorkspace integration.`,
+		MarkdownDescription: `GoogleWorkspace integration.` + " " + orgScopedIntegrationDescription,
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
+			"org_id":   integrationOrgIDAttribute(),
+			"space_id": integrationSpaceIDAttribute(),
 			"mrn": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Integration identifier.",
@@ -157,19 +152,19 @@ func (r *integrationGoogleWorkspaceResource) Create(ctx context.Context, req res
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
+	// Compute and validate the scope: the organization or a space
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource.
 
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeGoogleWorkspace,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -204,7 +199,7 @@ func (r *integrationGoogleWorkspaceResource) Create(ctx context.Context, req res
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(data.Name.ValueString())
-	data.SpaceID = types.StringValue(space.ID())
+	data.SpaceID = spaceID
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -292,15 +287,15 @@ func (r *integrationGoogleWorkspaceResource) ImportState(ctx context.Context, re
 		return
 	}
 	model := integrationGoogleWorkspaceResourceModel{
-		Mrn:     types.StringValue(integration.Mrn),
-		Name:    types.StringValue(integration.Name),
-		SpaceID: types.StringValue(integration.SpaceID()),
+		Mrn:  types.StringValue(integration.Mrn),
+		Name: types.StringValue(integration.Name),
 		// GoogleWorkspace options
 		CredentialMrn:         types.StringPointerValue(nil),
 		CustomerId:            types.StringValue(integration.ConfigurationOptions.GoogleWorkspaceConfigurationOptions.CustomerId),
 		ImpersonatedUserEmail: types.StringValue(integration.ConfigurationOptions.GoogleWorkspaceConfigurationOptions.ImpersonatedUserEmail),
 		ServiceAccount:        types.StringPointerValue(nil),
 	}
+	model.OrgID, model.SpaceID = integrationScope(*integration)
 
 	resp.State.Set(ctx, &model)
 }

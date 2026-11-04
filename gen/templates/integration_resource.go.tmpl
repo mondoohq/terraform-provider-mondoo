@@ -51,6 +51,9 @@ type integration{{.ResourceClassName}}Resource struct {
 
 type integration{{.ResourceClassName}}ResourceModel struct {
 	// scope
+	{{- if orgScoped .ResourceClassName}}
+	OrgID   types.String `tfsdk:"org_id"`
+	{{- end}}
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -78,6 +81,12 @@ func (r *integration{{.ResourceClassName}}Resource) Metadata(_ context.Context, 
 
 func (r *integration{{.ResourceClassName}}Resource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		{{- if orgScoped .ResourceClassName}}
+		MarkdownDescription: `{{.ResourceClassName}} integration.` + " " + orgScopedIntegrationDescription,
+		Attributes: map[string]schema.Attribute{
+			"org_id":   integrationOrgIDAttribute(),
+			"space_id": integrationSpaceIDAttribute(),
+		{{- else}}
 		MarkdownDescription: `{{.ResourceClassName}} integration.`,
 		Attributes: map[string]schema.Attribute{
 			"space_id": schema.StringAttribute{
@@ -88,6 +97,7 @@ func (r *integration{{.ResourceClassName}}Resource) Schema(_ context.Context, _ 
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+		{{- end}}
 			"mrn": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Integration identifier.",
@@ -151,6 +161,20 @@ func (r *integration{{.ResourceClassName}}Resource) Create(ctx context.Context, 
 		return
 	}
 
+	{{if orgScoped .ResourceClassName}}// Compute and validate the scope: the organization or a space
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+		return
+	}
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
+
+	// Do GraphQL request to API to create the resource.
+
+	tflog.Debug(ctx, "Creating integration")
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
+	{{- else}}
 	// Compute and validate the space
 	space, err := r.client.ComputeSpace(data.SpaceID)
 	if err != nil {
@@ -164,6 +188,7 @@ func (r *integration{{.ResourceClassName}}Resource) Create(ctx context.Context, 
 	tflog.Debug(ctx, "Creating integration")
 	integration, err := r.client.CreateIntegration(ctx,
 		space.MRN(),
+	{{- end}}
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationType{{ formatEnum .ResourceClassName }},
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -201,7 +226,11 @@ func (r *integration{{.ResourceClassName}}Resource) Create(ctx context.Context, 
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(data.Name.ValueString())
+	{{- if orgScoped .ResourceClassName}}
+	data.SpaceID = spaceID
+	{{- else}}
 	data.SpaceID = types.StringValue(space.ID())
+	{{- end}}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -291,12 +320,17 @@ func (r *integration{{.ResourceClassName}}Resource) ImportState(ctx context.Cont
 	model := integration{{.ResourceClassName}}ResourceModel{
 		Mrn:          types.StringValue(integration.Mrn),
 		Name:         types.StringValue(integration.Name),
+		{{- if not (orgScoped .ResourceClassName)}}
 		SpaceID:      types.StringValue(integration.SpaceID()),
+		{{- end}}
 		// {{.ResourceClassName}} options
 		{{- range $key, $props := .Fields}}
 		{{$key}}: {{$props.ImportConversion $.ResourceClassName $key }},
 		{{- end}}
 	}
+	{{- if orgScoped .ResourceClassName}}
+	model.OrgID, model.SpaceID = integrationScope(*integration)
+	{{- end}}
 
 	resp.State.Set(ctx, &model)
 }

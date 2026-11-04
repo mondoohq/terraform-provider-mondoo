@@ -35,6 +35,7 @@ type integrationGcpResource struct {
 
 type integrationGcpResourceModel struct {
 	// scope
+	OrgID   types.String `tfsdk:"org_id"`
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -90,16 +91,10 @@ func (r *integrationGcpResource) Metadata(ctx context.Context, req resource.Meta
 
 func (r *integrationGcpResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Continuously scan GCP organizations and projects for misconfigurations and vulnerabilities.`,
+		MarkdownDescription: `Continuously scan GCP organizations and projects for misconfigurations and vulnerabilities.` + " " + orgScopedIntegrationDescription,
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
+			"org_id":   integrationOrgIDAttribute(),
+			"space_id": integrationSpaceIDAttribute(),
 			"mrn": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Integration identifier.",
@@ -193,18 +188,18 @@ func (r *integrationGcpResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
+	// Compute and validate the scope: the organization or a space
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource.
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeGcp,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -229,10 +224,10 @@ func (r *integrationGcpResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	// Save space mrn into the Terraform state.
+	// Save the integration and its scope into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(space.ID())
+	data.SpaceID = spaceID
 
 	// Fetch the full integration to populate server-computed fields (e.g. wif_subject)
 	fetched, err := r.client.GetClientIntegration(ctx, string(integration.Mrn))
@@ -340,7 +335,6 @@ func (r *integrationGcpResource) ImportState(ctx context.Context, req resource.I
 	model := integrationGcpResourceModel{
 		Mrn:        types.StringValue(integration.Mrn),
 		Name:       types.StringValue(integration.Name),
-		SpaceID:    types.StringValue(integration.SpaceID()),
 		ProjectId:  types.StringValue(opts.ProjectId),
 		WifSubject: types.StringValue(opts.WifSubject),
 		Credential: integrationGcpCredentialModel{
@@ -354,5 +348,6 @@ func (r *integrationGcpResource) ImportState(ctx context.Context, req resource.I
 		}
 	}
 
+	model.OrgID, model.SpaceID = integrationScope(*integration)
 	resp.State.Set(ctx, &model)
 }
