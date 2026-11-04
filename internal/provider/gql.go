@@ -115,6 +115,51 @@ func (c *ExtendedGqlClient) SetResourceContacts(ctx context.Context, resourceMrn
 	return mutation.SetResourceContacts, err
 }
 
+// SetOrganizationPlatformPoliciesOptOutInput is not in mondoo-go yet; replace with
+// mondoov1.SetOrganizationPlatformPoliciesOptOutInput after the next schema bump.
+type SetOrganizationPlatformPoliciesOptOutInput struct {
+	OrganizationMrn mondoov1.String  `json:"organizationMrn"`
+	OptedOut        mondoov1.Boolean `json:"optedOut"`
+}
+
+// SetOrganizationPlatformPoliciesOptOut opts an organization out of platform-level
+// policies, or back in. The API allows this for platform admins only.
+func (c *ExtendedGqlClient) SetOrganizationPlatformPoliciesOptOut(ctx context.Context, orgMrn string, optedOut bool) error {
+	var mutation struct {
+		SetOrganizationPlatformPoliciesOptOut bool `graphql:"setOrganizationPlatformPoliciesOptOut(input: $input)"`
+	}
+	input := SetOrganizationPlatformPoliciesOptOutInput{
+		OrganizationMrn: mondoov1.String(orgMrn),
+		OptedOut:        mondoov1.Boolean(optedOut),
+	}
+
+	tflog.Trace(ctx, "SetOrganizationPlatformPoliciesOptOut", map[string]interface{}{
+		"input": fmt.Sprintf("%+v", input),
+	})
+
+	return c.Mutate(ctx, &mutation, input, nil)
+}
+
+// GetOrganizationPlatformPoliciesOptedOut reads whether an organization is opted
+// out of platform-level policies.
+func (c *ExtendedGqlClient) GetOrganizationPlatformPoliciesOptedOut(ctx context.Context, orgMrn string) (bool, error) {
+	var q struct {
+		Organization struct {
+			Settings struct {
+				PlatformPoliciesOptedOut bool `graphql:"platformPoliciesOptedOut"`
+			}
+		} `graphql:"organization(mrn: $mrn)"`
+	}
+	variables := map[string]interface{}{
+		"mrn": mondoov1.String(orgMrn),
+	}
+
+	if err := c.Query(ctx, &q, variables); err != nil {
+		return false, err
+	}
+	return q.Organization.Settings.PlatformPoliciesOptedOut, nil
+}
+
 // GetResourceContacts reads contacts for a resource by MRN using the
 // standalone getResourceContacts query.
 func (c *ExtendedGqlClient) GetResourceContacts(ctx context.Context, resourceMrn string) ([]ResourceContactPayload, error) {
