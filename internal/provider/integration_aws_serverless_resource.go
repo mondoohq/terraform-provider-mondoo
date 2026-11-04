@@ -6,10 +6,12 @@ package provider
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -77,11 +79,81 @@ type ScanConfigurationInput struct {
 	// (Optional.)
 	CronScaninHours types.Int64 `tfsdk:"cron_scan_in_hours"`
 	// (Optional.)
+	CronScanExpression types.String `tfsdk:"cron_scan_expression"`
+	// (Optional.)
 	EventScanTriggers *[]*AWSEventPatternInput `tfsdk:"event_scan_triggers"`
 	// (Optional.)
 	Ec2ScanOptions *Ec2ScanOptionsInput `tfsdk:"ec2_scan_options"`
 	// (Optional.)
 	VpcConfiguration *VPCConfigurationInput `tfsdk:"vpc_configuration"`
+	// (Optional.)
+	CrossAccountScan types.Bool `tfsdk:"cross_account_scan"`
+	// (Optional.)
+	CrossAccountScanOptions *CrossAccountScanOptionsInput `tfsdk:"cross_account_scan_options"`
+	// (Optional.)
+	PropagateAccountTags types.Bool `tfsdk:"propagate_account_tags"`
+	// (Optional.)
+	DiscoveryTargets types.List `tfsdk:"discovery_targets"`
+	// (Optional.)
+	Scheduling types.String `tfsdk:"scheduling"`
+}
+
+type CrossAccountScanOptionsInput struct {
+	// (Optional.)
+	RoleName types.String `tfsdk:"role_name"`
+	// (Optional.)
+	AccountIDs types.List `tfsdk:"account_ids"`
+	// (Optional.) Tag key to tag value.
+	AccountTags types.Map `tfsdk:"account_tags"`
+	// (Optional.) AWS Organization ID to its management account ID.
+	Organizations types.Map `tfsdk:"organizations"`
+	// (Optional.)
+	EbsVolumeScan types.Bool `tfsdk:"ebs_volume_scan"`
+}
+
+// input maps the cross-account options to their API input. Unset attributes
+// are omitted from the request.
+func (o *CrossAccountScanOptionsInput) input() *mondoov1.AWSCrossAccountScanOptionsInput {
+	in := &mondoov1.AWSCrossAccountScanOptionsInput{
+		RoleName:      OptionalString(o.RoleName),
+		EbsVolumeScan: OptionalBool(o.EbsVolumeScan),
+	}
+	if !o.AccountIDs.IsNull() && !o.AccountIDs.IsUnknown() {
+		accountIDs := ConvertSliceStrings(o.AccountIDs)
+		in.AccountIDs = &accountIDs
+	}
+	if tags, ok := stringMap(o.AccountTags); ok {
+		accountTags := make([]mondoov1.TagInput, 0, len(tags))
+		for _, key := range slices.Sorted(maps.Keys(tags)) {
+			accountTags = append(accountTags, mondoov1.TagInput{
+				Key:   mondoov1.String(key),
+				Value: mondoov1.String(tags[key]),
+			})
+		}
+		in.AccountTags = &accountTags
+	}
+	if orgs, ok := stringMap(o.Organizations); ok {
+		organizations := make([]mondoov1.AWSCrossAccountOrganizationInput, 0, len(orgs))
+		for _, orgID := range slices.Sorted(maps.Keys(orgs)) {
+			organizations = append(organizations, mondoov1.AWSCrossAccountOrganizationInput{
+				OrganizationId:      mondoov1.String(orgID),
+				ManagementAccountId: mondoov1.String(orgs[orgID]),
+			})
+		}
+		in.Organizations = &organizations
+	}
+	return in
+}
+
+// stringMap returns the elements of a map(string) attribute, and false when the
+// attribute is not set in the configuration (null or unknown).
+func stringMap(m types.Map) (map[string]string, bool) {
+	if m.IsNull() || m.IsUnknown() {
+		return nil, false
+	}
+	out := map[string]string{}
+	m.ElementsAs(context.Background(), &out, false)
+	return out, true
 }
 
 type VPCTagInput struct {
@@ -231,6 +303,22 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 		opts.ScanConfiguration.AccountScan = mondoov1.NewBooleanPtr(mondoov1.Boolean(accountScan.ValueBool()))
 	}
 
+	// The scan options below are only sent when set, so a configuration that
+	// does not use them sends the same request as before they existed.
+	opts.ScanConfiguration.CronScanExpression = OptionalString(m.ScanConfiguration.CronScanExpression)
+	opts.ScanConfiguration.CrossAccountScan = OptionalBool(m.ScanConfiguration.CrossAccountScan)
+	if m.ScanConfiguration.CrossAccountScanOptions != nil {
+		opts.ScanConfiguration.CrossAccountScanOptions = m.ScanConfiguration.CrossAccountScanOptions.input()
+	}
+	opts.ScanConfiguration.PropagateAccountTags = OptionalBool(m.ScanConfiguration.PropagateAccountTags)
+	if targets := m.ScanConfiguration.DiscoveryTargets; !targets.IsNull() && !targets.IsUnknown() {
+		discoveryTargets := ConvertSliceStrings(targets)
+		opts.ScanConfiguration.DiscoveryTargets = &discoveryTargets
+	}
+	if scheduling := m.ScanConfiguration.Scheduling; !scheduling.IsNull() && !scheduling.IsUnknown() {
+		opts.ScanConfiguration.Scheduling = ToPtr(mondoov1.ScanScheduling(scheduling.ValueString()))
+	}
+
 	if m.ScanConfiguration.VpcConfiguration != nil {
 		useMondooVPC := m.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool()
 
@@ -344,6 +432,59 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 					"cron_scan_in_hours": schema.Int64Attribute{
 						MarkdownDescription: "Cron scan in hours.",
 						Optional:            true,
+					},
+					"cron_scan_expression": schema.StringAttribute{
+						MarkdownDescription: "Scan schedule as a standard 5-field cron expression in UTC, e.g. `0 3 * * MON-FRI` for 03:00 on weekdays. Takes precedence over `cron_scan_in_hours`. Mondoo rejects an expression that restricts both day-of-month and day-of-week, or that scans more often than once an hour.",
+						Optional:            true,
+					},
+					"cross_account_scan": schema.BoolAttribute{
+						MarkdownDescription: "Enable cross-account scanning: the Lambda assumes `cross_account_scan_options.role_name` in each target account and scans it from the account it is deployed in.",
+						Optional:            true,
+					},
+					"cross_account_scan_options": schema.SingleNestedAttribute{
+						MarkdownDescription: "Which accounts cross-account scanning targets, and the IAM role it assumes in each.",
+						Optional:            true,
+						Attributes: map[string]schema.Attribute{
+							"role_name": schema.StringAttribute{
+								MarkdownDescription: "The IAM role the Lambda assumes in each target account. Set it when you create the integration. Once the deployed CloudFormation stack checks in, Mondoo keeps the role name the stack reports (its `CrossAccountScanRoleName` parameter), so a later change here is not applied: change it in the stack.",
+								Optional:            true,
+							},
+							"account_ids": schema.ListAttribute{
+								MarkdownDescription: "The AWS account IDs to scan.",
+								Optional:            true,
+								ElementType:         types.StringType,
+							},
+							"account_tags": schema.MapAttribute{
+								MarkdownDescription: "Tag key to tag value. Only accounts that carry at least one of these tags are scanned; when empty, every account is scanned. A value of `*` matches any value of the key.",
+								Optional:            true,
+								ElementType:         types.StringType,
+							},
+							"organizations": schema.MapAttribute{
+								MarkdownDescription: "Foreign AWS Organizations to scan in addition to the Lambda's own organization: AWS Organization ID (e.g. `o-abc123defg`) to the 12-digit ID of its management (or delegated administrator) account. The Lambda assumes `role_name` in that account to list the organization's accounts, and scans every active account in it.",
+								Optional:            true,
+								ElementType:         types.StringType,
+							},
+							"ebs_volume_scan": schema.BoolAttribute{
+								MarkdownDescription: "Scan the target accounts' EC2 instances through snapshots of their EBS volumes. Takes effect only while `cross_account_scan` and `ec2_scan_options.ebs_volume_scan` are on, and only in target accounts whose Mondoo role was deployed with the `EbsScanning` opt-in.",
+								Optional:            true,
+							},
+						},
+					},
+					"propagate_account_tags": schema.BoolAttribute{
+						MarkdownDescription: "Propagate the AWS account tags to every asset discovered in the account.",
+						Optional:            true,
+					},
+					"discovery_targets": schema.ListAttribute{
+						MarkdownDescription: "The AWS discovery targets the account scan runs, e.g. `[\"auto\"]` or `[\"accounts\", \"s3-buckets\"]`. When unset, the Lambda uses its built-in targets. Targets that scan workloads directly, such as `instances` or `ecr`, are rejected: `ec2_scan` and `ecr_scan` cover those.",
+						Optional:            true,
+						ElementType:         types.StringType,
+					},
+					"scheduling": schema.StringAttribute{
+						MarkdownDescription: "Who drives the scan cycle, one of: `LAMBDA` (the deployed Lambda keeps its own scan queue, the default) or `SERVER` (Mondoo keeps the queue, and the Lambda reports what it discovers and pulls its work). When unset, the integration keeps its current setting.",
+						Optional:            true,
+						Validators: []validator.String{
+							stringvalidator.OneOf(string(mondoov1.ScanSchedulingLambda), string(mondoov1.ScanSchedulingServer)),
+						},
 					},
 					"vpc_configuration": schema.SingleNestedAttribute{
 						Optional: true,

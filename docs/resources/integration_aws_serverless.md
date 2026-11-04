@@ -112,11 +112,17 @@ Required:
 Optional:
 
 - `account_scan` (Boolean) Enable AWS account scan. Defaults to true when not set.
+- `cron_scan_expression` (String) Scan schedule as a standard 5-field cron expression in UTC, e.g. `0 3 * * MON-FRI` for 03:00 on weekdays. Takes precedence over `cron_scan_in_hours`. Mondoo rejects an expression that restricts both day-of-month and day-of-week, or that scans more often than once an hour.
 - `cron_scan_in_hours` (Number) Cron scan in hours.
+- `cross_account_scan` (Boolean) Enable cross-account scanning: the Lambda assumes `cross_account_scan_options.role_name` in each target account and scans it from the account it is deployed in.
+- `cross_account_scan_options` (Attributes) Which accounts cross-account scanning targets, and the IAM role it assumes in each. (see [below for nested schema](#nestedatt--scan_configuration--cross_account_scan_options))
+- `discovery_targets` (List of String) The AWS discovery targets the account scan runs, e.g. `["auto"]` or `["accounts", "s3-buckets"]`. When unset, the Lambda uses its built-in targets. Targets that scan workloads directly, such as `instances` or `ecr`, are rejected: `ec2_scan` and `ecr_scan` cover those.
 - `ec2_scan` (Boolean) Enable EC2 scan.
 - `ecr_scan` (Boolean) Enable ECR scan.
 - `ecs_scan` (Boolean) Enable ECS scan.
 - `event_scan_triggers` (Attributes) (see [below for nested schema](#nestedatt--scan_configuration--event_scan_triggers))
+- `propagate_account_tags` (Boolean) Propagate the AWS account tags to every asset discovered in the account.
+- `scheduling` (String) Who drives the scan cycle, one of: `LAMBDA` (the deployed Lambda keeps its own scan queue, the default) or `SERVER` (Mondoo keeps the queue, and the Lambda reports what it discovers and pulls its work). When unset, the integration keeps its current setting.
 - `vpc_configuration` (Attributes) (see [below for nested schema](#nestedatt--scan_configuration--vpc_configuration))
 
 <a id="nestedatt--scan_configuration--ec2_scan_options"></a>
@@ -143,6 +149,18 @@ Optional:
 - `max_asg_instances` (Number, Deprecated) Max ASG instances.
 - `target_instances_per_scanner` (Number, Deprecated) Target instances per scanner.
 
+
+
+<a id="nestedatt--scan_configuration--cross_account_scan_options"></a>
+### Nested Schema for `scan_configuration.cross_account_scan_options`
+
+Optional:
+
+- `account_ids` (List of String) The AWS account IDs to scan.
+- `account_tags` (Map of String) Tag key to tag value. Only accounts that carry at least one of these tags are scanned; when empty, every account is scanned. A value of `*` matches any value of the key.
+- `ebs_volume_scan` (Boolean) Scan the target accounts' EC2 instances through snapshots of their EBS volumes. Takes effect only while `cross_account_scan` and `ec2_scan_options.ebs_volume_scan` are on, and only in target accounts whose Mondoo role was deployed with the `EbsScanning` opt-in.
+- `organizations` (Map of String) Foreign AWS Organizations to scan in addition to the Lambda's own organization: AWS Organization ID (e.g. `o-abc123defg`) to the 12-digit ID of its management (or delegated administrator) account. The Lambda assumes `role_name` in that account to list the organization's accounts, and scans every active account in it.
+- `role_name` (String) The IAM role the Lambda assumes in each target account. Set it when you create the integration. Once the deployed CloudFormation stack checks in, Mondoo keeps the role name the stack reports (its `CrossAccountScanRoleName` parameter), so a later change here is not applied: change it in the stack.
 
 
 <a id="nestedatt--scan_configuration--event_scan_triggers"></a>

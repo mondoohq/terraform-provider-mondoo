@@ -6,6 +6,7 @@ package provider
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 	mondoov1 "go.mondoo.com/mondoo-go"
@@ -140,5 +141,81 @@ func TestIntegrationAwsServerlessResourceValidateConfig_VPCFlavour(t *testing.T)
 			diagnostics := validateIntegrationAwsServerlessResourceModel(d)
 			assert.False(t, diagnostics.HasError(), "expected NO errors")
 		})
+	})
+}
+
+func TestIntegrationAwsServerlessResourceGetConfigurationOptions_ScanOptions(t *testing.T) {
+	model := func(sc ScanConfigurationInput) integrationAwsServerlessResourceModel {
+		sc.Ec2ScanOptions = &Ec2ScanOptionsInput{
+			InstanceIdsFilter:        types.ListNull(types.StringType),
+			RegionsFilter:            types.ListNull(types.StringType),
+			TagsFilter:               types.MapNull(types.StringType),
+			ExcludeInstanceIdsFilter: types.ListNull(types.StringType),
+			ExcludeRegionsFilter:     types.ListNull(types.StringType),
+			ExcludeTagsFilter:        types.MapNull(types.StringType),
+		}
+		return integrationAwsServerlessResourceModel{
+			Region:            types.StringValue("us-east-1"),
+			AccountIDs:        types.ListNull(types.StringType),
+			ScanConfiguration: sc,
+		}
+	}
+
+	t.Run("unset options are omitted", func(t *testing.T) {
+		sc := model(ScanConfigurationInput{
+			DiscoveryTargets: types.ListNull(types.StringType),
+		}).GetConfigurationOptions().ScanConfiguration
+
+		assert.Nil(t, sc.CronScanExpression)
+		assert.Nil(t, sc.CrossAccountScan)
+		assert.Nil(t, sc.CrossAccountScanOptions)
+		assert.Nil(t, sc.PropagateAccountTags)
+		assert.Nil(t, sc.DiscoveryTargets)
+		assert.Nil(t, sc.Scheduling)
+	})
+
+	t.Run("set options are sent", func(t *testing.T) {
+		sc := model(ScanConfigurationInput{
+			CronScanExpression: types.StringValue("0 3 * * MON-FRI"),
+			CrossAccountScan:   types.BoolValue(true),
+			CrossAccountScanOptions: &CrossAccountScanOptionsInput{
+				RoleName: types.StringValue("MondooCrossAccountRole"),
+				AccountIDs: types.ListValueMust(types.StringType, []attr.Value{
+					types.StringValue("111111111111"),
+				}),
+				AccountTags: types.MapValueMust(types.StringType, map[string]attr.Value{
+					"team": types.StringValue("*"),
+					"env":  types.StringValue("prod"),
+				}),
+				Organizations: types.MapValueMust(types.StringType, map[string]attr.Value{
+					"o-abc123defg": types.StringValue("222222222222"),
+				}),
+				EbsVolumeScan: types.BoolValue(true),
+			},
+			PropagateAccountTags: types.BoolValue(false),
+			DiscoveryTargets: types.ListValueMust(types.StringType, []attr.Value{
+				types.StringValue("accounts"),
+				types.StringValue("s3-buckets"),
+			}),
+			Scheduling: types.StringValue("SERVER"),
+		}).GetConfigurationOptions().ScanConfiguration
+
+		assert.Equal(t, mondoov1.NewStringPtr("0 3 * * MON-FRI"), sc.CronScanExpression)
+		assert.Equal(t, mondoov1.NewBooleanPtr(true), sc.CrossAccountScan)
+		assert.Equal(t, mondoov1.NewBooleanPtr(false), sc.PropagateAccountTags)
+		assert.Equal(t, &[]mondoov1.String{"accounts", "s3-buckets"}, sc.DiscoveryTargets)
+		assert.Equal(t, ToPtr(mondoov1.ScanSchedulingServer), sc.Scheduling)
+		assert.Equal(t, &mondoov1.AWSCrossAccountScanOptionsInput{
+			RoleName:   mondoov1.NewStringPtr("MondooCrossAccountRole"),
+			AccountIDs: &[]mondoov1.String{"111111111111"},
+			AccountTags: &[]mondoov1.TagInput{
+				{Key: "env", Value: "prod"},
+				{Key: "team", Value: "*"},
+			},
+			Organizations: &[]mondoov1.AWSCrossAccountOrganizationInput{
+				{OrganizationId: "o-abc123defg", ManagementAccountId: "222222222222"},
+			},
+			EbsVolumeScan: mondoov1.NewBooleanPtr(true),
+		}, sc.CrossAccountScanOptions)
 	})
 }
