@@ -4,11 +4,17 @@
 package provider
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	mondoov1 "go.mondoo.com/mondoo-go"
 )
 
@@ -218,4 +224,40 @@ func TestIntegrationAwsServerlessResourceGetConfigurationOptions_ScanOptions(t *
 			EbsVolumeScan: mondoov1.NewBooleanPtr(true),
 		}, sc.CrossAccountScanOptions)
 	})
+}
+
+func TestIntegrationAwsServerlessResourceSchema_CrossAccountMapsRejectNullValues(t *testing.T) {
+	// A null element makes ElementsAs fail for the whole map and leave it
+	// empty, which would drop the account_tags filter and scan every account.
+	// The schema must reject it at plan time.
+	var resp resource.SchemaResponse
+	(&integrationAwsServerlessResource{}).Schema(context.Background(), resource.SchemaRequest{}, &resp)
+	require.False(t, resp.Diagnostics.HasError(), "schema diagnostics: %v", resp.Diagnostics)
+
+	options := resp.Schema.Attributes["scan_configuration"].(schema.SingleNestedAttribute).
+		Attributes["cross_account_scan_options"].(schema.SingleNestedAttribute)
+
+	validate := func(attribute schema.MapAttribute, elements map[string]attr.Value) diag.Diagnostics {
+		req := validator.MapRequest{ConfigValue: types.MapValueMust(types.StringType, elements)}
+		resp := &validator.MapResponse{}
+		for _, v := range attribute.Validators {
+			v.ValidateMap(context.Background(), req, resp)
+		}
+		return resp.Diagnostics
+	}
+
+	for _, name := range []string{"account_tags", "organizations"} {
+		t.Run(name, func(t *testing.T) {
+			attribute := options.Attributes[name].(schema.MapAttribute)
+
+			assert.True(t, validate(attribute, map[string]attr.Value{
+				"set":   types.StringValue("value"),
+				"unset": types.StringNull(),
+			}).HasError(), "a null element must be rejected")
+
+			assert.False(t, validate(attribute, map[string]attr.Value{
+				"set": types.StringValue("value"),
+			}).HasError(), "a map without null elements must pass")
+		})
+	}
 }
