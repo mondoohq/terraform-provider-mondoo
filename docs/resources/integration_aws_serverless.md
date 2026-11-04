@@ -122,7 +122,7 @@ Optional:
 - `ecs_scan` (Boolean) Enable ECS scan.
 - `event_scan_triggers` (Attributes) (see [below for nested schema](#nestedatt--scan_configuration--event_scan_triggers))
 - `propagate_account_tags` (Boolean) Propagate the AWS account tags to every asset discovered in the account.
-- `scheduling` (String) Who drives the scan cycle, one of: `LAMBDA` (the deployed Lambda keeps its own scan queue, the default) or `SERVER` (Mondoo keeps the queue, and the Lambda reports what it discovers and pulls its work). When unset, the integration keeps its current setting.
+- `scheduling` (String) **Experimental:** this attribute may change or be removed in a future release. Who drives the scan cycle, one of: `LAMBDA` (the deployed Lambda keeps its own scan queue, the default) or `SERVER` (Mondoo keeps the queue, and the Lambda reports what it discovers and pulls its work). When unset, the integration keeps its current setting.
 - `vpc_configuration` (Attributes) (see [below for nested schema](#nestedatt--scan_configuration--vpc_configuration))
 
 <a id="nestedatt--scan_configuration--ec2_scan_options"></a>

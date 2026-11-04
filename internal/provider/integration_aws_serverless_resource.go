@@ -480,7 +480,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 						ElementType:         types.StringType,
 					},
 					"scheduling": schema.StringAttribute{
-						MarkdownDescription: "Who drives the scan cycle, one of: `LAMBDA` (the deployed Lambda keeps its own scan queue, the default) or `SERVER` (Mondoo keeps the queue, and the Lambda reports what it discovers and pulls its work). When unset, the integration keeps its current setting.",
+						MarkdownDescription: "**Experimental:** this attribute may change or be removed in a future release. Who drives the scan cycle, one of: `LAMBDA` (the deployed Lambda keeps its own scan queue, the default) or `SERVER` (Mondoo keeps the queue, and the Lambda reports what it discovers and pulls its work). When unset, the integration keeps its current setting.",
 						Optional:            true,
 						Validators: []validator.String{
 							stringvalidator.OneOf(string(mondoov1.ScanSchedulingLambda), string(mondoov1.ScanSchedulingServer)),
