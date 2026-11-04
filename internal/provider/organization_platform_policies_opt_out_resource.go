@@ -38,9 +38,10 @@ type OrganizationPlatformPoliciesOptOutResource struct {
 }
 
 type OrganizationPlatformPoliciesOptOutResourceModel struct {
-	OrgID  types.String `tfsdk:"org_id"`
 	OrgMrn types.String `tfsdk:"org_mrn"`
 }
+
+var organizationMrnRegexp = regexp.MustCompile(`^` + regexp.QuoteMeta(orgPrefix) + `[^/\s]+$`)
 
 func (r *OrganizationPlatformPoliciesOptOutResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_organization_platform_policies_opt_out"
@@ -59,24 +60,17 @@ An asset changes what it runs on its next scan.
 Managing this resource requires the platform admin role. Owners of the organization cannot change this setting. Use a provider configuration with a platform admin service account, for example through a provider alias. The MONDOO_API_TOKEN, MONDOO_CONFIG_PATH and MONDOO_CONFIG_BASE64 environment variables take precedence over the provider's credentials field, so leave them unset when the alias sets credentials.`,
 
 		Attributes: map[string]schema.Attribute{
-			"org_id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the organization, not its MRN. Changing it opts the old organization back in and opts the new one out.",
+			"org_mrn": schema.StringAttribute{
+				MarkdownDescription: "The Mondoo Resource Name (MRN) of the organization. Changing it opts the old organization back in and opts the new one out.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^[^/\s]+$`),
-						"must be an organization ID, such as \"my-org-123456\", not an organization MRN",
+						organizationMrnRegexp,
+						"must be an organization MRN, such as \""+orgPrefix+"my-org-123456\"",
 					),
-				},
-			},
-			"org_mrn": schema.StringAttribute{
-				MarkdownDescription: "The Mondoo Resource Name (MRN) of the organization.",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},
@@ -106,7 +100,7 @@ func (r *OrganizationPlatformPoliciesOptOutResource) Create(ctx context.Context,
 		return
 	}
 
-	orgMrn := orgPrefix + data.OrgID.ValueString()
+	orgMrn := data.OrgMrn.ValueString()
 	tflog.Debug(ctx, "opting organization out of platform-level policies", map[string]interface{}{
 		"orgMrn": orgMrn,
 	})
@@ -116,7 +110,6 @@ func (r *OrganizationPlatformPoliciesOptOutResource) Create(ctx context.Context,
 		return
 	}
 
-	data.OrgMrn = types.StringValue(orgMrn)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -127,7 +120,7 @@ func (r *OrganizationPlatformPoliciesOptOutResource) Read(ctx context.Context, r
 		return
 	}
 
-	orgMrn := orgPrefix + data.OrgID.ValueString()
+	orgMrn := data.OrgMrn.ValueString()
 	optedOut, err := r.client.GetOrganizationPlatformPoliciesOptedOut(ctx, orgMrn)
 	if err != nil {
 		if isOrganizationNotFoundError(err) {
@@ -148,12 +141,10 @@ func (r *OrganizationPlatformPoliciesOptOutResource) Read(ctx context.Context, r
 		return
 	}
 
-	data.OrgMrn = types.StringValue(orgMrn)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-// Update is never called with a change: org_id requires replacement and
-// org_mrn is derived from it.
+// Update is never called with a change: org_mrn requires replacement.
 func (r *OrganizationPlatformPoliciesOptOutResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data OrganizationPlatformPoliciesOptOutResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -170,7 +161,7 @@ func (r *OrganizationPlatformPoliciesOptOutResource) Delete(ctx context.Context,
 		return
 	}
 
-	orgMrn := orgPrefix + data.OrgID.ValueString()
+	orgMrn := data.OrgMrn.ValueString()
 	tflog.Debug(ctx, "opting organization back in to platform-level policies", map[string]interface{}{
 		"orgMrn": orgMrn,
 	})
@@ -188,14 +179,16 @@ func isOrganizationNotFoundError(err error) bool {
 	return isNotFoundError(err) || (err != nil && strings.Contains(err.Error(), "organization not found"))
 }
 
-// ImportState accepts an organization ID or an organization MRN.
+// ImportState takes the organization's MRN.
 func (r *OrganizationPlatformPoliciesOptOutResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	orgID, err := orgIDFromImportID(req.ID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid import ID", err.Error())
+	orgMrn := req.ID
+	if !organizationMrnRegexp.MatchString(orgMrn) {
+		resp.Diagnostics.AddError(
+			"Invalid import ID",
+			fmt.Sprintf("expected an organization MRN, such as \"%smy-org-123456\", got %q", orgPrefix, orgMrn),
+		)
 		return
 	}
-	orgMrn := orgPrefix + orgID
 
 	optedOut, err := r.client.GetOrganizationPlatformPoliciesOptedOut(ctx, orgMrn)
 	if err != nil {
@@ -206,27 +199,13 @@ func (r *OrganizationPlatformPoliciesOptOutResource) ImportState(ctx context.Con
 		resp.Diagnostics.AddError(
 			"Organization is not opted out of platform-level policies",
 			fmt.Sprintf("The organization %q is not opted out, so there is nothing to import. "+
-				"Create a mondoo_organization_platform_policies_opt_out resource for it instead.", orgID),
+				"Create a mondoo_organization_platform_policies_opt_out resource for it instead.", orgMrn),
 		)
 		return
 	}
 
 	data := OrganizationPlatformPoliciesOptOutResourceModel{
-		OrgID:  types.StringValue(orgID),
 		OrgMrn: types.StringValue(orgMrn),
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-// orgIDFromImportID returns the organization ID from an import ID that is either the
-// ID itself or the organization's MRN.
-func orgIDFromImportID(importID string) (string, error) {
-	orgID := strings.TrimPrefix(importID, orgPrefix)
-	if orgID == "" || strings.ContainsAny(orgID, "/ \t\n") {
-		return "", fmt.Errorf(
-			"expected an organization ID, such as \"my-org-123456\", or an organization MRN, such as \"%smy-org-123456\", got %q",
-			orgPrefix, importID,
-		)
-	}
-	return orgID, nil
 }

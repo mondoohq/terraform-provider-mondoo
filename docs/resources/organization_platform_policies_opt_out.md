@@ -27,7 +27,7 @@ Managing this resource requires the platform admin role. Owners of the organizat
 ```terraform
 resource "mondoo_organization_platform_policies_opt_out" "example" {
   provider = mondoo.platform_admin
-  org_id   = var.org_id
+  org_mrn  = var.org_mrn
 }
 ```
 
@@ -36,11 +36,7 @@ resource "mondoo_organization_platform_policies_opt_out" "example" {
 
 ### Required
 
-- `org_id` (String) The ID of the organization, not its MRN. Changing it opts the old organization back in and opts the new one out.
-
-### Read-Only
-
-- `org_mrn` (String) The Mondoo Resource Name (MRN) of the organization.
+- `org_mrn` (String) The Mondoo Resource Name (MRN) of the organization. Changing it opts the old organization back in and opts the new one out.
 
 ## Import
 
@@ -49,7 +45,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Import the opt-out of an organization by its ID or its MRN. The organization must be opted out.
-terraform import mondoo_organization_platform_policies_opt_out.example "my-org-123456"
+# Import the opt-out of an organization by its MRN. The organization must be opted out.
 terraform import mondoo_organization_platform_policies_opt_out.example "//captain.api.mondoo.app/organizations/my-org-123456"
 ```

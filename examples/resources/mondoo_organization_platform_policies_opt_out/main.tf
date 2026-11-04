@@ -20,7 +20,7 @@ variable "platform_admin_credentials" {
   sensitive   = true
 }
 
-variable "org_id" {
-  description = "The ID of the organization to opt out"
+variable "org_mrn" {
+  description = "The MRN of the organization to opt out"
   type        = string
 }

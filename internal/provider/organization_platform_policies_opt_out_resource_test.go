@@ -75,27 +75,16 @@ func TestIsOrganizationNotFoundError(t *testing.T) {
 	assert.False(t, isOrganizationNotFoundError(nil))
 }
 
-func TestOrgIDFromImportID(t *testing.T) {
-	tests := []struct {
-		name, importID, want string
-		wantErr              bool
-	}{
-		{name: "id", importID: "my-org-123456", want: "my-org-123456"},
-		{name: "mrn", importID: testOptOutOrgMrn, want: "my-org-123456"},
-		{name: "empty", importID: "", wantErr: true},
-		{name: "prefix only", importID: orgPrefix, wantErr: true},
-		{name: "space mrn", importID: "//captain.api.mondoo.app/spaces/my-space-123456", wantErr: true},
-		{name: "whitespace", importID: "my org", wantErr: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := orgIDFromImportID(tt.importID)
-			if tt.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tt.want, got)
-		})
+func TestOrganizationMrnRegexp(t *testing.T) {
+	assert.True(t, organizationMrnRegexp.MatchString(testOptOutOrgMrn))
+	for _, mrn := range []string{
+		"",
+		"my-org-123456",
+		orgPrefix,
+		orgPrefix + "my-org-123456/spaces/my-space",
+		orgPrefix + "my org",
+		"//captain.api.mondoo.app/spaces/my-space-123456",
+	} {
+		assert.False(t, organizationMrnRegexp.MatchString(mrn), mrn)
 	}
 }
