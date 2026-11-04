@@ -33,4 +33,8 @@ resource "mondoo_integration_crowdstrike" "crowdstrike_integration" {
 
   # Optional: import only these severities. Omit or leave empty for all.
   severities = ["CRITICAL", "HIGH"]
+
+  # Optional: import only hosts that belong to these Falcon host groups (host
+  # group IDs, 32 hexadecimal characters each). Omit or leave empty for all.
+  import_host_groups = ["0123456789abcdef0123456789abcdef"]
 }

@@ -6,6 +6,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -47,7 +49,16 @@ type integrationCrowdstrikeResourceModel struct {
 	MemberCID    types.String `tfsdk:"member_cid"`
 	FindingTypes types.Set    `tfsdk:"finding_types"`
 	Severities   types.Set    `tfsdk:"severities"`
+
+	ImportHostGroups types.Set `tfsdk:"import_host_groups"`
 }
+
+// crowdstrikeHostGroupIDPattern matches a Falcon host group ID: 32 hex
+// characters. The API lowercases IDs, so either case is accepted.
+var crowdstrikeHostGroupIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{32}$`)
+
+// crowdstrikeMaxImportHostGroups is the most host groups the API accepts.
+const crowdstrikeMaxImportHostGroups = 100
 
 // crowdstrikeFindingTypes are the values the API accepts for finding_types.
 var crowdstrikeFindingTypes = []string{
@@ -64,8 +75,8 @@ var crowdstrikeSeverities = []string{
 	string(mondoov1.CrowdstrikeFalconSeverityInformational),
 }
 
-// GetConfigurationOptions builds the API input. finding_types and severities
-// are sent only when they hold a known value: the API keeps what is stored
+// GetConfigurationOptions builds the API input. finding_types, severities and
+// import_host_groups are sent only when they hold a known value: the API keeps what is stored
 // when either is omitted, and an explicit empty set clears it.
 func (m integrationCrowdstrikeResourceModel) GetConfigurationOptions(ctx context.Context) (*mondoov1.CrowdstrikeFalconConfigurationOptionsInput, diag.Diagnostics) {
 	var diags diag.Diagnostics
@@ -81,6 +92,9 @@ func (m integrationCrowdstrikeResourceModel) GetConfigurationOptions(ctx context
 	severities, d := enumSetToInput[mondoov1.CrowdstrikeFalconSeverity](ctx, m.Severities)
 	diags.Append(d...)
 	opts.Severities = severities
+	hostGroups, d := enumSetToInput[mondoov1.String](ctx, m.ImportHostGroups)
+	diags.Append(d...)
+	opts.ImportHostGroups = hostGroups
 	return opts, diags
 }
 
@@ -110,6 +124,43 @@ func enumSetValue(ctx context.Context, values []string) (types.Set, diag.Diagnos
 		values = []string{}
 	}
 	return types.SetValueFrom(ctx, types.StringType, values)
+}
+
+// hostGroupsSetValue converts the stored host group IDs to a set. The API
+// lowercases and sorts the IDs it stores, so a configuration written in upper
+// case would show a diff on every refresh. When the stored IDs equal the prior
+// value apart from case, the prior value is kept; any real change (an ID added,
+// removed or replaced elsewhere) is reported as drift.
+func hostGroupsSetValue(ctx context.Context, prior types.Set, stored []string) (types.Set, diag.Diagnostics) {
+	if !prior.IsNull() && !prior.IsUnknown() {
+		var priorIDs []string
+		if d := prior.ElementsAs(ctx, &priorIDs, false); !d.HasError() && sameHostGroups(priorIDs, stored) {
+			return prior, nil
+		}
+	}
+	return enumSetValue(ctx, stored)
+}
+
+// sameHostGroups reports whether a and b hold the same IDs, ignoring case,
+// order and duplicates.
+func sameHostGroups(a, b []string) bool {
+	norm := func(ids []string) map[string]struct{} {
+		m := make(map[string]struct{}, len(ids))
+		for _, id := range ids {
+			m[strings.ToLower(id)] = struct{}{}
+		}
+		return m
+	}
+	na, nb := norm(a), norm(b)
+	if len(na) != len(nb) {
+		return false
+	}
+	for id := range na {
+		if _, ok := nb[id]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func (r *integrationCrowdstrikeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -185,6 +236,23 @@ func (r *integrationCrowdstrikeResource) Schema(_ context.Context, _ resource.Sc
 				Computed:    true,
 				Validators: []validator.Set{
 					setvalidator.ValueStringsAre(stringvalidator.OneOf(crowdstrikeSeverities...)),
+				},
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"import_host_groups": schema.SetAttribute{
+				MarkdownDescription: "Import only hosts that belong to these Falcon host groups, given as host group IDs " +
+					"(32 hexadecimal characters, at most 100). Empty imports hosts of every group. The API stores the IDs " +
+					"in lowercase. Omit it to keep what is stored (every group on a new integration); " +
+					"set it to `[]` to import every host group again.",
+				ElementType: types.StringType,
+				Optional:    true,
+				Computed:    true,
+				Validators: []validator.Set{
+					setvalidator.SizeAtMost(crowdstrikeMaxImportHostGroups),
+					setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+						crowdstrikeHostGroupIDPattern, "must be a Falcon host group ID: 32 hexadecimal characters")),
 				},
 				PlanModifiers: []planmodifier.Set{
 					setplanmodifier.UseStateForUnknown(),
@@ -278,6 +346,11 @@ func (r *integrationCrowdstrikeResource) Create(ctx context.Context, req resourc
 		resp.Diagnostics.Append(diags...)
 	}
 
+	if data.ImportHostGroups.IsUnknown() {
+		data.ImportHostGroups, diags = enumSetValue(ctx, nil)
+		resp.Diagnostics.Append(diags...)
+	}
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -292,7 +365,7 @@ func (r *integrationCrowdstrikeResource) Read(ctx context.Context, req resource.
 		return
 	}
 
-	// finding_types and severities are Computed, so refresh them from the
+	// finding_types, severities and import_host_groups are Computed, so refresh them from the
 	// API: a change made elsewhere (the console) then shows up as drift.
 	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
@@ -312,6 +385,8 @@ func (r *integrationCrowdstrikeResource) Read(ctx context.Context, req resource.
 	data.FindingTypes, diags = enumSetValue(ctx, stored.FindingTypes)
 	resp.Diagnostics.Append(diags...)
 	data.Severities, diags = enumSetValue(ctx, stored.Severities)
+	resp.Diagnostics.Append(diags...)
+	data.ImportHostGroups, diags = hostGroupsSetValue(ctx, data.ImportHostGroups, stored.ImportHostGroups)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -334,9 +409,10 @@ func (r *integrationCrowdstrikeResource) Update(ctx context.Context, req resourc
 	// finding_types and severities are Optional+Computed: when the config
 	// leaves one out, the plan carries the prior state, but the API must not
 	// be told to overwrite what it stores. Only send what the user configured.
-	var cfgFindingTypes, cfgSeverities types.Set
+	var cfgFindingTypes, cfgSeverities, cfgHostGroups types.Set
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("finding_types"), &cfgFindingTypes)...)
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("severities"), &cfgSeverities)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("import_host_groups"), &cfgHostGroups)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -346,6 +422,9 @@ func (r *integrationCrowdstrikeResource) Update(ctx context.Context, req resourc
 	}
 	if cfgSeverities.IsNull() {
 		sendModel.Severities = types.SetNull(types.StringType)
+	}
+	if cfgHostGroups.IsNull() {
+		sendModel.ImportHostGroups = types.SetNull(types.StringType)
 	}
 	configOpts, diags := sendModel.GetConfigurationOptions(ctx)
 	resp.Diagnostics.Append(diags...)
@@ -374,7 +453,7 @@ func (r *integrationCrowdstrikeResource) Update(ctx context.Context, req resourc
 
 	// A value is still unknown when the prior state predates the attribute and
 	// the config leaves it out. It was not sent, so report what the API stores.
-	if data.FindingTypes.IsUnknown() || data.Severities.IsUnknown() {
+	if data.FindingTypes.IsUnknown() || data.Severities.IsUnknown() || data.ImportHostGroups.IsUnknown() {
 		r.fillStoredSelections(ctx, &data, &resp.Diagnostics)
 	}
 
@@ -403,7 +482,7 @@ func (r *integrationCrowdstrikeResource) Delete(ctx context.Context, req resourc
 	}
 }
 
-// fillStoredSelections sets unknown finding_types and severities from the
+// fillStoredSelections sets unknown finding_types, severities and import_host_groups from the
 // integration the API stores. The update has already happened, so a failed
 // read is a warning and falls back to the API's defaults (empty sets): the
 // state must still be written.
@@ -412,7 +491,7 @@ func (r *integrationCrowdstrikeResource) fillStoredSelections(ctx context.Contex
 	integration, err := r.client.GetClientIntegration(ctx, data.Mrn.ValueString())
 	if err != nil {
 		diags.AddWarning("Client Error",
-			fmt.Sprintf("Unable to read back finding_types and severities of %s integration; recording them as empty. Got error: %s",
+			fmt.Sprintf("Unable to read back finding_types, severities and import_host_groups of %s integration; recording them as empty. Got error: %s",
 				mondoov1.IntegrationTypeCrowdstrikeFalcon, err))
 	} else {
 		stored = integration.ConfigurationOptions.CrowdstrikeFalconConfigurationOptions
@@ -424,6 +503,10 @@ func (r *integrationCrowdstrikeResource) fillStoredSelections(ctx context.Contex
 	}
 	if data.Severities.IsUnknown() {
 		data.Severities, d = enumSetValue(ctx, stored.Severities)
+		diags.Append(d...)
+	}
+	if data.ImportHostGroups.IsUnknown() {
+		data.ImportHostGroups, d = enumSetValue(ctx, stored.ImportHostGroups)
 		diags.Append(d...)
 	}
 }
@@ -439,6 +522,8 @@ func (r *integrationCrowdstrikeResource) ImportState(ctx context.Context, req re
 	resp.Diagnostics.Append(diags...)
 	severities, diags := enumSetValue(ctx, stored.Severities)
 	resp.Diagnostics.Append(diags...)
+	hostGroups, diags := enumSetValue(ctx, stored.ImportHostGroups)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -453,6 +538,8 @@ func (r *integrationCrowdstrikeResource) ImportState(ctx context.Context, req re
 		MemberCID:    types.StringPointerValue(nil),
 		FindingTypes: findingTypes,
 		Severities:   severities,
+
+		ImportHostGroups: hostGroups,
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)

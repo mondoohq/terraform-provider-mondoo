@@ -1036,10 +1036,11 @@ type MicrosoftDefenderConfigurationOptions struct {
 }
 
 type CrowdstrikeFalconConfigurationOptions struct {
-	ClientId     string
-	Cloud        string
-	FindingTypes []string
-	Severities   []string
+	ClientId         string
+	Cloud            string
+	FindingTypes     []string
+	Severities       []string
+	ImportHostGroups []string
 }
 
 type SentinelOneConfigurationOptions struct {
