@@ -45,6 +45,40 @@ func TestAccRegistrationTokenResource(t *testing.T) {
 	})
 }
 
+func TestAccRegistrationTokenResourceNoDescription(t *testing.T) {
+	orgID, err := getOrgId()
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRegistrationTokenResourceNoDescriptionConfig(orgID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr("mondoo_registration_token.test", "description"),
+					resource.TestCheckResourceAttrSet("mondoo_registration_token.test", "result"),
+				),
+			},
+		},
+	})
+}
+
+func testAccRegistrationTokenResourceNoDescriptionConfig(resourceOrgID string) string {
+	return fmt.Sprintf(`
+
+resource "mondoo_space" "test" {
+  org_id = %[1]q
+  name = "registration-token-no-description-test"
+}
+
+resource "mondoo_registration_token" "test" {
+  space_id = mondoo_space.test.id
+}
+`, resourceOrgID)
+}
+
 func testAccRegistrationTokenResourceConfig(resourceOrgID, configurableAttribute string) string {
 	return fmt.Sprintf(`
 
