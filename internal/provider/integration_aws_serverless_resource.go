@@ -416,6 +416,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			},
 			"wif_config": schema.StringAttribute{
 				Computed:            true,
+				Sensitive:           true,
 				MarkdownDescription: "For an integration with `use_wif`, how its Lambda authenticates to Mondoo (populated by Mondoo after creation). Pass it as the `MondooWifConfig` parameter of the `aws_cloudformation_stack` resource, in place of `MondooToken`. Unset for an integration without WIF.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
