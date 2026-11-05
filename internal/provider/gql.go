@@ -960,8 +960,8 @@ type MsIntuneConfigurationOptions struct {
 }
 
 // AWSConfigurationOptions is the read-back shape of the AWS serverless
-// integration. The SDK generates inputs only, so the computed fields the server
-// derives from its own configuration are declared here.
+// integration. The SDK generates inputs only, so the fields read back are
+// declared here.
 type AWSConfigurationOptions struct {
 	// The S3 bucket the Lambda code is published to, e.g. "mondoo.us-east-1".
 	// Region-specific: a Lambda must load its code from a bucket in its own
@@ -970,6 +970,15 @@ type AWSConfigurationOptions struct {
 	SourceBucket string `graphql:"sourceBucket"`
 	// The CloudFormation template URL, served out of the same bucket.
 	CloudFormationTemplateUrl string `graphql:"cloudFormationTemplateUrl"`
+	// Whether the Lambda authenticates with Workload Identity Federation.
+	// Aliased: the GCP serverless options select a nullable useWif in the same
+	// query, and GraphQL rejects two fields of one name with different types.
+	UseWif bool `graphql:"awsUseWif: useWif"`
+	// The AWS account the Lambda is deployed in, for a WIF integration.
+	AwsAccountId string `graphql:"awsAccountId"`
+	// The CloudFormation console link to deploy the stack. For a WIF
+	// integration it carries the stack's MondooWifConfig parameter.
+	CloudFormationQuickcreateUrl string `graphql:"cloudFormationQuickcreateUrl"`
 }
 
 type HostedAwsConfigurationOptions struct {

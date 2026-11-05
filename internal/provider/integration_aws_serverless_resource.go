@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -53,6 +56,8 @@ type integrationAwsServerlessResourceModel struct {
 	// MondooSourceBucket parameter the template requires.
 	SourceBucket              types.String `tfsdk:"source_bucket"`
 	CloudFormationTemplateUrl types.String `tfsdk:"cloud_formation_template_url"`
+	// The stack's MondooWifConfig parameter, for a WIF integration.
+	WifConfig types.String `tfsdk:"wif_config"`
 
 	Region            types.String           `tfsdk:"region"`
 	ScanConfiguration ScanConfigurationInput `tfsdk:"scan_configuration"`
@@ -61,6 +66,13 @@ type integrationAwsServerlessResourceModel struct {
 	AccountIDs types.List `tfsdk:"account_ids"`
 	// (Optional.)
 	IsOrganization types.Bool `tfsdk:"is_organization"`
+
+	// (Optional.) When true, the Lambda authenticates to Mondoo with Workload
+	// Identity Federation instead of the token. Immutable after creation.
+	UseWif types.Bool `tfsdk:"use_wif"`
+	// (Optional.) The AWS account the Lambda is deployed in; the WIF binding's
+	// subject. Required with use_wif, rejected without it. Immutable after creation.
+	AwsAccountID types.String `tfsdk:"aws_account_id"`
 
 	// (Optional.)
 	ConsoleSignInTrigger types.Bool `tfsdk:"console_sign_in_trigger"`
@@ -323,6 +335,9 @@ func (m integrationAwsServerlessResourceModel) GetConfigurationOptions() *mondoo
 	if scheduling := m.ScanConfiguration.Scheduling; !scheduling.IsNull() && !scheduling.IsUnknown() {
 		opts.ScanConfiguration.Scheduling = ToPtr(mondoov1.ScanScheduling(scheduling.ValueString()))
 	}
+	// WIF is only sent when set, for the same reason.
+	opts.UseWif = OptionalBool(m.UseWif)
+	opts.AwsAccountId = OptionalString(m.AwsAccountID)
 
 	if m.ScanConfiguration.VpcConfiguration != nil {
 		useMondooVPC := m.ScanConfiguration.VpcConfiguration.UseMondooVPC.ValueBool()
@@ -380,7 +395,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			"token": schema.StringAttribute{
 				Computed:            true,
 				Sensitive:           true,
-				MarkdownDescription: "Registration token for the integration. Pass it as the `MondooToken` parameter of the CloudFormation stack or StackSet; a separate `mondoo_registration_token` is not needed. The Mondoo Lambda exchanges it once per account, when the stack is created, for service account credentials that do not expire. The token expires 30 minutes after the integration is created, unless `is_organization` is `true`, in which case it never expires.",
+				MarkdownDescription: "Registration token for the integration. Pass it as the `MondooToken` parameter of the CloudFormation stack or StackSet; a separate `mondoo_registration_token` is not needed. With `use_wif`, pass `wif_config` as `MondooWifConfig` instead and leave `MondooToken` unset. The Mondoo Lambda exchanges it once per account, when the stack is created, for service account credentials that do not expire. The token expires 30 minutes after the integration is created, unless `is_organization` is `true`, in which case it never expires.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -395,6 +410,14 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 			"cloud_formation_template_url": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The CloudFormation template URL for the integration's region (populated by Mondoo after creation). Use it as the `template_url` of the `aws_cloudformation_stack` resource.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"wif_config": schema.StringAttribute{
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "For an integration with `use_wif`, how its Lambda authenticates to Mondoo (populated by Mondoo after creation). Pass it as the `MondooWifConfig` parameter of the `aws_cloudformation_stack` resource, in place of `MondooToken`. Unset for an integration without WIF.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -623,6 +646,24 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 				MarkdownDescription: "Set to `true` when you deploy the CloudFormation template with a StackSet, whether it targets the whole AWS organization or only some organizational units (OUs). Mondoo then issues a `token` that never expires, so accounts that join a targeted OU later can still register. When unset or `false`, the `token` expires 30 minutes after the integration is created. Set this when you create the integration: changing it later does not replace the `token` already in the Terraform state, so recreate the integration to get a token that does not expire. Cannot be combined with `account_ids`.",
 				Optional:            true,
 			},
+			"use_wif": schema.BoolAttribute{
+				MarkdownDescription: "Authenticate the Lambda to Mondoo with Workload Identity Federation instead of the `token`: Mondoo creates the WIF binding for the integration, and `wif_config` carries the stack's `MondooWifConfig` parameter. Requires `aws_account_id`. Immutable: changing it forces a new integration.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.Bool{
+					useWifRequiresReplace,
+				},
+			},
+			"aws_account_id": schema.StringAttribute{
+				MarkdownDescription: "The AWS account the Lambda is deployed in. Required when `use_wif` is true, and only valid then. Immutable: changing it forces a new integration.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					awsAccountIDRequiresReplace,
+				},
+				Validators: []validator.String{
+					// The WIF binding's subject: a typo makes an integration whose Lambda can never authenticate.
+					stringvalidator.RegexMatches(regexp.MustCompile(`^\d{12}$`), "must be a 12-digit AWS account ID"),
+				},
+			},
 		},
 	}
 }
@@ -639,6 +680,8 @@ func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, re
 }
 
 func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
+	diagnostics.Append(validateIntegrationAwsServerlessWif(data)...)
+
 	if data.ScanConfiguration.VpcConfiguration == nil {
 		return
 	}
@@ -685,6 +728,50 @@ func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerles
 		}
 	}
 
+	return
+}
+
+// useWifRequiresReplace replaces the integration when use_wif changes, as the
+// API rejects the change. Unset and false are the same integration, so adding
+// use_wif = false to one created without it updates it in place.
+var useWifRequiresReplace = boolplanmodifier.RequiresReplaceIf(
+	func(_ context.Context, req planmodifier.BoolRequest, resp *boolplanmodifier.RequiresReplaceIfFuncResponse) {
+		resp.RequiresReplace = req.PlanValue.IsUnknown() || req.PlanValue.ValueBool() != req.StateValue.ValueBool()
+	},
+	"Changing use_wif forces a new integration; unset and false are the same.",
+	"Changing `use_wif` forces a new integration; unset and `false` are the same.",
+)
+
+// awsAccountIDRequiresReplace replaces the integration when aws_account_id
+// changes, as the API rejects the change. Unset and empty are the same.
+var awsAccountIDRequiresReplace = stringplanmodifier.RequiresReplaceIf(
+	func(_ context.Context, req planmodifier.StringRequest, resp *stringplanmodifier.RequiresReplaceIfFuncResponse) {
+		resp.RequiresReplace = req.PlanValue.IsUnknown() || req.PlanValue.ValueString() != req.StateValue.ValueString()
+	},
+	"Changing aws_account_id forces a new integration.",
+	"Changing `aws_account_id` forces a new integration.",
+)
+
+// validateIntegrationAwsServerlessWif checks the WIF precondition the API
+// enforces, so it fails at plan time rather than at apply: use_wif goes with
+// aws_account_id. Values not known yet are skipped.
+func validateIntegrationAwsServerlessWif(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
+	if data.UseWif.IsUnknown() || data.AwsAccountID.IsUnknown() {
+		return
+	}
+	useWif := data.UseWif.ValueBool()
+	if useWif && data.AwsAccountID.ValueString() == "" {
+		diagnostics.AddAttributeError(path.Root("aws_account_id"),
+			"MissingAttributeError",
+			"Attribute aws_account_id must not be empty when use_wif is set to true.",
+		)
+	}
+	if !useWif && data.AwsAccountID.ValueString() != "" {
+		diagnostics.AddAttributeError(path.Root("aws_account_id"),
+			"ConflictingAttributesError",
+			"Attribute aws_account_id is only valid when use_wif is set to true.",
+		)
+	}
 	return
 }
 
@@ -788,10 +875,41 @@ func (r *integrationAwsServerlessResource) refreshComputed(ctx context.Context, 
 }
 
 // setComputedFrom copies the server-computed CloudFormation inputs into the model.
+// wif_config cannot change once known, as use_wif cannot; it is only filled
+// in. The server may hand back the link without it when it cannot reach the
+// binding for a moment; that leaves wif_config as it was.
 func (m *integrationAwsServerlessResourceModel) setComputedFrom(integration Integration) {
 	opts := integration.ConfigurationOptions.AWSConfigurationOptions
 	m.SourceBucket = types.StringValue(opts.SourceBucket)
 	m.CloudFormationTemplateUrl = types.StringValue(opts.CloudFormationTemplateUrl)
+	if !m.WifConfig.IsUnknown() && !m.WifConfig.IsNull() {
+		return
+	}
+	if wifConfig := wifConfigFromQuickcreateUrl(opts.CloudFormationQuickcreateUrl); wifConfig != "" {
+		m.WifConfig = types.StringValue(wifConfig)
+	} else {
+		m.WifConfig = types.StringNull()
+	}
+}
+
+// wifConfigFromQuickcreateUrl returns the MondooWifConfig parameter of a
+// CloudFormation quickcreate link, or "" when it carries none. The parameters
+// are the query of the link's fragment, #/stacks/quickcreate?...; the value is
+// base64, query-escaped.
+func wifConfigFromQuickcreateUrl(quickcreateUrl string) string {
+	u, err := url.Parse(quickcreateUrl)
+	if err != nil {
+		return ""
+	}
+	_, query, ok := strings.Cut(u.EscapedFragment(), "?")
+	if !ok {
+		return ""
+	}
+	params, err := url.ParseQuery(query)
+	if err != nil {
+		return ""
+	}
+	return params.Get("param_MondooWifConfig")
 }
 
 func (r *integrationAwsServerlessResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -869,8 +987,11 @@ func (r *integrationAwsServerlessResource) Update(ctx context.Context, req resou
 	}
 
 	// The server recomputes the CloudFormation inputs from the region, so a
-	// region change would otherwise leave stale values in state.
+	// region change would otherwise leave stale values in state. wif_config
+	// cannot change in an update; it stays as planned.
+	wifConfig := data.WifConfig
 	r.refreshComputed(ctx, &data, "updated", &resp.Diagnostics)
+	data.WifConfig = wifConfig
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -905,11 +1026,27 @@ func (r *integrationAwsServerlessResource) ImportState(ctx context.Context, req 
 		return
 	}
 
+	model := importedAwsServerlessModel(*integration)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
+
+// importedAwsServerlessModel is the state an import starts from: the
+// integration's identity and space, and, for a WIF integration, use_wif and
+// aws_account_id. Those two cannot change in place, so a WIF integration
+// imported without them would plan a new integration on its first apply.
+// Unset use_wif is the same as false, so it stays unset for the others.
+func importedAwsServerlessModel(integration Integration) integrationAwsServerlessResourceModel {
 	model := integrationAwsServerlessResourceModel{
 		Mrn:     types.StringValue(integration.Mrn),
 		Name:    types.StringValue(integration.Name),
 		SpaceID: types.StringValue(integration.SpaceID()),
+		// A list's zero value has no element type, which the state rejects.
+		AccountIDs:        types.ListNull(types.StringType),
+		ScanConfiguration: ScanConfigurationInput{DiscoveryTargets: types.ListNull(types.StringType)},
 	}
-
-	resp.State.Set(ctx, &model)
+	if opts := integration.ConfigurationOptions.AWSConfigurationOptions; opts.UseWif {
+		model.UseWif = types.BoolValue(true)
+		model.AwsAccountID = types.StringValue(opts.AwsAccountId)
+	}
+	return model
 }
