@@ -461,8 +461,9 @@ func TestImportedAwsServerlessModel(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// Every import carries a typed null account_ids.
+			// Every import carries typed null lists.
 			tc.want.AccountIDs = types.ListNull(types.StringType)
+			tc.want.ScanConfiguration = ScanConfigurationInput{DiscoveryTargets: types.ListNull(types.StringType)}
 			assert.Equal(t, tc.want, importedAwsServerlessModel(tc.integration))
 		})
 	}

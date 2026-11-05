@@ -1041,7 +1041,8 @@ func importedAwsServerlessModel(integration Integration) integrationAwsServerles
 		Name:    types.StringValue(integration.Name),
 		SpaceID: types.StringValue(integration.SpaceID()),
 		// A list's zero value has no element type, which the state rejects.
-		AccountIDs: types.ListNull(types.StringType),
+		AccountIDs:        types.ListNull(types.StringType),
+		ScanConfiguration: ScanConfigurationInput{DiscoveryTargets: types.ListNull(types.StringType)},
 	}
 	if opts := integration.ConfigurationOptions.AWSConfigurationOptions; opts.UseWif {
 		model.UseWif = types.BoolValue(true)
