@@ -203,7 +203,6 @@ func (r *RegistrationTokenResource) Create(ctx context.Context, req resource.Cre
 	}
 
 	// Save space mrn into the Terraform state.
-	data.Description = types.StringValue(description)
 	data.Mrn = types.StringValue(string(generateRegistrationToken.RegistrationToken.Mrn))
 	data.Result = types.StringValue(string(generateRegistrationToken.RegistrationToken.Token))
 	data.Revoked = types.BoolValue(bool(generateRegistrationToken.RegistrationToken.Revoked))
