@@ -24,6 +24,13 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationEmailResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationEmailResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationEmailResource)(nil)
+
+// ConfigValidators refuses auto-create on an organization integration, which
+// the server refuses too (planning#1632).
+func (r *integrationEmailResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{newOrgAutoCreateValidator("auto_create")}
+}
 
 func NewIntegrationEmailResource() resource.Resource {
 	return &integrationEmailResource{}
@@ -35,6 +42,7 @@ type integrationEmailResource struct {
 
 type integrationEmailResourceModel struct {
 	// scope
+	OrgID   types.String `tfsdk:"org_id"`
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -205,10 +213,11 @@ func NewAutoCreateValidator() validator.Bool {
 
 func (r *integrationEmailResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Send email to your ticket system or any recipient.",
+		MarkdownDescription: "Send email to your ticket system or any recipient." + " " + orgTicketingIntegrationDescription,
 		Attributes: map[string]schema.Attribute{
+			"org_id": integrationOrgIDAttribute(),
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -322,18 +331,18 @@ func (r *integrationEmailResource) Create(ctx context.Context, req resource.Crea
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
+	// The organization (org_id), or the space (space_id, or the provider space).
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource.
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeTicketSystemEmail,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -350,7 +359,7 @@ func (r *integrationEmailResource) Create(ctx context.Context, req resource.Crea
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(space.ID())
+	data.SpaceID = spaceID
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -442,10 +451,12 @@ func (r *integrationEmailResource) ImportState(ctx context.Context, req resource
 		})
 	}
 
+	orgID, spaceID := integrationScope(*integration)
 	model := integrationEmailResourceModel{
 		Mrn:               types.StringValue(integration.Mrn),
 		Name:              types.StringValue(integration.Name),
-		SpaceID:           types.StringValue(integration.SpaceID()),
+		OrgID:             orgID,
+		SpaceID:           spaceID,
 		AutoCreateTickets: types.BoolValue(integration.ConfigurationOptions.EmailConfigurationOptions.AutoCreateTickets),
 		AutoCloseTickets:  types.BoolValue(integration.ConfigurationOptions.EmailConfigurationOptions.AutoCloseTickets),
 		Recipients:        &recipients,

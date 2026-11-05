@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_email Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Send email to your ticket system or any recipient.
+  Send email to your ticket system or any recipient. Create it in a Mondoo organization (org_id), whose spaces can all file tickets through it, or in a space (space_id). An organization integration cannot auto-create tickets.
 ---
 
 # mondoo_integration_email (Resource)
 
-Send email to your ticket system or any recipient.
+Send email to your ticket system or any recipient. Create it in a Mondoo organization (`org_id`), whose spaces can all file tickets through it, or in a space (`space_id`). An organization integration cannot auto-create tickets.
 
 ## Example Usage
 
@@ -53,7 +53,8 @@ resource "mondoo_integration_email" "email_integration" {
 
 - `auto_close` (Boolean) Auto close tickets (defaults to false).
 - `auto_create` (Boolean) Auto create tickets (defaults to false).
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `org_id` (String) Mondoo organization identifier. Set this to create the integration in the organization. Conflicts with `space_id`.
+- `space_id` (String) Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.
 
 ### Read-Only
 

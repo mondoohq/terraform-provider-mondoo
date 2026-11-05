@@ -22,6 +22,13 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integrationZendeskResource)(nil)
 var _ resource.ResourceWithImportState = (*integrationZendeskResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*integrationZendeskResource)(nil)
+
+// ConfigValidators refuses auto-create on an organization integration, which
+// the server refuses too (planning#1632).
+func (r *integrationZendeskResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{newOrgAutoCreateValidator("auto_create")}
+}
 
 func NewIntegrationZendeskResource() resource.Resource {
 	return &integrationZendeskResource{}
@@ -33,6 +40,7 @@ type integrationZendeskResource struct {
 
 type integrationZendeskResourceModel struct {
 	// scope
+	OrgID   types.String `tfsdk:"org_id"`
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -78,10 +86,11 @@ func (r *integrationZendeskResource) Metadata(ctx context.Context, req resource.
 
 func (r *integrationZendeskResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Zendesk integration to keep track of security tasks and add Zendesk tickets directly from within the Mondoo Console.`,
+		MarkdownDescription: `Zendesk integration to keep track of security tasks and add Zendesk tickets directly from within the Mondoo Console.` + " " + orgTicketingIntegrationDescription,
 		Attributes: map[string]schema.Attribute{
+			"org_id": integrationOrgIDAttribute(),
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -198,18 +207,18 @@ func (r *integrationZendeskResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
+	// The organization (org_id), or the space (space_id, or the provider space).
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource.
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeTicketSystemZendesk,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -226,7 +235,7 @@ func (r *integrationZendeskResource) Create(ctx context.Context, req resource.Cr
 	// Save space mrn into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(space.ID())
+	data.SpaceID = spaceID
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -316,10 +325,12 @@ func (r *integrationZendeskResource) ImportState(ctx context.Context, req resour
 		})
 	}
 
+	orgID, spaceID := integrationScope(*integration)
 	model := integrationZendeskResourceModel{
 		Mrn:          types.StringValue(integration.Mrn),
 		Name:         types.StringValue(integration.Name),
-		SpaceID:      types.StringValue(integration.SpaceID()),
+		OrgID:        orgID,
+		SpaceID:      spaceID,
 		Subdomain:    types.StringValue(integration.ConfigurationOptions.ZendeskConfigurationOptions.Subdomain),
 		Email:        types.StringValue(integration.ConfigurationOptions.ZendeskConfigurationOptions.Email),
 		AutoClose:    types.BoolValue(integration.ConfigurationOptions.ZendeskConfigurationOptions.AutoCloseTickets),

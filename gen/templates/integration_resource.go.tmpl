@@ -25,18 +25,27 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = (*integration{{.ResourceClassName}}Resource)(nil)
 var _ resource.ResourceWithImportState = (*integration{{.ResourceClassName}}Resource)(nil)
-{{- if credentialPaths .Fields}}
+{{- if or (credentialPaths .Fields) (orgTicketing .ResourceClassName)}}
 var _ resource.ResourceWithConfigValidators = (*integration{{.ResourceClassName}}Resource)(nil)
 
-// ConfigValidators requires a stored credential reference or the inline secret: the API
+{{if credentialPaths .Fields}}// ConfigValidators requires a stored credential reference or the inline secret: the API
 // rejects a configuration with neither.
+{{- end}}
+{{- if orgTicketing .ResourceClassName}}
+// An organization integration cannot auto-create tickets: the server refuses it.
+{{- end}}
 func (r *integration{{.ResourceClassName}}Resource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
+{{- if credentialPaths .Fields}}
 		resourcevalidator.AtLeastOneOf(
 {{- range credentialPaths .Fields}}
 			path.MatchRoot("{{.}}"),
 {{- end}}
 		),
+{{- end}}
+{{- if orgTicketing .ResourceClassName}}
+		newOrgAutoCreateValidator("auto_create_tickets"),
+{{- end}}
 	}
 }
 {{- end}}
@@ -81,7 +90,12 @@ func (r *integration{{.ResourceClassName}}Resource) Metadata(_ context.Context, 
 
 func (r *integration{{.ResourceClassName}}Resource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		{{- if orgScoped .ResourceClassName}}
+		{{- if orgTicketing .ResourceClassName}}
+		MarkdownDescription: `{{.ResourceClassName}} integration.` + " " + orgTicketingIntegrationDescription,
+		Attributes: map[string]schema.Attribute{
+			"org_id":   integrationOrgIDAttribute(),
+			"space_id": integrationSpaceIDAttribute(),
+		{{- else if orgScoped .ResourceClassName}}
 		MarkdownDescription: `{{.ResourceClassName}} integration.` + " " + orgScopedIntegrationDescription,
 		Attributes: map[string]schema.Attribute{
 			"org_id":   integrationOrgIDAttribute(),
