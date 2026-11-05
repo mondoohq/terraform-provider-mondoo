@@ -22,3 +22,18 @@ resource "mondoo_integration_jira" "jira_integration" {
     token = var.jira_token
   }
 }
+
+# Or set it up once for the organization: every space of the organization can
+# file tickets through it. An organization integration cannot set auto_create.
+resource "mondoo_integration_jira" "org_jira_integration" {
+  org_id = "your-org-1234567"
+  name   = "Organization Jira"
+  host   = "https://your-instance.atlassian.net"
+  email  = "jira.owner@email.com"
+
+  auto_close = true
+
+  credentials = {
+    token = var.jira_token
+  }
+}

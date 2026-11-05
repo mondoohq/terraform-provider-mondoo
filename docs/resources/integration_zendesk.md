@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_zendesk Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  Zendesk integration to keep track of security tasks and add Zendesk tickets directly from within the Mondoo Console.
+  Zendesk integration to keep track of security tasks and add Zendesk tickets directly from within the Mondoo Console. Create it in a Mondoo organization (org_id), whose spaces can all file tickets through it, or in a space (space_id). An organization integration cannot auto-create tickets.
 ---
 
 # mondoo_integration_zendesk (Resource)
 
-Zendesk integration to keep track of security tasks and add Zendesk tickets directly from within the Mondoo Console.
+Zendesk integration to keep track of security tasks and add Zendesk tickets directly from within the Mondoo Console. Create it in a Mondoo organization (`org_id`), whose spaces can all file tickets through it, or in a space (`space_id`). An organization integration cannot auto-create tickets.
 
 ## Example Usage
 
@@ -64,7 +64,8 @@ resource "mondoo_integration_zendesk" "zendesk_integration" {
 - `auto_close` (Boolean) Automatically close tickets.
 - `auto_create` (Boolean) Automatically create tickets.
 - `custom_fields` (Attributes List) Custom fields to add to the Zendesk ticket. (see [below for nested schema](#nestedatt--custom_fields))
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `org_id` (String) Mondoo organization identifier. Set this to create the integration in the organization. Conflicts with `space_id`.
+- `space_id` (String) Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.
 
 ### Read-Only
 

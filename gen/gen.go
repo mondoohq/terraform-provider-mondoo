@@ -247,6 +247,7 @@ var funcMap = template.FuncMap{
 	"formatEnum":       formatEnum,
 	"shouldTrigger":    shouldTrigger,
 	"orgScoped":        orgScoped,
+	"orgTicketing":     orgTicketing,
 	"isSensitiveField": isSensitiveField,
 	"isWriteOnlyField": isWriteOnlyField,
 	"testFields":       testFields,
@@ -536,8 +537,20 @@ var orgScopedIntegrations = []string{
 	"GoogleWorkspace",
 }
 
+// orgTicketingIntegrations are ticketing integrations that can be created in a
+// Mondoo organization (org_id) as well as in a space: shared configuration every
+// space of the organization files its cases' tickets through. The server refuses
+// auto-create on them (planning#1632), and so does the resource.
+var orgTicketingIntegrations = []string{
+	"AzureDevops",
+}
+
 func orgScoped(className string) bool {
-	return slices.Contains(orgScopedIntegrations, className)
+	return slices.Contains(orgScopedIntegrations, className) || orgTicketing(className)
+}
+
+func orgTicketing(className string) bool {
+	return slices.Contains(orgTicketingIntegrations, className)
 }
 
 func shouldTrigger(enum string) bool {
