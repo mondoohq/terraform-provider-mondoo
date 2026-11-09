@@ -696,6 +696,7 @@ func (r integrationAwsServerlessResource) ValidateConfig(ctx context.Context, re
 
 func validateIntegrationAwsServerlessResourceModel(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
 	diagnostics.Append(validateIntegrationAwsServerlessWif(data)...)
+	diagnostics.Append(validateIntegrationAwsServerlessOrgScope(data)...)
 
 	if data.ScanConfiguration.VpcConfiguration == nil {
 		return
@@ -785,6 +786,24 @@ func validateIntegrationAwsServerlessWif(data *integrationAwsServerlessResourceM
 		diagnostics.AddAttributeError(path.Root("aws_account_id"),
 			"ConflictingAttributesError",
 			"Attribute aws_account_id is only valid when use_wif is set to true.",
+		)
+	}
+	return
+}
+
+// validateIntegrationAwsServerlessOrgScope checks the other WIF precondition
+// the API enforces: an integration in an organization authenticates with WIF,
+// so an organization scope_mrn needs use_wif. Values not known yet are left
+// to apply.
+func validateIntegrationAwsServerlessOrgScope(data *integrationAwsServerlessResourceModel) (diagnostics diag.Diagnostics) {
+	if data.ScopeMrn.IsUnknown() || data.UseWif.IsUnknown() {
+		return
+	}
+	if strings.HasPrefix(data.ScopeMrn.ValueString(), orgPrefix) && !data.UseWif.ValueBool() {
+		diagnostics.AddAttributeError(path.Root("use_wif"),
+			"MissingAttributeError",
+			"Attribute use_wif must be set to true for an integration in an organization: "+
+				"an organization-scoped AWS serverless integration authenticates with Workload Identity Federation.",
 		)
 	}
 	return

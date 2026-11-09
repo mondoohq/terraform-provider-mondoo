@@ -333,6 +333,39 @@ func TestIntegrationAwsServerlessResourceValidateConfig_Wif(t *testing.T) {
 	}
 }
 
+// An integration in an organization authenticates with WIF, which the API
+// enforces; the resource says so at plan time.
+func TestIntegrationAwsServerlessResourceValidateConfig_OrgScopeRequiresWif(t *testing.T) {
+	const org = "//captain.api.mondoo.app/organizations/org-1"
+	for _, tc := range []struct {
+		name         string
+		scopeMrn     types.String
+		useWif       types.Bool
+		awsAccountID types.String
+		wantError    string
+	}{
+		{name: "an organization with WIF", scopeMrn: types.StringValue(org), useWif: types.BoolValue(true), awsAccountID: types.StringValue("333333333333")},
+		{name: "an organization without use_wif", scopeMrn: types.StringValue(org), useWif: types.BoolNull(), awsAccountID: types.StringNull(), wantError: "MissingAttributeError"},
+		{name: "an organization with use_wif = false", scopeMrn: types.StringValue(org), useWif: types.BoolValue(false), awsAccountID: types.StringNull(), wantError: "MissingAttributeError"},
+		{name: "an organization, WIF not known yet", scopeMrn: types.StringValue(org), useWif: types.BoolUnknown(), awsAccountID: types.StringNull()},
+		{name: "the scope not known yet", scopeMrn: types.StringUnknown(), useWif: types.BoolNull(), awsAccountID: types.StringNull()},
+		{name: "a space without WIF", scopeMrn: types.StringValue("//captain.api.mondoo.app/spaces/space-1"), useWif: types.BoolNull(), awsAccountID: types.StringNull()},
+		{name: "no scope_mrn without WIF", scopeMrn: types.StringNull(), useWif: types.BoolNull(), awsAccountID: types.StringNull()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := &integrationAwsServerlessResourceModel{ScopeMrn: tc.scopeMrn, UseWif: tc.useWif, AwsAccountID: tc.awsAccountID}
+			diagnostics := validateIntegrationAwsServerlessResourceModel(d)
+			if tc.wantError == "" {
+				assert.False(t, diagnostics.HasError(), "expected no errors: %v", diagnostics)
+				return
+			}
+			if assert.Len(t, diagnostics, 1) {
+				assert.Equal(t, tc.wantError, diagnostics[0].Summary())
+			}
+		})
+	}
+}
+
 // v048State is an integration as v0.48.0 stores it, in that release's schema,
 // before use_wif, aws_account_id and wif_config existed. Its MRN has the shape
 // the API gives AWS integrations.
