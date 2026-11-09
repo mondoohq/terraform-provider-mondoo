@@ -43,8 +43,10 @@ type integrationAwsServerlessResource struct {
 }
 
 type integrationAwsServerlessResourceModel struct {
-	// scope
-	SpaceID types.String `tfsdk:"space_id"`
+	// scope: the space or organization the integration is created in.
+	// space_id is the older spelling, a space only.
+	ScopeMrn types.String `tfsdk:"scope_mrn"`
+	SpaceID  types.String `tfsdk:"space_id"`
 
 	// integration details
 	Mrn   types.String `tfsdk:"mrn"`
@@ -377,8 +379,21 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Continuously scan AWS organizations and accounts for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
+			"scope_mrn": schema.StringAttribute{
+				MarkdownDescription: "The MRN of the scope the integration is created in: a space (`//captain.api.mondoo.app/spaces/<space-id>`), or an organization (`//captain.api.mondoo.app/organizations/<org-id>`), whose asset routing rules place the assets of every scanned account into spaces. When omitted, `space_id`, else the provider's space. Immutable: changing it forces a new integration.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("space_id")),
+				},
+			},
 			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no ID, the provider space is used.",
+				MarkdownDescription: "Mondoo space identifier. Deprecated: set `scope_mrn` instead. If neither is set, the provider space is used.",
+				DeprecationMessage:  "Set scope_mrn instead.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -805,13 +820,18 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
-		return
+	// The scope: scope_mrn as given, else the space (space_id, or the
+	// provider's).
+	scopeMrn := data.ScopeMrn.ValueString()
+	if scopeMrn == "" {
+		space, err := r.client.ComputeSpace(data.SpaceID)
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid Configuration", err.Error())
+			return
+		}
+		scopeMrn = space.MRN()
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource.
 	var accountIDs []mondoov1.String
@@ -828,8 +848,8 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 	}
 
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeAws,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -843,11 +863,12 @@ func (r *integrationAwsServerlessResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	// Save space mrn into the Terraform state.
+	// Save into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
 	data.Token = types.StringValue(string(integration.Token))
-	data.SpaceID = types.StringValue(space.ID())
+	data.ScopeMrn = types.StringValue(scopeMrn)
+	data.SpaceID = spaceIDOf(Integration{Mrn: string(integration.Mrn)})
 
 	// The create payload carries no configuration options, so read the
 	// integration back for the server-computed CloudFormation inputs.
@@ -874,11 +895,15 @@ func (r *integrationAwsServerlessResource) refreshComputed(ctx context.Context, 
 	data.setComputedFrom(fetched)
 }
 
-// setComputedFrom copies the server-computed CloudFormation inputs into the model.
+// setComputedFrom copies the server-computed CloudFormation inputs into the
+// model, and the scope, which a state from before scope_mrn existed lacks.
 // wif_config cannot change once known, as use_wif cannot; it is only filled
 // in. The server may hand back the link without it when it cannot reach the
 // binding for a moment; that leaves wif_config as it was.
 func (m *integrationAwsServerlessResourceModel) setComputedFrom(integration Integration) {
+	if scope := integration.ScopeMRN(); scope != "" {
+		m.ScopeMrn = types.StringValue(scope)
+	}
 	opts := integration.ConfigurationOptions.AWSConfigurationOptions
 	m.SourceBucket = types.StringValue(opts.SourceBucket)
 	m.CloudFormationTemplateUrl = types.StringValue(opts.CloudFormationTemplateUrl)
@@ -1031,15 +1056,16 @@ func (r *integrationAwsServerlessResource) ImportState(ctx context.Context, req 
 }
 
 // importedAwsServerlessModel is the state an import starts from: the
-// integration's identity and space, and, for a WIF integration, use_wif and
+// integration's identity and scope, and, for a WIF integration, use_wif and
 // aws_account_id. Those two cannot change in place, so a WIF integration
 // imported without them would plan a new integration on its first apply.
 // Unset use_wif is the same as false, so it stays unset for the others.
 func importedAwsServerlessModel(integration Integration) integrationAwsServerlessResourceModel {
 	model := integrationAwsServerlessResourceModel{
-		Mrn:     types.StringValue(integration.Mrn),
-		Name:    types.StringValue(integration.Name),
-		SpaceID: types.StringValue(integration.SpaceID()),
+		Mrn:      types.StringValue(integration.Mrn),
+		Name:     types.StringValue(integration.Name),
+		ScopeMrn: types.StringValue(integration.ScopeMRN()),
+		SpaceID:  spaceIDOf(integration),
 		// A list's zero value has no element type, which the state rejects.
 		AccountIDs:        types.ListNull(types.StringType),
 		ScanConfiguration: ScanConfigurationInput{DiscoveryTargets: types.ListNull(types.StringType)},
@@ -1049,4 +1075,13 @@ func importedAwsServerlessModel(integration Integration) integrationAwsServerles
 		model.AwsAccountID = types.StringValue(opts.AwsAccountId)
 	}
 	return model
+}
+
+// spaceIDOf is the integration's space_id: its space, or null for an
+// integration in an organization.
+func spaceIDOf(integration Integration) types.String {
+	if !integration.IsSpaceScoped() {
+		return types.StringNull()
+	}
+	return types.StringValue(integration.SpaceID())
 }

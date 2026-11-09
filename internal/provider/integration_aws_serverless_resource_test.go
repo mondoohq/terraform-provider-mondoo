@@ -376,6 +376,58 @@ const v048State = `{
 // in place, use_wif = true makes a new integration. Entirely in process: the
 // provider's own protocol server, no Terraform and no Mondoo API (planning this
 // resource does not call it).
+// scope_mrn next to space_id: optional, computed, immutable, and exclusive
+// with space_id, which is deprecated in its favour.
+func TestIntegrationAwsServerlessResourceSchema_ScopeMrn(t *testing.T) {
+	ctx := context.Background()
+	var resp resource.SchemaResponse
+	(&integrationAwsServerlessResource{}).Schema(ctx, resource.SchemaRequest{}, &resp)
+	require.False(t, resp.Diagnostics.HasError(), "schema diagnostics: %v", resp.Diagnostics)
+	require.False(t, resp.Schema.ValidateImplementation(ctx).HasError())
+
+	scopeMrn := resp.Schema.Attributes["scope_mrn"].(schema.StringAttribute)
+	assert.True(t, scopeMrn.Optional)
+	assert.True(t, scopeMrn.Computed)
+	require.Len(t, scopeMrn.Validators, 1)
+	assert.Contains(t, scopeMrn.Validators[0].Description(ctx), "space_id", "scope_mrn conflicts with space_id")
+	require.Len(t, scopeMrn.PlanModifiers, 2)
+	assert.Contains(t, scopeMrn.PlanModifiers[1].Description(ctx), "destroy and recreate", "a scope change makes a new integration")
+
+	spaceID := resp.Schema.Attributes["space_id"].(schema.StringAttribute)
+	assert.NotEmpty(t, spaceID.DeprecationMessage)
+	assert.True(t, spaceID.Optional)
+	assert.True(t, spaceID.Computed)
+}
+
+// A space integration, read back with its scope, whose configuration names
+// the same space as scope_mrn instead of space_id keeps the integration; a
+// scope_mrn naming an organization makes a new one.
+func TestIntegrationAwsServerlessScopeMrnPlans(t *testing.T) {
+	p := newAwsServerlessProtocol(t)
+	prior := p.stateOf(t, importedAwsServerlessModel(Integration{
+		Mrn:  "//integration.api.mondoo.app/spaces/space-1/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
+		Name: "scoped",
+	}))
+	for _, tc := range []struct {
+		name     string
+		scopeMrn string
+		replace  []string
+	}{
+		{name: "the same space as scope_mrn", scopeMrn: "//captain.api.mondoo.app/spaces/space-1"},
+		{name: "an organization", scopeMrn: "//captain.api.mondoo.app/organizations/org-1", replace: []string{"scope_mrn"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, replaced := p.plan(t, prior, map[string]any{
+				"scope_mrn":          tc.scopeMrn,
+				"name":               "scoped",
+				"region":             "us-east-1",
+				"scan_configuration": map[string]any{"ec2_scan_options": map[string]any{}},
+			})
+			assert.ElementsMatch(t, tc.replace, replaced, "attributes that force a new integration")
+		})
+	}
+}
+
 func TestIntegrationAwsServerlessUpgradeFromV048(t *testing.T) {
 	p := newAwsServerlessProtocol(t)
 	upgraded, err := p.server.UpgradeResourceState(context.Background(), &tfprotov6.UpgradeResourceStateRequest{
@@ -438,6 +490,8 @@ func TestIntegrationAwsServerlessImportedWifPlansNoReplace(t *testing.T) {
 
 func TestImportedAwsServerlessModel(t *testing.T) {
 	const integrationMrn = "//integration.api.mondoo.app/spaces/space-1/aws/int-1"
+	const orgIntegrationMrn = "//integration.api.mondoo.app/organizations/org-1/aws/int-1"
+	const spaceMrn = "//captain.api.mondoo.app/spaces/space-1"
 	wif := ClientIntegrationConfigurationOptions{AWSConfigurationOptions: AWSConfigurationOptions{UseWif: true, AwsAccountId: "111111111111"}}
 	for _, tc := range []struct {
 		name        string
@@ -448,15 +502,25 @@ func TestImportedAwsServerlessModel(t *testing.T) {
 			name:        "an integration without WIF",
 			integration: Integration{Mrn: integrationMrn, Name: "one"},
 			want: integrationAwsServerlessResourceModel{
-				Mrn: types.StringValue(integrationMrn), Name: types.StringValue("one"), SpaceID: types.StringValue("space-1"),
+				Mrn: types.StringValue(integrationMrn), Name: types.StringValue("one"),
+				ScopeMrn: types.StringValue(spaceMrn), SpaceID: types.StringValue("space-1"),
 			},
 		},
 		{
 			name:        "an integration with WIF",
 			integration: Integration{Mrn: integrationMrn, Name: "one", ConfigurationOptions: wif},
 			want: integrationAwsServerlessResourceModel{
-				Mrn: types.StringValue(integrationMrn), Name: types.StringValue("one"), SpaceID: types.StringValue("space-1"),
+				Mrn: types.StringValue(integrationMrn), Name: types.StringValue("one"),
+				ScopeMrn: types.StringValue(spaceMrn), SpaceID: types.StringValue("space-1"),
 				UseWif: types.BoolValue(true), AwsAccountID: types.StringValue("111111111111"),
+			},
+		},
+		{
+			name:        "an integration in an organization has no space_id",
+			integration: Integration{Mrn: orgIntegrationMrn, Name: "one"},
+			want: integrationAwsServerlessResourceModel{
+				Mrn: types.StringValue(orgIntegrationMrn), Name: types.StringValue("one"),
+				ScopeMrn: types.StringValue("//captain.api.mondoo.app/organizations/org-1"), SpaceID: types.StringNull(),
 			},
 		},
 	} {
