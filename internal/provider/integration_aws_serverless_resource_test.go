@@ -465,6 +465,115 @@ func TestIntegrationAwsServerlessUpgradeFromV048(t *testing.T) {
 	}
 }
 
+// v053State is a cross-account WIF integration as v0.53.0 stores it, in that
+// release's schema, before scope_mrn existed.
+const v053State = `{
+  "space_id": "space-1",
+  "name": "cross-account",
+  "region": "us-east-1",
+  "mrn": "//integration.api.mondoo.app/spaces/space-1/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
+  "token": "token",
+  "source_bucket": "mondoo-us-east-1",
+  "cloud_formation_template_url": "https://example.invalid/template.json",
+  "wif_config": "d2lm",
+  "use_wif": true,
+  "aws_account_id": "111111111111",
+  "is_organization": false,
+  "account_ids": null,
+  "console_sign_in_trigger": null,
+  "instance_state_change_trigger": null,
+  "scan_configuration": {
+    "account_scan": true,
+    "cron_scan_in_hours": 12,
+    "cross_account_scan": true,
+    "cross_account_scan_options": {
+      "role_name": "MondooCrossAccountScan",
+      "account_ids": ["222222222222"],
+      "account_tags": {"mondoo": "scan"},
+      "organizations": null,
+      "ebs_volume_scan": true
+    },
+    "propagate_account_tags": true,
+    "scheduling": "SERVER",
+    "ec2_scan_options": {
+      "regions_filter": ["us-east-1"],
+      "tags_filter": {"mondoo-e2e": "cross-account-ebs"},
+      "ebs_volume_scan": true
+    }
+  }
+}`
+
+// An integration stored by v0.53.0, planned by this build against the
+// configuration that made it, with space_id and no scope_mrn, plans no change
+// and replaces nothing: as stored, and after a refresh has filled scope_mrn
+// in from the integration.
+func TestIntegrationAwsServerlessUpgradeFromV053(t *testing.T) {
+	ctx := context.Background()
+	p := newAwsServerlessProtocol(t)
+	upgraded, err := p.server.UpgradeResourceState(ctx, &tfprotov6.UpgradeResourceStateRequest{
+		TypeName: awsServerlessTypeName, Version: 0, RawState: &tfprotov6.RawState{JSON: []byte(v053State)},
+	})
+	require.NoError(t, err)
+	require.Empty(t, upgraded.Diagnostics)
+	stored, err := upgraded.UpgradedState.Unmarshal(p.typ)
+	require.NoError(t, err)
+
+	// The first refresh reads the integration back and fills scope_mrn in.
+	var schemaResp resource.SchemaResponse
+	(&integrationAwsServerlessResource{}).Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	var model integrationAwsServerlessResourceModel
+	require.Empty(t, (tfsdk.State{Schema: schemaResp.Schema, Raw: stored}).Get(ctx, &model))
+	assert.True(t, model.ScopeMrn.IsNull(), "a v0.53.0 state has no scope_mrn")
+	model.setComputedFrom(Integration{
+		Mrn: "//integration.api.mondoo.app/spaces/space-1/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
+		ConfigurationOptions: ClientIntegrationConfigurationOptions{AWSConfigurationOptions: AWSConfigurationOptions{
+			SourceBucket: "mondoo-us-east-1", CloudFormationTemplateUrl: "https://example.invalid/template.json",
+		}},
+	})
+	assert.Equal(t, "//captain.api.mondoo.app/spaces/space-1", model.ScopeMrn.ValueString())
+	refreshed := p.stateOf(t, model)
+
+	config := map[string]any{
+		"space_id":        "space-1",
+		"name":            "cross-account",
+		"region":          "us-east-1",
+		"use_wif":         true,
+		"aws_account_id":  "111111111111",
+		"is_organization": false,
+		"scan_configuration": map[string]any{
+			"account_scan":       true,
+			"cron_scan_in_hours": 12,
+			"cross_account_scan": true,
+			"cross_account_scan_options": map[string]any{
+				"role_name":       "MondooCrossAccountScan",
+				"account_ids":     []string{"222222222222"},
+				"account_tags":    map[string]string{"mondoo": "scan"},
+				"ebs_volume_scan": true,
+			},
+			"propagate_account_tags": true,
+			"scheduling":             "SERVER",
+			"ec2_scan_options": map[string]any{
+				"regions_filter":  []string{"us-east-1"},
+				"tags_filter":     map[string]string{"mondoo-e2e": "cross-account-ebs"},
+				"ebs_volume_scan": true,
+			},
+		},
+	}
+	for _, tc := range []struct {
+		name  string
+		prior tftypes.Value
+	}{
+		{name: "as stored", prior: stored},
+		{name: "after a refresh", prior: refreshed},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			planned, replaced := p.plan(t, tc.prior, config)
+			assert.True(t, planned.Equal(tc.prior), "planned %s", planned)
+			assert.Empty(t, replaced, "attributes that force a new integration")
+		})
+	}
+}
+
 // A WIF integration, imported and then planned against the configuration that
 // describes it, is updated in place: the import takes over use_wif and
 // aws_account_id, which cannot change in place.
