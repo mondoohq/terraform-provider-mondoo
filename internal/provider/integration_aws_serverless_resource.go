@@ -380,7 +380,7 @@ func (r *integrationAwsServerlessResource) Schema(ctx context.Context, req resou
 		MarkdownDescription: `Continuously scan AWS organizations and accounts for misconfigurations and vulnerabilities.`,
 		Attributes: map[string]schema.Attribute{
 			"scope_mrn": schema.StringAttribute{
-				MarkdownDescription: "The MRN of the scope the integration is created in: a space (`//captain.api.mondoo.app/spaces/<space-id>`), or an organization (`//captain.api.mondoo.app/organizations/<org-id>`), whose asset routing rules place the assets of every scanned account into spaces. When omitted, `space_id`, else the provider's space. Immutable: changing it forces a new integration.",
+				MarkdownDescription: "The MRN of the scope the integration is created in: a space (`//captain.api.mondoo.app/spaces/<space-id>`), or an organization (`//captain.api.mondoo.app/organizations/<org-id>`), whose asset routing rules place the assets of every scanned account into spaces. When omitted, the integration is created in `space_id`, else in the provider's space. Immutable: changing it forces a new integration.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
