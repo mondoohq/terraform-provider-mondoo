@@ -121,7 +121,8 @@ resource "aws_cloudformation_stack" "mondoo_wif_stack" {
 - `console_sign_in_trigger` (Boolean) Enable console sign-in trigger.
 - `instance_state_change_trigger` (Boolean) Enable instance state change trigger.
 - `is_organization` (Boolean) Set to `true` when you deploy the CloudFormation template with a StackSet, whether it targets the whole AWS organization or only some organizational units (OUs). Mondoo then issues a `token` that never expires, so accounts that join a targeted OU later can still register. When unset or `false`, the `token` expires 30 minutes after the integration is created. Set this when you create the integration: changing it later does not replace the `token` already in the Terraform state, so recreate the integration to get a token that does not expire. Cannot be combined with `account_ids`.
-- `space_id` (String) Mondoo space identifier. If there is no ID, the provider space is used.
+- `scope_mrn` (String) The MRN of the scope the integration is created in: a space (`//captain.api.mondoo.app/spaces/<space-id>`), or an organization (`//captain.api.mondoo.app/organizations/<org-id>`), whose asset routing rules place the assets of every scanned account into spaces. When omitted, the integration is created in `space_id`, else in the provider's space. Immutable: changing it forces a new integration.
+- `space_id` (String, Deprecated) Mondoo space identifier. Deprecated: set `scope_mrn` instead. If neither is set, the provider space is used.
 - `use_wif` (Boolean) Authenticate the Lambda to Mondoo with Workload Identity Federation instead of the `token`: Mondoo creates the WIF binding for the integration, and `wif_config` carries the stack's `MondooWifConfig` parameter. Requires `aws_account_id`. Immutable: changing it forces a new integration.
 
 ### Read-Only

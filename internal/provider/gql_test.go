@@ -26,6 +26,16 @@ func TestIsValidIntegrationMrn(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "valid space-scoped AWS integration MRN",
+			mrn:      "//integration.api.mondoo.app/spaces/my-space-123/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
+			expected: true,
+		},
+		{
+			name:     "valid org-scoped AWS integration MRN",
+			mrn:      "//integration.api.mondoo.app/organizations/my-org-789/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
+			expected: true,
+		},
+		{
 			name:     "valid platform-scoped integration MRN",
 			mrn:      "//integration.api.mondoo.app/integrations/abc-def-456",
 			expected: true,
@@ -118,6 +128,16 @@ func TestIntegration_ScopeMRN(t *testing.T) {
 		{
 			name:     "org-scoped integration",
 			mrn:      "//integration.api.mondoo.app/organizations/my-org-789/integrations/int-456",
+			expected: "//captain.api.mondoo.app/organizations/my-org-789",
+		},
+		{
+			name:     "space-scoped AWS integration",
+			mrn:      "//integration.api.mondoo.app/spaces/my-space-123/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
+			expected: "//captain.api.mondoo.app/spaces/my-space-123",
+		},
+		{
+			name:     "org-scoped AWS integration",
+			mrn:      "//integration.api.mondoo.app/organizations/my-org-789/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
 			expected: "//captain.api.mondoo.app/organizations/my-org-789",
 		},
 		{

@@ -21,7 +21,9 @@ import (
 
 const orgPrefix = "//captain.api.mondoo.app/organizations/"
 
-var validIntegrationMRN = regexp.MustCompile(`^(//integration\.api\.mondoo\.app/(spaces|organizations)/[\w-]+/integrations/[\w-]+)$`)
+// An AWS integration's MRN has its own shape, aws/{ID} in place of
+// integrations/{ID}.
+var validIntegrationMRN = regexp.MustCompile(`^(//integration\.api\.mondoo\.app/(spaces|organizations)/[\w-]+/(integrations|aws)/[\w-]+)$`)
 var validPlatformIntegrationMRN = regexp.MustCompile(`^(//integration\.api\.mondoo\.app/integrations/[\w-]+)$`)
 
 func IsValidIntegrationMrn(mrn string) bool {
@@ -1127,6 +1129,7 @@ func (i Integration) SpaceID() string {
 //
 //	//integration.api.mondoo.app/spaces/{ID}/integrations/{ID} → //captain.api.mondoo.app/spaces/{ID}
 //	//integration.api.mondoo.app/organizations/{ID}/integrations/{ID} → //captain.api.mondoo.app/organizations/{ID}
+//	//integration.api.mondoo.app/organizations/{ID}/aws/{ID} → //captain.api.mondoo.app/organizations/{ID}
 //	//integration.api.mondoo.app/integrations/{ID} → //platform.api.mondoo.app
 func (i Integration) ScopeMRN() string {
 	if IsValidPlatformIntegrationMrn(i.Mrn) {
@@ -1135,14 +1138,10 @@ func (i Integration) ScopeMRN() string {
 	if !IsValidIntegrationMrn(i.Mrn) {
 		return ""
 	}
-	// Extract the scope path segment (e.g. "spaces/{ID}" or "organizations/{ID}")
-	idx := strings.LastIndex(i.Mrn, "/integrations/")
-	if idx == -1 {
-		return ""
-	}
-	path := i.Mrn[:idx]
-	path = strings.Replace(path, "//integration.api.mondoo.app/", "//captain.api.mondoo.app/", 1)
-	return path
+	// The scope is the path's first two segments, spaces/{ID} or
+	// organizations/{ID}; the integration's own two follow.
+	segments := strings.SplitN(strings.TrimPrefix(i.Mrn, "//integration.api.mondoo.app/"), "/", 3)
+	return "//captain.api.mondoo.app/" + segments[0] + "/" + segments[1]
 }
 
 // IsSpaceScoped returns true if the integration belongs to a space (vs. org or platform).

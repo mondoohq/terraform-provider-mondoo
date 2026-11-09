@@ -376,6 +376,58 @@ const v048State = `{
 // in place, use_wif = true makes a new integration. Entirely in process: the
 // provider's own protocol server, no Terraform and no Mondoo API (planning this
 // resource does not call it).
+// scope_mrn next to space_id: optional, computed, immutable, and exclusive
+// with space_id, which is deprecated in its favour.
+func TestIntegrationAwsServerlessResourceSchema_ScopeMrn(t *testing.T) {
+	ctx := context.Background()
+	var resp resource.SchemaResponse
+	(&integrationAwsServerlessResource{}).Schema(ctx, resource.SchemaRequest{}, &resp)
+	require.False(t, resp.Diagnostics.HasError(), "schema diagnostics: %v", resp.Diagnostics)
+	require.False(t, resp.Schema.ValidateImplementation(ctx).HasError())
+
+	scopeMrn := resp.Schema.Attributes["scope_mrn"].(schema.StringAttribute)
+	assert.True(t, scopeMrn.Optional)
+	assert.True(t, scopeMrn.Computed)
+	require.Len(t, scopeMrn.Validators, 1)
+	assert.Contains(t, scopeMrn.Validators[0].Description(ctx), "space_id", "scope_mrn conflicts with space_id")
+	require.Len(t, scopeMrn.PlanModifiers, 2)
+	assert.Contains(t, scopeMrn.PlanModifiers[1].Description(ctx), "destroy and recreate", "a scope change makes a new integration")
+
+	spaceID := resp.Schema.Attributes["space_id"].(schema.StringAttribute)
+	assert.NotEmpty(t, spaceID.DeprecationMessage)
+	assert.True(t, spaceID.Optional)
+	assert.True(t, spaceID.Computed)
+}
+
+// A space integration, read back with its scope, whose configuration names
+// the same space as scope_mrn instead of space_id keeps the integration; a
+// scope_mrn naming an organization makes a new one.
+func TestIntegrationAwsServerlessScopeMrnPlans(t *testing.T) {
+	p := newAwsServerlessProtocol(t)
+	prior := p.stateOf(t, importedAwsServerlessModel(Integration{
+		Mrn:  "//integration.api.mondoo.app/spaces/space-1/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
+		Name: "scoped",
+	}))
+	for _, tc := range []struct {
+		name     string
+		scopeMrn string
+		replace  []string
+	}{
+		{name: "the same space as scope_mrn", scopeMrn: "//captain.api.mondoo.app/spaces/space-1"},
+		{name: "an organization", scopeMrn: "//captain.api.mondoo.app/organizations/org-1", replace: []string{"scope_mrn"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, replaced := p.plan(t, prior, map[string]any{
+				"scope_mrn":          tc.scopeMrn,
+				"name":               "scoped",
+				"region":             "us-east-1",
+				"scan_configuration": map[string]any{"ec2_scan_options": map[string]any{}},
+			})
+			assert.ElementsMatch(t, tc.replace, replaced, "attributes that force a new integration")
+		})
+	}
+}
+
 func TestIntegrationAwsServerlessUpgradeFromV048(t *testing.T) {
 	p := newAwsServerlessProtocol(t)
 	upgraded, err := p.server.UpgradeResourceState(context.Background(), &tfprotov6.UpgradeResourceStateRequest{
@@ -413,6 +465,115 @@ func TestIntegrationAwsServerlessUpgradeFromV048(t *testing.T) {
 	}
 }
 
+// v053State is a cross-account WIF integration as v0.53.0 stores it, in that
+// release's schema, before scope_mrn existed.
+const v053State = `{
+  "space_id": "space-1",
+  "name": "cross-account",
+  "region": "us-east-1",
+  "mrn": "//integration.api.mondoo.app/spaces/space-1/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
+  "token": "token",
+  "source_bucket": "mondoo-us-east-1",
+  "cloud_formation_template_url": "https://example.invalid/template.json",
+  "wif_config": "d2lm",
+  "use_wif": true,
+  "aws_account_id": "111111111111",
+  "is_organization": false,
+  "account_ids": null,
+  "console_sign_in_trigger": null,
+  "instance_state_change_trigger": null,
+  "scan_configuration": {
+    "account_scan": true,
+    "cron_scan_in_hours": 12,
+    "cross_account_scan": true,
+    "cross_account_scan_options": {
+      "role_name": "MondooCrossAccountScan",
+      "account_ids": ["222222222222"],
+      "account_tags": {"mondoo": "scan"},
+      "organizations": null,
+      "ebs_volume_scan": true
+    },
+    "propagate_account_tags": true,
+    "scheduling": "SERVER",
+    "ec2_scan_options": {
+      "regions_filter": ["us-east-1"],
+      "tags_filter": {"mondoo-e2e": "cross-account-ebs"},
+      "ebs_volume_scan": true
+    }
+  }
+}`
+
+// An integration stored by v0.53.0, planned by this build against the
+// configuration that made it, with space_id and no scope_mrn, plans no change
+// and replaces nothing: as stored, and after a refresh has filled scope_mrn
+// in from the integration.
+func TestIntegrationAwsServerlessUpgradeFromV053(t *testing.T) {
+	ctx := context.Background()
+	p := newAwsServerlessProtocol(t)
+	upgraded, err := p.server.UpgradeResourceState(ctx, &tfprotov6.UpgradeResourceStateRequest{
+		TypeName: awsServerlessTypeName, Version: 0, RawState: &tfprotov6.RawState{JSON: []byte(v053State)},
+	})
+	require.NoError(t, err)
+	require.Empty(t, upgraded.Diagnostics)
+	stored, err := upgraded.UpgradedState.Unmarshal(p.typ)
+	require.NoError(t, err)
+
+	// The first refresh reads the integration back and fills scope_mrn in.
+	var schemaResp resource.SchemaResponse
+	(&integrationAwsServerlessResource{}).Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	var model integrationAwsServerlessResourceModel
+	require.Empty(t, (tfsdk.State{Schema: schemaResp.Schema, Raw: stored}).Get(ctx, &model))
+	assert.True(t, model.ScopeMrn.IsNull(), "a v0.53.0 state has no scope_mrn")
+	model.setComputedFrom(Integration{
+		Mrn: "//integration.api.mondoo.app/spaces/space-1/aws/3KzdSxbWemWpKABpVJE2PJZ5xpM",
+		ConfigurationOptions: ClientIntegrationConfigurationOptions{AWSConfigurationOptions: AWSConfigurationOptions{
+			SourceBucket: "mondoo-us-east-1", CloudFormationTemplateUrl: "https://example.invalid/template.json",
+		}},
+	})
+	assert.Equal(t, "//captain.api.mondoo.app/spaces/space-1", model.ScopeMrn.ValueString())
+	refreshed := p.stateOf(t, model)
+
+	config := map[string]any{
+		"space_id":        "space-1",
+		"name":            "cross-account",
+		"region":          "us-east-1",
+		"use_wif":         true,
+		"aws_account_id":  "111111111111",
+		"is_organization": false,
+		"scan_configuration": map[string]any{
+			"account_scan":       true,
+			"cron_scan_in_hours": 12,
+			"cross_account_scan": true,
+			"cross_account_scan_options": map[string]any{
+				"role_name":       "MondooCrossAccountScan",
+				"account_ids":     []string{"222222222222"},
+				"account_tags":    map[string]string{"mondoo": "scan"},
+				"ebs_volume_scan": true,
+			},
+			"propagate_account_tags": true,
+			"scheduling":             "SERVER",
+			"ec2_scan_options": map[string]any{
+				"regions_filter":  []string{"us-east-1"},
+				"tags_filter":     map[string]string{"mondoo-e2e": "cross-account-ebs"},
+				"ebs_volume_scan": true,
+			},
+		},
+	}
+	for _, tc := range []struct {
+		name  string
+		prior tftypes.Value
+	}{
+		{name: "as stored", prior: stored},
+		{name: "after a refresh", prior: refreshed},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			planned, replaced := p.plan(t, tc.prior, config)
+			assert.True(t, planned.Equal(tc.prior), "planned %s", planned)
+			assert.Empty(t, replaced, "attributes that force a new integration")
+		})
+	}
+}
+
 // A WIF integration, imported and then planned against the configuration that
 // describes it, is updated in place: the import takes over use_wif and
 // aws_account_id, which cannot change in place.
@@ -438,6 +599,8 @@ func TestIntegrationAwsServerlessImportedWifPlansNoReplace(t *testing.T) {
 
 func TestImportedAwsServerlessModel(t *testing.T) {
 	const integrationMrn = "//integration.api.mondoo.app/spaces/space-1/aws/int-1"
+	const orgIntegrationMrn = "//integration.api.mondoo.app/organizations/org-1/aws/int-1"
+	const spaceMrn = "//captain.api.mondoo.app/spaces/space-1"
 	wif := ClientIntegrationConfigurationOptions{AWSConfigurationOptions: AWSConfigurationOptions{UseWif: true, AwsAccountId: "111111111111"}}
 	for _, tc := range []struct {
 		name        string
@@ -448,15 +611,25 @@ func TestImportedAwsServerlessModel(t *testing.T) {
 			name:        "an integration without WIF",
 			integration: Integration{Mrn: integrationMrn, Name: "one"},
 			want: integrationAwsServerlessResourceModel{
-				Mrn: types.StringValue(integrationMrn), Name: types.StringValue("one"), SpaceID: types.StringValue("space-1"),
+				Mrn: types.StringValue(integrationMrn), Name: types.StringValue("one"),
+				ScopeMrn: types.StringValue(spaceMrn), SpaceID: types.StringValue("space-1"),
 			},
 		},
 		{
 			name:        "an integration with WIF",
 			integration: Integration{Mrn: integrationMrn, Name: "one", ConfigurationOptions: wif},
 			want: integrationAwsServerlessResourceModel{
-				Mrn: types.StringValue(integrationMrn), Name: types.StringValue("one"), SpaceID: types.StringValue("space-1"),
+				Mrn: types.StringValue(integrationMrn), Name: types.StringValue("one"),
+				ScopeMrn: types.StringValue(spaceMrn), SpaceID: types.StringValue("space-1"),
 				UseWif: types.BoolValue(true), AwsAccountID: types.StringValue("111111111111"),
+			},
+		},
+		{
+			name:        "an integration in an organization has no space_id",
+			integration: Integration{Mrn: orgIntegrationMrn, Name: "one"},
+			want: integrationAwsServerlessResourceModel{
+				Mrn: types.StringValue(orgIntegrationMrn), Name: types.StringValue("one"),
+				ScopeMrn: types.StringValue("//captain.api.mondoo.app/organizations/org-1"), SpaceID: types.StringNull(),
 			},
 		},
 	} {
