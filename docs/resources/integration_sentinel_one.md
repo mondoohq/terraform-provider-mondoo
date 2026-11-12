@@ -3,12 +3,12 @@
 page_title: "mondoo_integration_sentinel_one Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
-  SentinelOne integration.
+  SentinelOne integration. Create it in a Mondoo organization (org_id), whose asset routing rules place the assets into spaces, or in a space (space_id).
 ---
 
 # mondoo_integration_sentinel_one (Resource)
 
-SentinelOne integration.
+SentinelOne integration. Create it in a Mondoo organization (`org_id`), whose asset routing rules place the assets into spaces, or in a space (`space_id`).
 
 ## Example Usage
 
@@ -47,7 +47,8 @@ resource "mondoo_integration_sentinel_one" "example" {
 
 ### Optional
 
-- `space_id` (String) Mondoo space identifier. If there is no space ID, the provider space is used.
+- `org_id` (String) Mondoo organization identifier. Set this to create the integration in the organization. Conflicts with `space_id`.
+- `space_id` (String) Mondoo space identifier. If neither `space_id` nor `org_id` is set, the provider space is used.
 
 ### Read-Only
 

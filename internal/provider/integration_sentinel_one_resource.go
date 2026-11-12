@@ -33,6 +33,7 @@ type integrationSentinelOneResource struct {
 
 type integrationSentinelOneResourceModel struct {
 	// scope
+	OrgID   types.String `tfsdk:"org_id"`
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -74,16 +75,10 @@ func (r *integrationSentinelOneResource) Metadata(_ context.Context, req resourc
 
 func (r *integrationSentinelOneResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `SentinelOne integration.`,
+		MarkdownDescription: `SentinelOne integration.` + " " + orgScopedIntegrationDescription,
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
+			"org_id":   integrationOrgIDAttribute(),
+			"space_id": integrationSpaceIDAttribute(),
 			"mrn": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Integration identifier.",
@@ -163,18 +158,18 @@ func (r *integrationSentinelOneResource) Create(ctx context.Context, req resourc
 		return
 	}
 
-	// Compute and validate the space
-	space, err := r.client.ComputeSpace(data.SpaceID)
+	// Compute and validate the scope: the organization or a space
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	// Do GraphQL request to API to create the resource.
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeSentinelOne,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -207,10 +202,10 @@ func (r *integrationSentinelOneResource) Create(ctx context.Context, req resourc
 			)
 	}
 
-	// Save space mrn into the Terraform state.
+	// Save the integration and its scope into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(data.Name.ValueString())
-	data.SpaceID = types.StringValue(space.ID())
+	data.SpaceID = spaceID
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -298,9 +293,8 @@ func (r *integrationSentinelOneResource) ImportState(ctx context.Context, req re
 		return
 	}
 	model := integrationSentinelOneResourceModel{
-		Mrn:     types.StringValue(integration.Mrn),
-		Name:    types.StringValue(integration.Name),
-		SpaceID: types.StringValue(integration.SpaceID()),
+		Mrn:  types.StringValue(integration.Mrn),
+		Name: types.StringValue(integration.Name),
 		// SentinelOne options
 		Host:    types.StringValue(integration.ConfigurationOptions.SentinelOneConfigurationOptions.Host),
 		Account: types.StringValue(integration.ConfigurationOptions.SentinelOneConfigurationOptions.Account),
@@ -309,6 +303,7 @@ func (r *integrationSentinelOneResource) ImportState(ctx context.Context, req re
 			ClientSecret: types.StringPointerValue(nil),
 		},
 	}
+	model.OrgID, model.SpaceID = integrationScope(*integration)
 
 	resp.State.Set(ctx, &model)
 }

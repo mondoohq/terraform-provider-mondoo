@@ -18,8 +18,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// orgScopedIntegrationResources are the hosted scan integrations that can be
-// created in an organization, each with an empty model to decode state into.
+// orgScopedIntegrationResources are the hosted scan and finding import
+// integrations that can be created in an organization, each with an empty model
+// to decode state into.
 var orgScopedIntegrationResources = map[string]struct {
 	new   func() resource.Resource
 	model any
@@ -36,6 +37,10 @@ var orgScopedIntegrationResources = map[string]struct {
 	"domain":           {NewIntegrationDomainResource, &integrationDomainResourceModel{}},
 	"github":           {NewIntegrationGithubResource, &integrationGithubResourceModel{}},
 	"oci_tenant":       {NewIntegrationOciTenantResource, &integrationOciTenantResourceModel{}},
+	// Finding importers (import only at organization scope).
+	"crowdstrike":  {NewIntegrationCrowdstrikeResource, &integrationCrowdstrikeResourceModel{}},
+	"sentinel_one": {NewIntegrationSentinelOneResource, &integrationSentinelOneResourceModel{}},
+	"msdefender":   {NewIntegrationMsDefenderResource, &integrationMsDefenderResourceModel{}},
 }
 
 func TestOrgScopedIntegrationSchemas(t *testing.T) {

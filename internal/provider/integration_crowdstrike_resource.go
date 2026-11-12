@@ -38,6 +38,7 @@ type integrationCrowdstrikeResource struct {
 
 type integrationCrowdstrikeResourceModel struct {
 	// scope
+	OrgID   types.String `tfsdk:"org_id"`
 	SpaceID types.String `tfsdk:"space_id"`
 
 	// integration details
@@ -169,16 +170,10 @@ func (r *integrationCrowdstrikeResource) Metadata(_ context.Context, req resourc
 
 func (r *integrationCrowdstrikeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "CrowdStrike Falcon for Cloud integration.",
+		MarkdownDescription: "CrowdStrike Falcon for Cloud integration." + " " + orgScopedIntegrationDescription,
 		Attributes: map[string]schema.Attribute{
-			"space_id": schema.StringAttribute{
-				MarkdownDescription: "Mondoo space identifier. If there is no space ID, the provider space is used.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
+			"org_id":   integrationOrgIDAttribute(),
+			"space_id": integrationSpaceIDAttribute(),
 			"mrn": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Integration identifier.",
@@ -292,12 +287,13 @@ func (r *integrationCrowdstrikeResource) Create(ctx context.Context, req resourc
 		return
 	}
 
-	space, err := r.client.ComputeSpace(data.SpaceID)
+	// Compute and validate the scope: the organization or a space
+	scopeMrn, spaceID, err := integrationScopeMrn(r.client, data.OrgID, data.SpaceID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Configuration", err.Error())
 		return
 	}
-	ctx = tflog.SetField(ctx, "space_mrn", space.MRN())
+	ctx = tflog.SetField(ctx, "scope_mrn", scopeMrn)
 
 	configOpts, diags := data.GetConfigurationOptions(ctx)
 	resp.Diagnostics.Append(diags...)
@@ -307,8 +303,8 @@ func (r *integrationCrowdstrikeResource) Create(ctx context.Context, req resourc
 
 	// Do GraphQL request to API to create the resource.
 	tflog.Debug(ctx, "Creating integration")
-	integration, err := r.client.CreateIntegration(ctx,
-		space.MRN(),
+	integration, err := r.client.CreateScopedIntegration(ctx,
+		scopeMrn,
 		data.Name.ValueString(),
 		mondoov1.ClientIntegrationTypeCrowdstrikeFalcon,
 		mondoov1.ClientIntegrationConfigurationInput{
@@ -332,10 +328,10 @@ func (r *integrationCrowdstrikeResource) Create(ctx context.Context, req resourc
 			)
 	}
 
-	// Save space mrn into the Terraform state.
+	// Save the integration and its scope into the Terraform state.
 	data.Mrn = types.StringValue(string(integration.Mrn))
 	data.Name = types.StringValue(string(integration.Name))
-	data.SpaceID = types.StringValue(space.ID())
+	data.SpaceID = spaceID
 	// Omitted on create, the API stores nothing: vulnerabilities only, every severity.
 	if data.FindingTypes.IsUnknown() {
 		data.FindingTypes, diags = enumSetValue(ctx, nil)
@@ -531,7 +527,6 @@ func (r *integrationCrowdstrikeResource) ImportState(ctx context.Context, req re
 	model := integrationCrowdstrikeResourceModel{
 		Mrn:          types.StringValue(integration.Mrn),
 		Name:         types.StringValue(integration.Name),
-		SpaceID:      types.StringValue(integration.SpaceID()),
 		ClientId:     types.StringValue(stored.ClientId),
 		ClientSecret: types.StringPointerValue(nil),
 		Cloud:        types.StringValue(stored.Cloud),
@@ -541,6 +536,7 @@ func (r *integrationCrowdstrikeResource) ImportState(ctx context.Context, req re
 
 		ImportHostGroups: hostGroups,
 	}
+	model.OrgID, model.SpaceID = integrationScope(*integration)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }
