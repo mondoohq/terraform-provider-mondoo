@@ -273,14 +273,23 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 			"orchestrator_image": schema.StringAttribute{
 				MarkdownDescription: "The container image of the serverless scanner's orchestrator that this platform version expects. Pass it to the serverless scanner's Terraform deployment as `image`. Empty when the platform has no image configured.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"gcs_source": schema.StringAttribute{
 				MarkdownDescription: "The GCS bucket path holding the serverless scanner's Terraform deployment module. Empty when the platform has no path configured.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"actor_service_account": schema.StringAttribute{
 				MarkdownDescription: "The Mondoo service account the platform sends on-demand commands (a manual scan, a log fetch) to the deployed scanner as. Pass it to the serverless scanner's Terraform deployment as `mondoo_actor_service_account`. Empty when the platform has none configured.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"scan_configuration": schema.SingleNestedAttribute{
 				MarkdownDescription: "Scan options that control what the deployed scanner scans.",

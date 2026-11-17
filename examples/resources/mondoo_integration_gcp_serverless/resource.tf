@@ -68,11 +68,13 @@ output "gcp_serverless_wif_config" {
 # image this platform version expects (`image`) and the service account the
 # platform sends on-demand commands as (`mondoo_actor_service_account`).
 output "gcp_serverless_orchestrator_image" {
-  value = mondoo_integration_gcp_serverless.gcp_serverless.orchestrator_image
+  description = "Orchestrator container image the platform expects for the deployed GCP serverless scanner."
+  value       = mondoo_integration_gcp_serverless.gcp_serverless.orchestrator_image
 }
 
 output "gcp_serverless_actor_service_account" {
-  value = mondoo_integration_gcp_serverless.gcp_serverless.actor_service_account
+  description = "Service account the platform sends on-demand commands to the deployed GCP serverless scanner as."
+  value       = mondoo_integration_gcp_serverless.gcp_serverless.actor_service_account
 }
 
 variable "mondoo_organization_mrn" {

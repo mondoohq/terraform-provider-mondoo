@@ -16,7 +16,9 @@ import (
 // notSecret lists attributes whose name matches IsCredentialName but
 // which hold no secret material. Keys are "<schema>.<attribute path>"; values
 // say why the attribute is safe to render.
-var notSecret = map[string]string{}
+var notSecret = map[string]string{
+	"mondoo_integration_gcp_serverless.actor_service_account": "a service account email, not a key",
+}
 
 // TestCredentialAttributesAreSensitive fails when an attribute that looks like
 // a credential is not marked Sensitive. Terraform renders non-sensitive values
