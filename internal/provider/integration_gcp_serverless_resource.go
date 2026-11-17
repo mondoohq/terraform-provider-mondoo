@@ -6,9 +6,12 @@ package provider
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -75,23 +78,38 @@ type integrationGcpServerlessResourceModel struct {
 	// deployed scanner. Pass it to the customer's Terraform deployment. Empty
 	// when use_wif is false.
 	WifConfig types.String `tfsdk:"wif_config"`
+	// (Computed.) The orchestrator container image this platform version
+	// expects. Empty when the server has none configured.
+	OrchestratorImage types.String `tfsdk:"orchestrator_image"`
+	// (Computed.) The GCS path holding the serverless Terraform deployment
+	// module. Empty when the server has none configured.
+	GcsSource types.String `tfsdk:"gcs_source"`
+	// (Computed.) The Mondoo service account the platform sends on-demand
+	// commands to the deployed scanner as. Empty when the server has none
+	// configured.
+	ActorServiceAccount types.String `tfsdk:"actor_service_account"`
 
 	// (Optional.)
 	ScanConfiguration *GcpServerlessScanConfigurationInput `tfsdk:"scan_configuration"`
 }
 
 type GcpServerlessScanConfigurationInput struct {
-	// (Optional.) Include filter: only projects whose tags match at least one of
-	// these key-value pairs are scanned. A value of "*" matches any value for the key.
+	// (Optional.) Resource include filter: only resources whose tags match at
+	// least one of these key-value pairs are scanned. A value of "*" matches any
+	// value for the key. Does not select projects; see ProjectTags.
 	TagsFilter types.Map `tfsdk:"tags_filter"`
-	// (Optional.) Exclude filter: projects whose tags match at least one of these
-	// key-value pairs are skipped. A value of "*" matches any value for the key.
+	// (Optional.) Resource exclude filter: resources whose tags match at least
+	// one of these key-value pairs are skipped. A value of "*" matches any value
+	// for the key. Does not select projects; see ProjectTags.
 	ExcludedTagsFilter types.Map `tfsdk:"excluded_tags_filter"`
 	// (Optional.) How often (in hours) the deployed scanner runs a scan.
 	ScanScheduleHours types.Int32 `tfsdk:"scan_schedule_hours"`
 	// (Optional.) When true, the GCP project tags are propagated to all assets
 	// discovered under the project.
 	PropagateProjectTags types.Bool `tfsdk:"propagate_project_tags"`
+	// (Optional.) Tag key to tag value. Only projects that carry at least one of
+	// these tags are scanned; when empty, every discovered project is scanned.
+	ProjectTags types.Map `tfsdk:"project_tags"`
 }
 
 // tagsFilterToKeyValueList converts a Terraform string map into the GraphQL
@@ -149,6 +167,16 @@ func (m integrationGcpServerlessResourceModel) GetConfigurationOptions() *mondoo
 		}
 		if !m.ScanConfiguration.PropagateProjectTags.IsNull() && !m.ScanConfiguration.PropagateProjectTags.IsUnknown() {
 			opts.ScanConfiguration.PropagateProjectTags = mondoov1.NewBooleanPtr(mondoov1.Boolean(m.ScanConfiguration.PropagateProjectTags.ValueBool()))
+		}
+		if tags, ok := stringMap(m.ScanConfiguration.ProjectTags); ok {
+			projectTags := make([]mondoov1.TagInput, 0, len(tags))
+			for _, key := range slices.Sorted(maps.Keys(tags)) {
+				projectTags = append(projectTags, mondoov1.TagInput{
+					Key:   mondoov1.String(key),
+					Value: mondoov1.String(tags[key]),
+				})
+			}
+			opts.ScanConfiguration.ProjectTags = &projectTags
 		}
 	}
 
@@ -242,17 +270,29 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"orchestrator_image": schema.StringAttribute{
+				MarkdownDescription: "The container image of the serverless scanner's orchestrator that this platform version expects. Pass it to the serverless scanner's Terraform deployment as `image`. Empty when the platform has no image configured.",
+				Computed:            true,
+			},
+			"gcs_source": schema.StringAttribute{
+				MarkdownDescription: "The GCS bucket path holding the serverless scanner's Terraform deployment module. Empty when the platform has no path configured.",
+				Computed:            true,
+			},
+			"actor_service_account": schema.StringAttribute{
+				MarkdownDescription: "The Mondoo service account the platform sends on-demand commands (a manual scan, a log fetch) to the deployed scanner as. Pass it to the serverless scanner's Terraform deployment as `mondoo_actor_service_account`. Empty when the platform has none configured.",
+				Computed:            true,
+			},
 			"scan_configuration": schema.SingleNestedAttribute{
 				MarkdownDescription: "Scan options that control what the deployed scanner scans.",
 				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"tags_filter": schema.MapAttribute{
-						MarkdownDescription: "Include filter: when not empty, only projects whose tags match at least one of these key-value pairs are scanned. A value of `*` matches any value for that tag key.",
+						MarkdownDescription: "Resource include filter: when not empty, only resources whose tags match at least one of these key-value pairs are scanned. A value of `*` matches any value for that tag key. Does not select projects; see `project_tags`.",
 						Optional:            true,
 						ElementType:         types.StringType,
 					},
 					"excluded_tags_filter": schema.MapAttribute{
-						MarkdownDescription: "Exclude filter: projects whose tags match at least one of these key-value pairs are skipped, even if they match the include filter. A value of `*` matches any value for that tag key.",
+						MarkdownDescription: "Resource exclude filter: resources whose tags match at least one of these key-value pairs are skipped, even if they match the include filter. A value of `*` matches any value for that tag key. Does not select projects; see `project_tags`.",
 						Optional:            true,
 						ElementType:         types.StringType,
 					},
@@ -266,6 +306,14 @@ func (r *integrationGcpServerlessResource) Schema(ctx context.Context, req resou
 					"propagate_project_tags": schema.BoolAttribute{
 						MarkdownDescription: "When true, the GCP project tags are propagated to all assets discovered under the project.",
 						Optional:            true,
+					},
+					"project_tags": schema.MapAttribute{
+						MarkdownDescription: "Tag key to tag value. Only projects that carry at least one of these tags are scanned; when empty, every discovered project is scanned. Keys and values are glob patterns where `*` matches any run of characters, and a value may be a comma-separated list of patterns. A value of `*` matches any value of the key.",
+						Optional:            true,
+						ElementType:         types.StringType,
+						Validators: []validator.Map{
+							mapvalidator.NoNullValues(),
+						},
 					},
 				},
 			},
@@ -431,10 +479,12 @@ func (r *integrationGcpServerlessResource) Create(ctx context.Context, req resou
 }
 
 // refreshServerState fetches the integration and reconciles the
-// server-computed fields onto the model: the resolved scope and the
-// server-managed WIF outputs. User-authoritative fields (e.g. name) are left
-// as-is. Computed attributes must be set to known values, so on error the WIF
-// outputs fall back to empty strings.
+// server-computed fields onto the model: the resolved scope, the
+// server-managed WIF outputs and the deployment inputs the server is configured
+// with. User-authoritative fields (e.g. name) are left as-is. Computed
+// attributes must be set to known values, so on error the WIF outputs fall back
+// to empty strings; the deployment inputs keep the value already in state, so a
+// failed refresh does not blank the image a scanner deployment reads.
 func (r *integrationGcpServerlessResource) refreshServerState(ctx context.Context, mrn string, data *integrationGcpServerlessResourceModel, diags *diag.Diagnostics) {
 	fetched, err := r.client.GetClientIntegration(ctx, mrn)
 	if err != nil {
@@ -442,6 +492,15 @@ func (r *integrationGcpServerlessResource) refreshServerState(ctx context.Contex
 			fmt.Sprintf("Unable to fetch integration to populate computed fields. Got error: %s", err))
 		data.WifConfig = types.StringValue("")
 		data.WifAuthBindingMrn = types.StringValue("")
+		if data.OrchestratorImage.IsUnknown() {
+			data.OrchestratorImage = types.StringValue("")
+		}
+		if data.GcsSource.IsUnknown() {
+			data.GcsSource = types.StringValue("")
+		}
+		if data.ActorServiceAccount.IsUnknown() {
+			data.ActorServiceAccount = types.StringValue("")
+		}
 		return
 	}
 	// Reconcile the resolved scope so it is populated after import. scope_mrn is
@@ -463,6 +522,9 @@ func (r *integrationGcpServerlessResource) refreshServerState(ctx context.Contex
 	}
 	data.WifConfig = types.StringValue(opts.WifConfig)
 	data.WifAuthBindingMrn = types.StringValue(opts.WifAuthBindingMrn)
+	data.OrchestratorImage = types.StringValue(opts.OrchestratorImage)
+	data.GcsSource = types.StringValue(opts.GcsSource)
+	data.ActorServiceAccount = types.StringValue(opts.ActorServiceAccount)
 }
 
 func (r *integrationGcpServerlessResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

@@ -1000,11 +1000,14 @@ type GcpConfigurationOptions struct {
 }
 
 type GcpServerlessConfigurationOptions struct {
-	CrossOrg          bool
-	UseWif            bool
-	ServiceAccountId  string
-	WifAuthBindingMrn string
-	WifConfig         string
+	CrossOrg            bool
+	UseWif              bool
+	ServiceAccountId    string
+	WifAuthBindingMrn   string
+	WifConfig           string
+	OrchestratorImage   string
+	GcsSource           string
+	ActorServiceAccount string
 }
 
 type ShodanConfigurationOptions struct {
