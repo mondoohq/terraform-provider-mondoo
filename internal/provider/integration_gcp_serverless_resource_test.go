@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -165,6 +166,10 @@ func TestIntegrationGcpServerlessGetConfigurationOptions_WifCrossOrgSupplied(t *
 			TagsFilter:           types.MapNull(types.StringType),
 			ExcludedTagsFilter:   types.MapNull(types.StringType),
 			PropagateProjectTags: types.BoolValue(true),
+			ProjectTags: types.MapValueMust(types.StringType, map[string]attr.Value{
+				"env":  types.StringValue("production"),
+				"team": types.StringValue("*"),
+			}),
 		},
 	}
 
@@ -179,6 +184,11 @@ func TestIntegrationGcpServerlessGetConfigurationOptions_WifCrossOrgSupplied(t *
 	require.NotNil(t, opts.ScanConfiguration)
 	require.NotNil(t, opts.ScanConfiguration.PropagateProjectTags)
 	assert.EqualValues(t, true, *opts.ScanConfiguration.PropagateProjectTags)
+	require.NotNil(t, opts.ScanConfiguration.ProjectTags)
+	assert.Equal(t, []mondoov1.TagInput{
+		{Key: "env", Value: "production"},
+		{Key: "team", Value: "*"},
+	}, *opts.ScanConfiguration.ProjectTags)
 }
 
 // TestValidateGcpServerlessConfig covers the plan-time WIF / cross-org

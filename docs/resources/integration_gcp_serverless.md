@@ -56,10 +56,14 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 
   scan_configuration = {
     # Only scan projects tagged for production. A value of "*" matches any value.
-    tags_filter = {
+    project_tags = {
       "env" = "production"
     }
-    # Skip sandbox projects regardless of the include filter.
+    # Within those projects, only scan resources tagged for scanning.
+    tags_filter = {
+      "scan" = "true"
+    }
+    # Skip resources tagged as sandbox regardless of the include filter.
     excluded_tags_filter = {
       "env" = "sandbox"
     }
@@ -73,6 +77,19 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 output "gcp_serverless_wif_config" {
   description = "Base64-encoded WIF external account configuration for the deployed GCP serverless scanner."
   value       = mondoo_integration_gcp_serverless.gcp_serverless.wif_config
+}
+
+# Inputs for the serverless scanner's Terraform deployment: the orchestrator
+# image this platform version expects (`image`) and the service account the
+# platform sends on-demand commands as (`mondoo_actor_service_account`).
+output "gcp_serverless_orchestrator_image" {
+  description = "Orchestrator container image the platform expects for the deployed GCP serverless scanner."
+  value       = mondoo_integration_gcp_serverless.gcp_serverless.orchestrator_image
+}
+
+output "gcp_serverless_actor_service_account" {
+  description = "Service account the platform sends on-demand commands to the deployed GCP serverless scanner as."
+  value       = mondoo_integration_gcp_serverless.gcp_serverless.actor_service_account
 }
 
 variable "mondoo_organization_mrn" {
@@ -118,7 +135,10 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless_crossorg" {
 
 ### Read-Only
 
+- `actor_service_account` (String) The Mondoo service account the platform sends on-demand commands (a manual scan, a log fetch) to the deployed scanner as. Pass it to the serverless scanner's Terraform deployment as `mondoo_actor_service_account`. Empty when the platform has none configured.
+- `gcs_source` (String) The GCS bucket path holding the serverless scanner's Terraform deployment module. Empty when the platform has no path configured.
 - `mrn` (String) Integration identifier.
+- `orchestrator_image` (String) The container image of the serverless scanner's orchestrator that this platform version expects. Pass it to the serverless scanner's Terraform deployment as `image`. Empty when the platform has no image configured.
 - `token` (String, Sensitive) Integration token. Pass this to the serverless scanner deployment to register it with this integration.
 - `wif_auth_binding_mrn` (String) MRN of the server-managed WIF auth binding created for this integration. Empty when `use_wif` is false.
 - `wif_config` (String) Base64-encoded WIF external account configuration for the deployed scanner. Pass it to the customer's Terraform deployment. Empty when `use_wif` is false.
@@ -128,10 +148,11 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless_crossorg" {
 
 Optional:
 
-- `excluded_tags_filter` (Map of String) Exclude filter: projects whose tags match at least one of these key-value pairs are skipped, even if they match the include filter. A value of `*` matches any value for that tag key.
+- `excluded_tags_filter` (Map of String) Resource exclude filter: resources whose tags match at least one of these key-value pairs are skipped, even if they match the include filter. A value of `*` matches any value for that tag key. Does not select projects; see `project_tags`.
+- `project_tags` (Map of String) Tag key to tag value. Only projects that carry at least one of these tags are scanned; when empty, every discovered project is scanned. Keys and values are glob patterns where `*` matches any run of characters, and a value may be a comma-separated list of patterns. A value of `*` matches any value of the key.
 - `propagate_project_tags` (Boolean) When true, the GCP project tags are propagated to all assets discovered under the project.
 - `scan_schedule_hours` (Number) How often (in hours) the deployed scanner runs a scan. Must be between 1 and 23.
-- `tags_filter` (Map of String) Include filter: when not empty, only projects whose tags match at least one of these key-value pairs are scanned. A value of `*` matches any value for that tag key.
+- `tags_filter` (Map of String) Resource include filter: when not empty, only resources whose tags match at least one of these key-value pairs are scanned. A value of `*` matches any value for that tag key. Does not select projects; see `project_tags`.
 
 ## Import
 

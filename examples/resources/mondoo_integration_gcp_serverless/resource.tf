@@ -41,10 +41,14 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 
   scan_configuration = {
     # Only scan projects tagged for production. A value of "*" matches any value.
-    tags_filter = {
+    project_tags = {
       "env" = "production"
     }
-    # Skip sandbox projects regardless of the include filter.
+    # Within those projects, only scan resources tagged for scanning.
+    tags_filter = {
+      "scan" = "true"
+    }
+    # Skip resources tagged as sandbox regardless of the include filter.
     excluded_tags_filter = {
       "env" = "sandbox"
     }
@@ -58,6 +62,19 @@ resource "mondoo_integration_gcp_serverless" "gcp_serverless" {
 output "gcp_serverless_wif_config" {
   description = "Base64-encoded WIF external account configuration for the deployed GCP serverless scanner."
   value       = mondoo_integration_gcp_serverless.gcp_serverless.wif_config
+}
+
+# Inputs for the serverless scanner's Terraform deployment: the orchestrator
+# image this platform version expects (`image`) and the service account the
+# platform sends on-demand commands as (`mondoo_actor_service_account`).
+output "gcp_serverless_orchestrator_image" {
+  description = "Orchestrator container image the platform expects for the deployed GCP serverless scanner."
+  value       = mondoo_integration_gcp_serverless.gcp_serverless.orchestrator_image
+}
+
+output "gcp_serverless_actor_service_account" {
+  description = "Service account the platform sends on-demand commands to the deployed GCP serverless scanner as."
+  value       = mondoo_integration_gcp_serverless.gcp_serverless.actor_service_account
 }
 
 variable "mondoo_organization_mrn" {
