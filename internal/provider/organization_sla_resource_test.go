@@ -88,6 +88,28 @@ func TestAccOrganizationSlaResource(t *testing.T) {
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
+			// Add tag-based rules.
+			{
+				Config: testAccOrganizationSlaConfig(orgID, [4][2]int{{10, 8}, {20, 15}, {60, 60}, {120, 0}}, testAccOrganizationSlaRules+`
+  start_date_config = "CVE_PUBLISHED"
+  rating_source     = "CVSS"
+`),
+				Check: tfresource.ComposeAggregateTestCheckFunc(
+					tfresource.TestCheckResourceAttr(addr, "rules.#", "2"),
+					tfresource.TestCheckResourceAttr(addr, "rules.0.name", "Internet-facing"),
+					tfresource.TestCheckResourceAttr(addr, "rules.0.tags.#", "1"),
+					tfresource.TestCheckResourceAttr(addr, "rules.0.critical.days_to_resolve", "1"),
+					tfresource.TestCheckResourceAttr(addr, "rules.0.critical.days_before_warning", "0"),
+					tfresource.TestCheckResourceAttr(addr, "rules.1.name", "Production"),
+					tfresource.TestCheckResourceAttr(addr, "rules.1.tags.#", "2"),
+					tfresource.TestCheckResourceAttr(addr, "rules.1.low.days_to_resolve", "60"),
+					testAccCheckOrganizationSlaRuleNames(orgMrn, "Internet-facing", "Production"),
+				),
+				ConfigPlanChecks: tfresource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(addr, plancheck.ResourceActionUpdate)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
 			// Import by organization ID.
 			{
 				ResourceName:                         addr,
@@ -104,10 +126,13 @@ func TestAccOrganizationSlaResource(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "org_id",
 				ImportStateVerify:                    true,
 			},
-			// Dropping the optional settings sets them back to their defaults.
+			// Dropping the optional settings sets them back to their defaults,
+			// and dropping the rules removes them.
 			{
 				Config: testAccOrganizationSlaConfig(orgID, [4][2]int{{10, 8}, {20, 15}, {60, 60}, {120, 0}}, ""),
 				Check: tfresource.ComposeAggregateTestCheckFunc(
+					tfresource.TestCheckNoResourceAttr(addr, "rules.#"),
+					testAccCheckOrganizationSlaRuleNames(orgMrn),
 					tfresource.TestCheckResourceAttr(addr, "start_date_config", "CVE_DETECTED"),
 					tfresource.TestCheckResourceAttr(addr, "rating_source", "RISK"),
 				),
@@ -152,6 +177,85 @@ resource "mondoo_organization_sla" "test" {
 		days[2][0], days[2][1],
 		days[3][0], days[3][1],
 		extra)
+}
+
+// testAccOrganizationSlaRules is a rule on the attack surface tag and a rule
+// on two ordinary tags.
+const testAccOrganizationSlaRules = `
+  rules = [
+    {
+      name = "Internet-facing"
+      tags = [{ key = "mondoo.com/attack-surface", value = "internet" }]
+      critical = {
+        days_to_resolve     = 1
+        days_before_warning = 0
+      }
+      high = {
+        days_to_resolve     = 5
+        days_before_warning = 2
+      }
+      medium = {
+        days_to_resolve     = 30
+        days_before_warning = 7
+      }
+      low = {
+        days_to_resolve     = 60
+        days_before_warning = 14
+      }
+    },
+    {
+      name = "Production"
+      tags = [
+        { key = "env", value = "production" },
+        { key = "env", value = "prod" },
+      ]
+      critical = {
+        days_to_resolve     = 3
+        days_before_warning = 1
+      }
+      high = {
+        days_to_resolve     = 7
+        days_before_warning = 3
+      }
+      medium = {
+        days_to_resolve     = 30
+        days_before_warning = 7
+      }
+      low = {
+        days_to_resolve     = 60
+        days_before_warning = 14
+      }
+    },
+  ]
+`
+
+// testAccCheckOrganizationSlaRuleNames checks the rules the organization
+// stores, by name and in order.
+func testAccCheckOrganizationSlaRuleNames(orgMrn string, want ...string) tfresource.TestCheckFunc {
+	return func(*terraform.State) error {
+		client, err := mondooClient()
+		if err != nil {
+			return err
+		}
+		c := &ExtendedGqlClient{Client: client}
+		model, err := c.GetSecurityModel(context.Background(), orgMrn)
+		if err != nil {
+			return err
+		}
+		if model == nil {
+			return fmt.Errorf("organization %s has no security model", orgMrn)
+		}
+		got := []string{}
+		for _, rule := range model.Slas.Rules {
+			if rule.IsCustom {
+				got = append(got, rule.Name)
+			}
+		}
+		if fmt.Sprint(got) != fmt.Sprint(want) {
+			return fmt.Errorf("organization SLA rules = %v, want %v", got, want)
+		}
+		return nil
+	}
 }
 
 // testSpaceSecurityModel is the security model of a space as the space sees
@@ -247,8 +351,9 @@ func TestOrganizationSlaSchemaIsValid(t *testing.T) {
 }
 
 // organizationSlaTestConfig builds a raw configuration for the resource, as
-// Terraform sends it to ValidateConfig. Ratings not given use 30/23.
-func organizationSlaTestConfig(t *testing.T, ratings map[string]tftypes.Value) tfsdk.Config {
+// Terraform sends it to ValidateConfig. Ratings not given use 30/23. Each
+// rule is the four ratings of a rule tagged env = production.
+func organizationSlaTestConfig(t *testing.T, ratings map[string]tftypes.Value, rules ...map[string]tftypes.Value) tfsdk.Config {
 	t.Helper()
 	ctx := context.Background()
 	s := organizationSlaSchema(t).Schema
@@ -267,6 +372,38 @@ func organizationSlaTestConfig(t *testing.T, ratings map[string]tftypes.Value) t
 			v = organizationSlaTestRating(30, 23)
 		}
 		values[r.attribute] = v
+	}
+
+	rulesType, ok := objectType.AttributeTypes["rules"].(tftypes.List)
+	require.True(t, ok)
+	ruleType, ok := rulesType.ElementType.(tftypes.Object)
+	require.True(t, ok)
+	tagsType := ruleType.AttributeTypes["tags"]
+	tagType := tagsType.(tftypes.Set).ElementType
+	var ruleValues []tftypes.Value
+	for i, ruleRatings := range rules {
+		rule := map[string]tftypes.Value{
+			"name": tftypes.NewValue(tftypes.String, fmt.Sprintf("rule %d", i+1)),
+			"tags": tftypes.NewValue(tagsType, []tftypes.Value{
+				tftypes.NewValue(tagType, map[string]tftypes.Value{
+					"key":   tftypes.NewValue(tftypes.String, "env"),
+					"value": tftypes.NewValue(tftypes.String, "production"),
+				}),
+			}),
+		}
+		for _, r := range organizationSlaRatings {
+			v, ok := ruleRatings[r.attribute]
+			if !ok {
+				v = organizationSlaTestRating(30, 23)
+			}
+			rule[r.attribute] = v
+		}
+		ruleValues = append(ruleValues, tftypes.NewValue(ruleType, rule))
+	}
+	if ruleValues == nil {
+		values["rules"] = tftypes.NewValue(rulesType, nil)
+	} else {
+		values["rules"] = tftypes.NewValue(rulesType, ruleValues)
 	}
 	return tfsdk.Config{Schema: s, Raw: tftypes.NewValue(objectType, values)}
 }
@@ -289,8 +426,25 @@ func TestOrganizationSlaValidateConfig(t *testing.T) {
 	cases := []struct {
 		name    string
 		ratings map[string]tftypes.Value
+		rules   []map[string]tftypes.Value
 		wantErr bool
 	}{
+		{
+			name:  "a rule with defaults-like values is valid",
+			rules: []map[string]tftypes.Value{{}},
+		},
+		{
+			name: "a rule's warning after its deadline is an error",
+			rules: []map[string]tftypes.Value{
+				{},
+				{"high": organizationSlaTestRating(5, 6)},
+			},
+			wantErr: true,
+		},
+		{
+			name:  "a rule's unknown days are skipped",
+			rules: []map[string]tftypes.Value{{"low": organizationSlaTestRating(tftypes.UnknownValue, 6)}},
+		},
 		{
 			name: "defaults-like values are valid",
 		},
@@ -327,7 +481,7 @@ func TestOrganizationSlaValidateConfig(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := resource.ValidateConfigRequest{Config: organizationSlaTestConfig(t, tc.ratings)}
+			req := resource.ValidateConfigRequest{Config: organizationSlaTestConfig(t, tc.ratings, tc.rules...)}
 			var resp resource.ValidateConfigResponse
 			(&OrganizationSlaResource{}).ValidateConfig(context.Background(), req, &resp)
 			assert.Equal(t, tc.wantErr, resp.Diagnostics.HasError(), "diagnostics: %v", resp.Diagnostics)
@@ -370,6 +524,96 @@ func TestExpandOrganizationSLAs(t *testing.T) {
 	assert.Equal(t, mondoov1.SLAStartDateConfigCvePublished, *slas.StartDateConfig)
 	require.NotNil(t, slas.RatingSource)
 	assert.Equal(t, mondoov1.SLARatingSourceCvss, *slas.RatingSource)
+	// No rules are sent as an empty list, which removes the stored ones.
+	require.NotNil(t, slas.Rules)
+	assert.Empty(t, *slas.Rules)
+}
+
+// organizationSlaTestRule builds a rule with the given tags, as key and value
+// pairs, and the deadlines 1/0, 5/2, 30/7 and 60/14.
+func organizationSlaTestRule(t *testing.T, name string, tags ...[2]string) attr.Value {
+	t.Helper()
+	tagType := types.ObjectType{AttrTypes: organizationSlaTagAttrTypes}
+	tagValues := make([]attr.Value, 0, len(tags))
+	for _, tag := range tags {
+		obj, diags := types.ObjectValue(organizationSlaTagAttrTypes, map[string]attr.Value{
+			"key":   types.StringValue(tag[0]),
+			"value": types.StringValue(tag[1]),
+		})
+		require.False(t, diags.HasError(), "diagnostics: %v", diags)
+		tagValues = append(tagValues, obj)
+	}
+	tagSet, diags := types.SetValue(tagType, tagValues)
+	require.False(t, diags.HasError(), "diagnostics: %v", diags)
+
+	rule, diags := types.ObjectValue(organizationSlaRuleAttrTypes, map[string]attr.Value{
+		"name":     types.StringValue(name),
+		"tags":     tagSet,
+		"critical": organizationSlaTestObject(t, 1, 0),
+		"high":     organizationSlaTestObject(t, 5, 2),
+		"medium":   organizationSlaTestObject(t, 30, 7),
+		"low":      organizationSlaTestObject(t, 60, 14),
+	})
+	require.False(t, diags.HasError(), "diagnostics: %v", diags)
+	return rule
+}
+
+func organizationSlaTestRules(t *testing.T, rules ...attr.Value) types.List {
+	t.Helper()
+	list, diags := types.ListValue(organizationSlaRuleObjectType, rules)
+	require.False(t, diags.HasError(), "diagnostics: %v", diags)
+	return list
+}
+
+// organizationSlaTestRuleDeadlines are the deadlines of organizationSlaTestRule
+// as the API reports them.
+var organizationSlaTestRuleDeadlines = []FindingsSLAPayload{
+	{Rating: "CRITICAL", DaysToResolve: 1, DaysBeforeWarning: 0},
+	{Rating: "HIGH", DaysToResolve: 5, DaysBeforeWarning: 2},
+	{Rating: "MEDIUM", DaysToResolve: 30, DaysBeforeWarning: 7},
+	{Rating: "LOW", DaysToResolve: 60, DaysBeforeWarning: 14},
+}
+
+func organizationSlaTestRulePayload(name string, tags ...SLATagPayload) SLARulePayload {
+	rule := SLARulePayload{Name: name, IsCustom: true, Deadlines: organizationSlaTestRuleDeadlines}
+	rule.MatchStrategy.TagMatch.Tags = tags
+	return rule
+}
+
+func TestExpandOrganizationSLAsRules(t *testing.T) {
+	data := OrganizationSlaResourceModel{
+		Critical: organizationSlaTestObject(t, 30, 23),
+		High:     organizationSlaTestObject(t, 30, 23),
+		Medium:   organizationSlaTestObject(t, 60, 53),
+		Low:      organizationSlaTestObject(t, 90, 83),
+		Rules: organizationSlaTestRules(t,
+			organizationSlaTestRule(t, "Internet-facing", [2]string{"mondoo.com/attack-surface", "internet"}),
+			organizationSlaTestRule(t, "Production", [2]string{"env", "production"}),
+		),
+	}
+
+	slas, diags := expandOrganizationSLAs(context.Background(), &data)
+	require.False(t, diags.HasError(), "diagnostics: %v", diags)
+
+	deadlines := []mondoov1.UpdateFindingsSLAInput{
+		{Rating: mondoov1.ScoreRatingCritical, DaysToResolve: 1, DaysBeforeWarning: 0},
+		{Rating: mondoov1.ScoreRatingHigh, DaysToResolve: 5, DaysBeforeWarning: 2},
+		{Rating: mondoov1.ScoreRatingMedium, DaysToResolve: 30, DaysBeforeWarning: 7},
+		{Rating: mondoov1.ScoreRatingLow, DaysToResolve: 60, DaysBeforeWarning: 14},
+	}
+	require.NotNil(t, slas.Rules)
+	assert.Equal(t, []mondoov1.SLARuleInput{
+		{
+			Name:          "Internet-facing",
+			MatchStrategy: mondoov1.SLAMatchStrategyInput{Tags: &[]mondoov1.SLATagInput{{Key: "mondoo.com/attack-surface", Value: "internet"}}},
+			Deadlines:     deadlines,
+		},
+		{
+			Name:          "Production",
+			MatchStrategy: mondoov1.SLAMatchStrategyInput{Tags: &[]mondoov1.SLATagInput{{Key: "env", Value: "production"}}},
+			Deadlines:     deadlines,
+		},
+	}, *slas.Rules)
 }
 
 func TestExpandOrganizationSLAsAlwaysSendsSettings(t *testing.T) {
@@ -431,6 +675,58 @@ func TestFlattenOrganizationSLAs(t *testing.T) {
 	assert.Equal(t, types.StringValue("CVSS"), data.RatingSource)
 }
 
+func TestFlattenOrganizationSLAsRules(t *testing.T) {
+	findings := []FindingsSLAPayload{
+		{Rating: "CRITICAL", DaysToResolve: 30, DaysBeforeWarning: 23},
+		{Rating: "HIGH", DaysToResolve: 30, DaysBeforeWarning: 23},
+		{Rating: "MEDIUM", DaysToResolve: 60, DaysBeforeWarning: 53},
+		{Rating: "LOW", DaysToResolve: 90, DaysBeforeWarning: 83},
+	}
+
+	t.Run("custom rules land in the list, in order", func(t *testing.T) {
+		// A server that lists the default rule marks it as not custom.
+		defaultRule := SLARulePayload{Name: "Default", Deadlines: findings}
+		payload := SLAsPayload{Findings: findings, Rules: []SLARulePayload{
+			organizationSlaTestRulePayload("Internet-facing", SLATagPayload{Key: "mondoo.com/attack-surface", Value: "internet"}),
+			organizationSlaTestRulePayload("Production", SLATagPayload{Key: "env", Value: "production"}, SLATagPayload{Key: "env", Value: "prod"}),
+			defaultRule,
+		}}
+
+		var data OrganizationSlaResourceModel
+		diags := flattenOrganizationSLAs(payload, &data)
+		require.False(t, diags.HasError(), "diagnostics: %v", diags)
+		assert.Equal(t, organizationSlaTestRules(t,
+			organizationSlaTestRule(t, "Internet-facing", [2]string{"mondoo.com/attack-surface", "internet"}),
+			organizationSlaTestRule(t, "Production", [2]string{"env", "production"}, [2]string{"env", "prod"}),
+		), data.Rules)
+	})
+
+	t.Run("no rules read as null", func(t *testing.T) {
+		data := OrganizationSlaResourceModel{
+			Rules: organizationSlaTestRules(t, organizationSlaTestRule(t, "Production", [2]string{"env", "production"})),
+		}
+		diags := flattenOrganizationSLAs(SLAsPayload{Findings: findings}, &data)
+		require.False(t, diags.HasError(), "diagnostics: %v", diags)
+		assert.True(t, data.Rules.IsNull())
+	})
+
+	t.Run("no rules keep a configured empty list", func(t *testing.T) {
+		data := OrganizationSlaResourceModel{Rules: organizationSlaTestRules(t)}
+		diags := flattenOrganizationSLAs(SLAsPayload{Findings: findings}, &data)
+		require.False(t, diags.HasError(), "diagnostics: %v", diags)
+		assert.False(t, data.Rules.IsNull())
+		assert.Empty(t, data.Rules.Elements())
+	})
+
+	t.Run("a rule without a rating is an error", func(t *testing.T) {
+		rule := organizationSlaTestRulePayload("Production", SLATagPayload{Key: "env", Value: "production"})
+		rule.Deadlines = rule.Deadlines[:3]
+		var data OrganizationSlaResourceModel
+		diags := flattenOrganizationSLAs(SLAsPayload{Findings: findings, Rules: []SLARulePayload{rule}}, &data)
+		assert.True(t, diags.HasError())
+	})
+}
+
 func TestFlattenOrganizationSLAsDefaultsNullSettings(t *testing.T) {
 	payload := SLAsPayload{
 		Findings: []FindingsSLAPayload{
@@ -472,6 +768,9 @@ func TestExpandFlattenOrganizationSLAsRoundTrip(t *testing.T) {
 		Low:             organizationSlaTestObject(t, 4, 4),
 		StartDateConfig: types.StringValue("CVE_DETECTED"),
 		RatingSource:    types.StringValue("CVSS"),
+		Rules: organizationSlaTestRules(t,
+			organizationSlaTestRule(t, "Production", [2]string{"env", "production"}, [2]string{"env", "prod"}),
+		),
 	}
 
 	slas, diags := expandOrganizationSLAs(context.Background(), &want)
@@ -488,6 +787,20 @@ func TestExpandFlattenOrganizationSLAsRoundTrip(t *testing.T) {
 			DaysToResolve:     int32(f.DaysToResolve),
 			DaysBeforeWarning: int32(f.DaysBeforeWarning),
 		})
+	}
+	for _, r := range *slas.Rules {
+		rule := SLARulePayload{Name: string(r.Name), IsCustom: true}
+		for _, tag := range *r.MatchStrategy.Tags {
+			rule.MatchStrategy.TagMatch.Tags = append(rule.MatchStrategy.TagMatch.Tags, SLATagPayload{Key: string(tag.Key), Value: string(tag.Value)})
+		}
+		for _, f := range r.Deadlines {
+			rule.Deadlines = append(rule.Deadlines, FindingsSLAPayload{
+				Rating:            string(f.Rating),
+				DaysToResolve:     int32(f.DaysToResolve),
+				DaysBeforeWarning: int32(f.DaysBeforeWarning),
+			})
+		}
+		payload.Rules = append(payload.Rules, rule)
 	}
 
 	var got OrganizationSlaResourceModel
@@ -562,14 +875,17 @@ func TestGetSecurityModelRequest(t *testing.T) {
 	c, got := newGraphqlTestClient(t, `{"data":{"securityModel":{
 		"scopeMrn":"//captain.api.mondoo.app/organizations/my-org-123456",
 		"slas":{"findings":[{"rating":"CRITICAL","daysToResolve":7,"daysBeforeWarning":5}],
-			"startDateConfig":"CVE_PUBLISHED","ratingSource":"CVSS"},
+			"startDateConfig":"CVE_PUBLISHED","ratingSource":"CVSS",
+			"rules":[{"name":"Production","isCustom":true,
+				"matchStrategy":{"tags":[{"key":"env","value":"production"}]},
+				"deadlines":[{"rating":"CRITICAL","daysToResolve":3,"daysBeforeWarning":1}]}]},
 		"slasSource":"ORGANIZATION"}}}`)
 
 	model, err := c.GetSecurityModel(context.Background(), "//captain.api.mondoo.app/organizations/my-org-123456")
 	require.NoError(t, err)
 
 	assert.Equal(t,
-		`query($scopeMrn:String!){securityModel(scopeMrn: $scopeMrn){scopeMrn,slas{findings{rating,daysToResolve,daysBeforeWarning},startDateConfig,ratingSource},slasSource}}`,
+		`query($scopeMrn:String!){securityModel(scopeMrn: $scopeMrn){scopeMrn,slas{findings{rating,daysToResolve,daysBeforeWarning},startDateConfig,ratingSource,rules{name,isCustom,matchStrategy{... on SLATagMatchStrategy{tags{key,value}}},deadlines{rating,daysToResolve,daysBeforeWarning}}},slasSource}}`,
 		got.Query)
 	assert.JSONEq(t, `"//captain.api.mondoo.app/organizations/my-org-123456"`, string(got.Variables["scopeMrn"]))
 
@@ -578,6 +894,14 @@ func TestGetSecurityModelRequest(t *testing.T) {
 	assert.Equal(t, "CVE_PUBLISHED", model.Slas.StartDateConfig)
 	assert.Equal(t, "CVSS", model.Slas.RatingSource)
 	assert.Equal(t, []FindingsSLAPayload{{Rating: "CRITICAL", DaysToResolve: 7, DaysBeforeWarning: 5}}, model.Slas.Findings)
+
+	want := SLARulePayload{
+		Name:      "Production",
+		IsCustom:  true,
+		Deadlines: []FindingsSLAPayload{{Rating: "CRITICAL", DaysToResolve: 3, DaysBeforeWarning: 1}},
+	}
+	want.MatchStrategy.TagMatch.Tags = []SLATagPayload{{Key: "env", Value: "production"}}
+	assert.Equal(t, []SLARulePayload{want}, model.Slas.Rules)
 }
 
 func TestGetSecurityModelNull(t *testing.T) {
@@ -598,6 +922,9 @@ func TestUpdateSecurityModelRequest(t *testing.T) {
 		Low:             organizationSlaTestObject(t, 90, 0),
 		StartDateConfig: types.StringValue("CVE_DETECTED"),
 		RatingSource:    types.StringValue("RISK"),
+		Rules: organizationSlaTestRules(t,
+			organizationSlaTestRule(t, "Production", [2]string{"env", "production"}),
+		),
 	}
 	slas, diags := expandOrganizationSLAs(context.Background(), &data)
 	require.False(t, diags.HasError(), "diagnostics: %v", diags)
@@ -621,7 +948,17 @@ func TestUpdateSecurityModelRequest(t *testing.T) {
 				{"rating": "LOW", "daysToResolve": 90, "daysBeforeWarning": 0}
 			],
 			"startDateConfig": "CVE_DETECTED",
-			"ratingSource": "RISK"
+			"ratingSource": "RISK",
+			"rules": [{
+				"name": "Production",
+				"matchStrategy": {"tags": [{"key": "env", "value": "production"}]},
+				"deadlines": [
+					{"rating": "CRITICAL", "daysToResolve": 1, "daysBeforeWarning": 0},
+					{"rating": "HIGH", "daysToResolve": 5, "daysBeforeWarning": 2},
+					{"rating": "MEDIUM", "daysToResolve": 30, "daysBeforeWarning": 7},
+					{"rating": "LOW", "daysToResolve": 60, "daysBeforeWarning": 14}
+				]
+			}]
 		}
 	}`, string(got.Variables["input"]))
 }
