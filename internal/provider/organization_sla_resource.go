@@ -289,7 +289,7 @@ Managing this resource requires permission to change the organization's SLAs, wh
 				},
 			},
 			"start_date_config": schema.StringAttribute{
-				MarkdownDescription: "When a finding's SLA starts: `CVE_DETECTED` (when Mondoo first detects the vulnerability on the asset) or `CVE_PUBLISHED` (when the CVE was published). Defaults to `CVE_DETECTED`.",
+				MarkdownDescription: "When a finding's SLA starts: `CVE_DETECTED` (when Mondoo first detects the vulnerability on the asset), `CVE_PUBLISHED` (when the CVE was published) or `FIRST_CVE_DETECTED_IN_SPACE` (when Mondoo first detects the vulnerability on any asset in the space; a new asset, or an asset that registers again, does not restart it). Defaults to `CVE_DETECTED`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(organizationSlaDefaultStartDateConfig),
@@ -297,6 +297,7 @@ Managing this resource requires permission to change the organization's SLAs, wh
 					stringvalidator.OneOf(
 						string(mondoov1.SLAStartDateConfigCveDetected),
 						string(mondoov1.SLAStartDateConfigCvePublished),
+						string(mondoov1.SLAStartDateConfigFirstCveDetectedInSpace),
 					),
 				},
 			},

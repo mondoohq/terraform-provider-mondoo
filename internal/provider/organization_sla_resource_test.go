@@ -499,6 +499,24 @@ func organizationSlaTestObject(t *testing.T, daysToResolve, daysBeforeWarning in
 	return obj
 }
 
+func TestExpandOrganizationSLAsStartsAtTheFirstDetectionInTheSpace(t *testing.T) {
+	data := OrganizationSlaResourceModel{
+		OrgID:           types.StringValue("my-org-123456"),
+		Critical:        organizationSlaTestObject(t, 7, 5),
+		High:            organizationSlaTestObject(t, 14, 10),
+		Medium:          organizationSlaTestObject(t, 45, 40),
+		Low:             organizationSlaTestObject(t, 90, 0),
+		StartDateConfig: types.StringValue("FIRST_CVE_DETECTED_IN_SPACE"),
+		RatingSource:    types.StringValue("RISK"),
+	}
+
+	slas, diags := expandOrganizationSLAs(context.Background(), &data)
+	require.False(t, diags.HasError(), "diagnostics: %v", diags)
+
+	require.NotNil(t, slas.StartDateConfig)
+	assert.Equal(t, mondoov1.SLAStartDateConfigFirstCveDetectedInSpace, *slas.StartDateConfig)
+}
+
 func TestExpandOrganizationSLAs(t *testing.T) {
 	data := OrganizationSlaResourceModel{
 		OrgID:           types.StringValue("my-org-123456"),

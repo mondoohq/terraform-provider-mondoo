@@ -128,7 +128,7 @@ resource "mondoo_organization_sla" "example" {
 
 - `rating_source` (String) Which rating decides a finding's SLA: `RISK` (the Mondoo risk rating) or `CVSS` (the CVSS base score). Defaults to `RISK`.
 - `rules` (Attributes List) SLA rules: other deadlines for findings on the assets a rule matches. A rule matches an asset that carries at least one of its tags. An asset's tags are its labels and annotations, and keys and values match case-insensitively. When several rules match an asset, each rating takes the earliest deadline among them. An asset no rule matches uses `critical`, `high`, `medium` and `low`. This list is the organization's whole set of rules: when it is omitted or empty, the organization has no rules, and rules set in the Mondoo console are removed. (see [below for nested schema](#nestedatt--rules))
-- `start_date_config` (String) When a finding's SLA starts: `CVE_DETECTED` (when Mondoo first detects the vulnerability on the asset) or `CVE_PUBLISHED` (when the CVE was published). Defaults to `CVE_DETECTED`.
+- `start_date_config` (String) When a finding's SLA starts: `CVE_DETECTED` (when Mondoo first detects the vulnerability on the asset), `CVE_PUBLISHED` (when the CVE was published) or `FIRST_CVE_DETECTED_IN_SPACE` (when Mondoo first detects the vulnerability on any asset in the space; a new asset, or an asset that registers again, does not restart it). Defaults to `CVE_DETECTED`.
 
 ### Read-Only
 
