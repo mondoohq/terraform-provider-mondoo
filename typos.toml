@@ -5,6 +5,8 @@
 [files]
 extend-exclude = [
   "go.sum",
+  # Pseudo-versions carry commit hashes, which are not words.
+  "go.mod",
 ]
 
 [default]
