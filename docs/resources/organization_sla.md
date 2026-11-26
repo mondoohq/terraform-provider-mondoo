@@ -4,7 +4,8 @@ page_title: "mondoo_organization_sla Resource - terraform-provider-mondoo"
 subcategory: ""
 description: |-
   Sets the SLAs of a Mondoo organization: how many days a vulnerability finding of each rating has to be resolved, and when it is flagged as approaching its deadline.
-  This is an authoritative resource. It manages the organization's whole SLA configuration, sets every value on each apply, and there can be only one per organization.
+  This is an authoritative resource. It manages the organization's whole SLA configuration, including its SLA rules, sets every value on each apply, and there can be only one per organization.
+  By default every asset uses the same four SLAs. With rules, assets that carry a tag, such as an environment label or the asset's attack surface, get their own SLAs.
   While this resource exists, every space in the organization, including spaces created later, uses these SLAs, and nobody can change the SLAs in a space. Destroying this resource removes the organization's SLAs: every space can edit its SLAs again and goes back to its own SLA settings, or to the Mondoo defaults if it never set any. A space's own settings are kept, unchanged, while the organization's SLAs apply.
   Changing the SLAs doesn't move existing deadlines right away: each finding's deadline follows the new SLAs on the asset's next scan.
   Managing this resource requires permission to change the organization's SLAs, which the organization's Owner, Editor, and SLA Manager roles grant.
@@ -15,7 +16,9 @@ description: |-
 
 Sets the SLAs of a Mondoo organization: how many days a vulnerability finding of each rating has to be resolved, and when it is flagged as approaching its deadline.
 
-This is an **authoritative** resource. It manages the organization's whole SLA configuration, sets every value on each apply, and there can be only one per organization.
+This is an **authoritative** resource. It manages the organization's whole SLA configuration, including its SLA rules, sets every value on each apply, and there can be only one per organization.
+
+By default every asset uses the same four SLAs. With `rules`, assets that carry a tag, such as an environment label or the asset's attack surface, get their own SLAs.
 
 While this resource exists, every space in the organization, including spaces created later, uses these SLAs, and nobody can change the SLAs in a space. Destroying this resource removes the organization's SLAs: every space can edit its SLAs again and goes back to its own SLA settings, or to the Mondoo defaults if it never set any. A space's own settings are kept, unchanged, while the organization's SLAs apply.
 
@@ -57,6 +60,56 @@ resource "mondoo_organization_sla" "example" {
   # Optional, shown with their defaults.
   start_date_config = "CVE_DETECTED"
   rating_source     = "RISK"
+
+  # Optional. A rule gives the assets that carry one of its tags their own
+  # SLAs. An asset no rule matches uses the four SLAs above.
+  rules = [
+    {
+      # Internet-facing assets: the attack surface set on the asset, else the
+      # one Mondoo detects.
+      name = "Internet-facing"
+      tags = [{ key = "mondoo.com/attack-surface", value = "internet" }]
+
+      critical = {
+        days_to_resolve     = 1
+        days_before_warning = 0
+      }
+      high = {
+        days_to_resolve     = 5
+        days_before_warning = 2
+      }
+      medium = {
+        days_to_resolve     = 30
+        days_before_warning = 7
+      }
+      low = {
+        days_to_resolve     = 60
+        days_before_warning = 14
+      }
+    },
+    {
+      # Any label or annotation works as a tag.
+      name = "Production"
+      tags = [{ key = "env", value = "production" }]
+
+      critical = {
+        days_to_resolve     = 3
+        days_before_warning = 1
+      }
+      high = {
+        days_to_resolve     = 14
+        days_before_warning = 7
+      }
+      medium = {
+        days_to_resolve     = 45
+        days_before_warning = 30
+      }
+      low = {
+        days_to_resolve     = 90
+        days_before_warning = 60
+      }
+    },
+  ]
 }
 ```
 
@@ -74,6 +127,7 @@ resource "mondoo_organization_sla" "example" {
 ### Optional
 
 - `rating_source` (String) Which rating decides a finding's SLA: `RISK` (the Mondoo risk rating) or `CVSS` (the CVSS base score). Defaults to `RISK`.
+- `rules` (Attributes List) SLA rules: other deadlines for findings on the assets a rule matches. A rule matches an asset that carries at least one of its tags. An asset's tags are its labels and annotations, and keys and values match case-insensitively. When several rules match an asset, each rating takes the earliest deadline among them. An asset no rule matches uses `critical`, `high`, `medium` and `low`. This list is the organization's whole set of rules: when it is omitted or empty, the organization has no rules, and rules set in the Mondoo console are removed. (see [below for nested schema](#nestedatt--rules))
 - `start_date_config` (String) When a finding's SLA starts: `CVE_DETECTED` (when Mondoo first detects the vulnerability on the asset) or `CVE_PUBLISHED` (when the CVE was published). Defaults to `CVE_DETECTED`.
 
 ### Read-Only
@@ -114,6 +168,63 @@ Required:
 
 - `days_before_warning` (Number) Number of days after the SLA start date at which a finding with this rating is flagged as approaching its deadline. Must not be greater than `days_to_resolve`.
 - `days_to_resolve` (Number) Number of days after the SLA start date (see `start_date_config`) by which a finding with this rating must be resolved. Must be at least `days_before_warning`.
+
+
+<a id="nestedatt--rules"></a>
+### Nested Schema for `rules`
+
+Required:
+
+- `critical` (Attributes) SLA for findings rated critical on the assets the rule matches. (see [below for nested schema](#nestedatt--rules--critical))
+- `high` (Attributes) SLA for findings rated high on the assets the rule matches. (see [below for nested schema](#nestedatt--rules--high))
+- `low` (Attributes) SLA for findings rated low on the assets the rule matches. (see [below for nested schema](#nestedatt--rules--low))
+- `medium` (Attributes) SLA for findings rated medium on the assets the rule matches. (see [below for nested schema](#nestedatt--rules--medium))
+- `name` (String) The rule's name. It must be unique among the rules, ignoring case and surrounding spaces, and it can't be `Default`.
+- `tags` (Attributes Set) The rule applies to assets that carry at least one of these tags, for example `env` = `production`. The key `mondoo.com/attack-surface` matches the asset's attack surface (`internet`, `network`, `local`, `system` or `none`): the one set on the asset, else the one Mondoo detects. (see [below for nested schema](#nestedatt--rules--tags))
+
+<a id="nestedatt--rules--critical"></a>
+### Nested Schema for `rules.critical`
+
+Required:
+
+- `days_before_warning` (Number) Number of days after the SLA start date at which a finding with this rating is flagged as approaching its deadline. Must not be greater than `days_to_resolve`.
+- `days_to_resolve` (Number) Number of days after the SLA start date (see `start_date_config`) by which a finding with this rating must be resolved. Must be at least `days_before_warning`.
+
+
+<a id="nestedatt--rules--high"></a>
+### Nested Schema for `rules.high`
+
+Required:
+
+- `days_before_warning` (Number) Number of days after the SLA start date at which a finding with this rating is flagged as approaching its deadline. Must not be greater than `days_to_resolve`.
+- `days_to_resolve` (Number) Number of days after the SLA start date (see `start_date_config`) by which a finding with this rating must be resolved. Must be at least `days_before_warning`.
+
+
+<a id="nestedatt--rules--low"></a>
+### Nested Schema for `rules.low`
+
+Required:
+
+- `days_before_warning` (Number) Number of days after the SLA start date at which a finding with this rating is flagged as approaching its deadline. Must not be greater than `days_to_resolve`.
+- `days_to_resolve` (Number) Number of days after the SLA start date (see `start_date_config`) by which a finding with this rating must be resolved. Must be at least `days_before_warning`.
+
+
+<a id="nestedatt--rules--medium"></a>
+### Nested Schema for `rules.medium`
+
+Required:
+
+- `days_before_warning` (Number) Number of days after the SLA start date at which a finding with this rating is flagged as approaching its deadline. Must not be greater than `days_to_resolve`.
+- `days_to_resolve` (Number) Number of days after the SLA start date (see `start_date_config`) by which a finding with this rating must be resolved. Must be at least `days_before_warning`.
+
+
+<a id="nestedatt--rules--tags"></a>
+### Nested Schema for `rules.tags`
+
+Required:
+
+- `key` (String) The tag's key.
+- `value` (String) The tag's value.
 
 ## Import
 

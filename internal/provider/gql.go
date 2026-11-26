@@ -2067,10 +2067,29 @@ type FindingsSLAPayload struct {
 	DaysBeforeWarning int32  `graphql:"daysBeforeWarning"`
 }
 
+type SLATagPayload struct {
+	Key   string `graphql:"key"`
+	Value string `graphql:"value"`
+}
+
+// SLARulePayload is an SLA rule. A rule matches assets by their tags.
+type SLARulePayload struct {
+	Name     string `graphql:"name"`
+	IsCustom bool   `graphql:"isCustom"`
+	// MatchStrategy is a union; the tag strategy is its only member.
+	MatchStrategy struct {
+		TagMatch struct {
+			Tags []SLATagPayload `graphql:"tags"`
+		} `graphql:"... on SLATagMatchStrategy"`
+	} `graphql:"matchStrategy"`
+	Deadlines []FindingsSLAPayload `graphql:"deadlines"`
+}
+
 type SLAsPayload struct {
 	Findings        []FindingsSLAPayload `graphql:"findings"`
 	StartDateConfig string               `graphql:"startDateConfig"`
 	RatingSource    string               `graphql:"ratingSource"`
+	Rules           []SLARulePayload     `graphql:"rules"`
 }
 
 type SecurityModelPayload struct {
